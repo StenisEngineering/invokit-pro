@@ -625,6 +625,108 @@ select.field-input{appearance:none;background-image:url("data:image/svg+xml,%3Cs
 input[type=color]{-webkit-appearance:none;border:none;background:none;width:36px;height:36px;border-radius:50%;cursor:pointer;padding:0;}
 input[type=color]::-webkit-color-swatch-wrapper{padding:0;border-radius:50%;}
 input[type=color]::-webkit-color-swatch{border:3px solid var(--border2);border-radius:50%;}
+
+/* ============================================================ MOBILE RESPONSIVE */
+@media (max-width: 768px) {
+
+  /* ── Sidebar: hidden by default, slides in ── */
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    z-index: 200;
+    width: 260px;
+  }
+  .sidebar.mob-open {
+    transform: translateX(0);
+  }
+
+  /* ── Overlay behind open sidebar ── */
+  .mob-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 199;
+  }
+  .mob-overlay.show { display: block; }
+
+  /* ── Main takes full width ── */
+  .main { margin-left: 0; }
+
+  /* ── Topbar gets hamburger ── */
+  .topbar {
+    padding: 12px 16px;
+    gap: 10px;
+  }
+  .topbar-actions .btn-ghost { display: none; }
+
+  /* ── Page content padding ── */
+  .content { padding: 16px; }
+
+  /* ── Stats grid: 2 cols ── */
+  .stats-grid { grid-template-columns: repeat(2,1fr); gap: 10px; margin-bottom: 16px; }
+
+  /* ── Two-col: stack ── */
+  .two-col { grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px; }
+
+  /* ── Tables: horizontal scroll ── */
+  .table-wrap { overflow-x: auto; }
+  table { min-width: 560px; font-size: 12.5px; }
+  th, td { padding: 9px 10px; }
+
+  /* ── Cards ── */
+  .card { padding: 16px; }
+
+  /* ── Page title ── */
+  .page-title { font-size: 18px; }
+  .page-subtitle { font-size: 11px; }
+
+  /* ── Editor modal ── */
+  .overlay { padding: 8px; align-items: flex-start; padding-top: 0; }
+  .editor-panel {
+    max-width: 100vw !important;
+    max-height: 100vh;
+    border-radius: 12px 12px 0 0;
+    margin-top: auto;
+  }
+  .editor-grid { grid-template-columns: 1fr; gap: 14px; }
+  .editor-body { padding: 16px; }
+  .editor-header { padding: 14px 16px; }
+
+  /* ── Settings layout ── */
+  .settings-layout { grid-template-columns: 1fr; }
+  .settings-nav-card { position: static; width: 100%; display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; }
+  .settings-nav-item { padding: 7px 10px; font-size: 12px; }
+
+  /* ── PWA banner ── */
+  .pwa-banner { padding: 12px 14px; }
+  .pwa-banner-sub { display: none; }
+
+  /* ── Filters wrap ── */
+  .filter-row { flex-wrap: wrap; gap: 4px; }
+  .table-head { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .table-head > div:last-child { width: 100%; }
+  .search-box { flex: 1; min-width: 0; }
+}
+
+/* ── Hamburger button (always in DOM, hidden on desktop) ── */
+.mob-menu-btn {
+  display: none;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+  color: var(--text);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+}
+@media (max-width: 768px) {
+  .mob-menu-btn { display: flex; }
+}
 </style>
 </head>
 <body>
@@ -741,6 +843,9 @@ input[type=color]::-webkit-color-swatch{border:3px solid var(--border2);border-r
   </div>
 </div>
 
+<!-- MOBILE OVERLAY -->
+<div class="mob-overlay" id="mobOverlay" onclick="closeMobSidebar()"></div>
+
 <div class="app">
 
 <!-- ============================================================ SIDEBAR -->
@@ -820,6 +925,7 @@ input[type=color]::-webkit-color-swatch{border:3px solid var(--border2);border-r
 <!-- ===== DASHBOARD ===== -->
 <div class="page active" id="page-dashboard">
   <header class="topbar">
+    <button class="mob-menu-btn" onclick="toggleMobSidebar()">☰</button>
     <div><div class="page-title">Dashboard</div><div class="page-subtitle" id="dashSubtitle">—</div></div>
     <div class="topbar-actions">
       <button class="btn btn-ghost" onclick="exportCSV()">↓ Export CSV</button>
@@ -864,6 +970,7 @@ input[type=color]::-webkit-color-swatch{border:3px solid var(--border2);border-r
 <!-- ===== INVOICES ===== -->
 <div class="page" id="page-invoices">
   <header class="topbar">
+    <button class="mob-menu-btn" onclick="toggleMobSidebar()">☰</button>
     <div><div class="page-title">Invoices</div><div class="page-subtitle">Full management</div></div>
     <div class="topbar-actions">
       <button class="btn btn-ghost" onclick="exportCSV()">↓ Export CSV</button>
@@ -891,6 +998,7 @@ input[type=color]::-webkit-color-swatch{border:3px solid var(--border2);border-r
 <!-- ===== CLIENTS ===== -->
 <div class="page" id="page-clients">
   <header class="topbar">
+    <button class="mob-menu-btn" onclick="toggleMobSidebar()">☰</button>
     <div><div class="page-title">Clients</div><div class="page-subtitle">Manage your client database</div></div>
     <div class="topbar-actions">
       <button class="btn btn-primary" onclick="openClientModal(null)">+ Add Client</button>
@@ -908,6 +1016,7 @@ input[type=color]::-webkit-color-swatch{border:3px solid var(--border2);border-r
 <!-- ===== CATALOGUE ===== -->
 <div class="page" id="page-catalogue">
   <header class="topbar">
+    <button class="mob-menu-btn" onclick="toggleMobSidebar()">☰</button>
     <div><div class="page-title">Catalogue</div><div class="page-subtitle">Your products &amp; services library</div></div>
     <div class="topbar-actions">
       <button class="btn btn-ghost" id="catViewGrid" onclick="setCatView('grid')" title="Grid view">▦</button>
@@ -930,6 +1039,7 @@ input[type=color]::-webkit-color-swatch{border:3px solid var(--border2);border-r
 <!-- ===== RECEIPTS ===== -->
 <div class="page" id="page-receipts">
   <header class="topbar">
+    <button class="mob-menu-btn" onclick="toggleMobSidebar()">☰</button>
     <div><div class="page-title">Receipts</div><div class="page-subtitle">Proof of payment — paid invoices only</div></div>
   </header>
   <div class="content fade-in">
@@ -948,6 +1058,7 @@ input[type=color]::-webkit-color-swatch{border:3px solid var(--border2);border-r
 <!-- ===== RECURRING ===== -->
 <div class="page" id="page-recurring">
   <header class="topbar">
+    <button class="mob-menu-btn" onclick="toggleMobSidebar()">☰</button>
     <div><div class="page-title">Recurring</div><div class="page-subtitle">Auto-generate on schedule</div></div>
     <div class="topbar-actions"><button class="btn btn-primary" onclick="openRecurringModal()">+ New Recurring</button></div>
   </header>
@@ -957,6 +1068,7 @@ input[type=color]::-webkit-color-swatch{border:3px solid var(--border2);border-r
 <!-- ===== ANALYTICS ===== -->
 <div class="page" id="page-analytics">
   <header class="topbar">
+    <button class="mob-menu-btn" onclick="toggleMobSidebar()">☰</button>
     <div><div class="page-title">Analytics</div><div class="page-subtitle">Revenue insights</div></div>
     <div class="topbar-actions"><button class="btn btn-ghost" onclick="exportCSV()">↓ Export CSV</button></div>
   </header>
@@ -977,6 +1089,7 @@ input[type=color]::-webkit-color-swatch{border:3px solid var(--border2);border-r
 <!-- ===== SETTINGS ===== -->
 <div class="page" id="page-settings">
   <header class="topbar">
+    <button class="mob-menu-btn" onclick="toggleMobSidebar()">☰</button>
     <div><div class="page-title">Settings</div><div class="page-subtitle">Business & preferences</div></div>
     <div class="topbar-actions"><button class="btn btn-primary" onclick="saveSettings()">✓ Save</button></div>
   </header>
@@ -3270,6 +3383,32 @@ function toggleComingSoon() {
   panel.classList.toggle('open', !isOpen);
   arrow.classList.toggle('open', !isOpen);
 }
+
+// ============================================================
+// MOBILE SIDEBAR TOGGLE
+// ============================================================
+function toggleMobSidebar() {
+  const sb = document.querySelector('.sidebar');
+  const ov = document.getElementById('mobOverlay');
+  const isOpen = sb.classList.contains('mob-open');
+  if (isOpen) { closeMobSidebar(); } else {
+    sb.classList.add('mob-open');
+    ov.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+}
+function closeMobSidebar() {
+  document.querySelector('.sidebar')?.classList.remove('mob-open');
+  document.getElementById('mobOverlay')?.classList.remove('show');
+  document.body.style.overflow = '';
+}
+// Close sidebar on nav item tap (mobile)
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', () => {
+    if (window.innerWidth <= 768) closeMobSidebar();
+  });
+});
+
 </script>
 </body>
 </html>
