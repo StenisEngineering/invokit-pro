@@ -10,7 +10,7 @@
 <meta name="application-name" content="InvoKit Pro">
 <meta name="theme-color" content="#0c0c0e">
 <meta name="description" content="Professional invoicing — works offline, installs on any device.">
-<link rel="manifest" id="pwaManifest">
+<link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" id="favicon32">
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" id="appleIcon">
@@ -2749,15 +2749,27 @@ function setValue(id,v){const el=document.getElementById(id);if(el) el.value=v;}
 function showToast(msg){const t=document.getElementById('toast');document.getElementById('toastMsg').textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3000);}
 
 // ================================================================
-// PWA — Service Worker (inline blob) + Manifest + Install prompt
+// PWA — Service Worker + Install prompt
 // ================================================================
 let _pwaInstallPrompt = null;
 
 function initPWA() {
-  // 0. Set favicon — now handled by <link> tags in <head> pointing to assets/
-  // (canvas fallback removed — real icon files in assets/ folder)
+  // 1. Register real service worker from /sw.js
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js', {scope: '/'}).catch(() => {});
+  }
 
-  // 1. Inject manifest as blob so single-file app is installable
+  // 2. Listen for install prompt
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    _pwaInstallPrompt = e;
+    const dismissed = localStorage.getItem('pwa_dismissed');
+    if (!dismissed) showPWABanner();
+  });
+}
+
+// DEAD CODE BELOW — kept for reference only, no longer executed
+function _oldInitPWA_unused() {
   const manifest = {
     name: 'InvoKit Pro',
     short_name: 'InvoKit',
