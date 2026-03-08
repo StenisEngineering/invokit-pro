@@ -3051,6 +3051,14 @@ function saveLicenceData(data) {
 
 function bootSplash() {
   const ld = getLicenceData();
+
+  // ?demo=1 URL parameter — auto-activate demo instantly, no screens shown
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('demo') === '1' && (!ld || ld.status !== 'active')) {
+    enterDemoMode();
+    return;
+  }
+
   // Already activated — skip straight to app
   if (ld && ld.status === 'active') {
     dismissSplash(false);
