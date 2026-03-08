@@ -768,6 +768,7 @@ input[type=color]::-webkit-color-swatch{border:3px solid var(--border2);border-r
     <div class="nav-item" data-page="analytics" onclick="navTo('analytics',this)"><span class="nav-icon">◧</span>Analytics</div>
     <div class="nav-lbl">System</div>
     <div class="nav-item" data-page="settings" onclick="navTo('settings',this)"><span class="nav-icon">⚙</span>Settings</div>
+    <div class="nav-item" id="sidebarInstallBtn" onclick="installPWA()" style="display:none;color:var(--accent);border:1px solid var(--accent-border);margin-top:6px;border-radius:var(--radius-sm);"><span class="nav-icon">⬇</span>Install App</div>
 
     <div class="coming-soon-divider"></div>
 
@@ -2763,6 +2764,7 @@ function initPWA() {
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     _pwaInstallPrompt = e;
+    document.getElementById('sidebarInstallBtn')?.style.setProperty('display','flex');
     const dismissed = localStorage.getItem('pwa_dismissed');
     if (!dismissed) showPWABanner();
   });
@@ -2816,6 +2818,7 @@ self.addEventListener('fetch', e => {
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     _pwaInstallPrompt = e;
+    document.getElementById('sidebarInstallBtn')?.style.setProperty('display','flex');
     const dismissed = localStorage.getItem('pwa_dismissed');
     if (!dismissed) showPWABanner();
   });
@@ -2875,6 +2878,7 @@ async function installPWA() {
   const { outcome } = await _pwaInstallPrompt.userChoice;
   _pwaInstallPrompt = null;
   hidePWABanner();
+  document.getElementById('sidebarInstallBtn')?.style.setProperty('display','none');
   if (outcome === 'accepted') showToast('✓ Installing InvoKit Pro…');
 }
 function updateInstallStatus() {
