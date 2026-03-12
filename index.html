@@ -727,6 +727,235 @@ input[type=color]::-webkit-color-swatch{border:3px solid var(--border2);border-r
 @media (max-width: 768px) {
   .mob-menu-btn { display: flex; }
 }
+/* ========================= MOBILE APP FIX ========================= */
+@media (max-width: 768px) {
+  html, body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-size: 15px;
+    touch-action: manipulation;
+  }
+
+  .app {
+    display: block !important;
+    min-width: 0 !important;
+  }
+
+  .sidebar {
+    width: min(84vw, 320px) !important;
+    max-width: 320px !important;
+  }
+
+  .main {
+    margin-left: 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .content {
+    padding: 14px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .topbar {
+    padding: 12px 14px !important;
+    gap: 10px !important;
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+  }
+
+  .page-title {
+    font-size: 20px !important;
+    line-height: 1.1 !important;
+  }
+
+  .page-subtitle {
+    font-size: 11px !important;
+  }
+
+  .topbar-actions {
+    width: 100% !important;
+    display: flex !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    padding-bottom: 2px !important;
+  }
+
+  .btn,
+  .btn-sm,
+  .btn-xs,
+  .field-input,
+  select.field-input,
+  textarea.field-input {
+    min-height: 44px !important;
+    font-size: 16px !important;
+  }
+
+  .btn {
+    padding: 10px 14px !important;
+  }
+
+  .card,
+  .stat-card,
+  .client-card {
+    padding: 16px !important;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  .two-col,
+  .clients-grid,
+  .cat-grid,
+  .half-grid,
+  .settings-layout,
+  .editor-grid,
+  .rec-party-row {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .items-head,
+  .item-row {
+    grid-template-columns: 1.8fr 0.8fr 1fr 1fr 28px !important;
+    gap: 6px !important;
+    min-width: 720px !important;
+  }
+
+  .table-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    width: 100% !important;
+    min-width: 720px !important;
+  }
+
+  th,
+  td {
+    padding: 9px 8px !important;
+    font-size: 12px !important;
+  }
+
+  .overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
+  .editor-panel,
+  .preview-panel,
+  .confirm-box {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92vh !important;
+    border-radius: 16px 16px 0 0 !important;
+    margin: 0 !important;
+  }
+
+  .editor-header,
+  .editor-body,
+  .editor-footer {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+
+  .editor-footer {
+    flex-wrap: wrap !important;
+  }
+
+  .footer-left,
+  .footer-right {
+    width: 100% !important;
+    display: flex !important;
+    gap: 8px !important;
+    flex-wrap: wrap !important;
+  }
+
+  .footer-left > *,
+  .footer-right > * {
+    flex: 1 1 auto !important;
+  }
+
+  .settings-nav-card {
+    position: static !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    gap: 6px !important;
+    padding: 8px !important;
+  }
+
+  .settings-nav-item {
+    white-space: nowrap !important;
+  }
+
+  .clients-toolbar,
+  .filter-row,
+  .table-head {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .search-box {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  #demoBanner {
+    left: 0 !important;
+    right: 0 !important;
+    padding: 8px 12px !important;
+  }
+
+  #licenceScreen > div[style*="max-width:480px"] {
+    max-width: 100% !important;
+    padding: 0 18px !important;
+  }
+
+  /* Fix inline desktop grid styles in markup */
+  [style*="grid-template-columns:1.6fr 1fr"],
+  [style*="grid-template-columns:1fr 1fr 1fr"],
+  [style*="grid-template-columns:1fr 1fr"],
+  [style*="grid-template-columns:1.65fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .page-title {
+    font-size: 18px !important;
+  }
+
+  .content {
+    padding: 12px !important;
+  }
+
+  .topbar {
+    padding: 10px 12px !important;
+  }
+
+  .card,
+  .stat-card,
+  .client-card {
+    padding: 14px !important;
+  }
+}
 </style>
 </head>
 <body>
