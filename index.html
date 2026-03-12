@@ -2868,21 +2868,38 @@ function showToast(msg){const t=document.getElementById('toast');document.getEle
 let _pwaInstallPrompt = null;
 
 function initPWA() {
-  // 1. Register real service worker from /sw.js
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js', {scope: '/'}).catch(() => {});
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(() => {
+        console.log('Service worker registered');
+      })
+      .catch(err => {
+        console.log('SW registration failed:', err);
+      });
   }
 
-  // 2. Listen for install prompt
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     _pwaInstallPrompt = e;
-    document.getElementById('sidebarInstallBtn')?.style.setProperty('display','flex');
+
+    const installBtn = document.getElementById('sidebarInstallBtn');
+    if (installBtn) installBtn.style.display = 'flex';
+
     const dismissed = localStorage.getItem('pwa_dismissed');
     if (!dismissed) showPWABanner();
   });
-}
 
+  window.addEventListener('appinstalled', () => {
+    hidePWABanner();
+    localStorage.setItem('pwa_dismissed', '1');
+
+    const installBtn = document.getElementById('sidebarInstallBtn');
+    if (installBtn) installBtn.style.display = 'none';
+
+    showToast('✓ InvoKit Pro installed on your device!');
+    updateInstallStatus();
+  });
+}
 // DEAD CODE BELOW — kept for reference only, no longer executed
 function _oldInitPWA_unused() {
   const manifest = {
@@ -3263,25 +3280,30 @@ async function activateLicence() {
 
   showLicenceMsg('Validating key...', 'info');
 
-  // Validate against Cloudflare Worker (when built) or accept offline
+  // First activation must validate online.
+  // Once activated successfully, later launches work fully offline from local storage.
   let valid = false;
   try {
-    const res = await fetch(`https://licence.getinvokitpro.com/validate?key=${encodeURIComponent(key)}`, {
+    const res = await fetch('https://licence.getinvokitpro.com/validate', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({key, product:'invokit-pro', version:'8.0'}),
-      signal: AbortSignal.timeout(5000)
+      body: JSON.stringify({key, product:'invokit-pro', version:'8.0', hostname: location.hostname}),
+      signal: AbortSignal.timeout(8000)
     });
+
+    if (!res.ok) {
+      throw new Error(`Validation service returned ${res.status}`);
+    }
+
     const data = await res.json();
-    valid = data.valid === true;
+    valid = data && data.valid === true;
   } catch(e) {
-    // Network unavailable — offline grace: accept if key format is valid
-    // This lets users use the app offline after first activation
-    valid = true;
+    showLicenceMsg('Activation service is unavailable right now. First activation requires internet. If you already activated on this device, reopen the app offline. Otherwise contact support@getinvokitpro.com.', 'error');
+    return;
   }
 
   if (valid) {
-    saveLicenceData({status:'active', key, activatedAt: Date.now()});
+    saveLicenceData({status:'active', key, activatedAt: Date.now(), verifiedOnline:true});
     APP.licenceKey = key; APP.licenceStatus = 'active'; persist();
     showLicenceMsg('✓ Licence activated! Welcome to InvoKit Pro.', 'success');
     setTimeout(() => dismissSplash(true), 1200);
@@ -3306,24 +3328,68 @@ function enterDemoMode() {
 
 function showDemoBanner() {
   if (document.getElementById('demoBanner')) return;
+
   const banner = document.createElement('div');
   banner.id = 'demoBanner';
   banner.style.cssText = `
-    position:fixed;top:0;left:var(--sidebar-w);right:0;z-index:500;
-    padding:8px 20px;background:rgba(18,16,6,0.95);border-bottom:1px solid rgba(201,168,76,0.25);
-    display:flex;align-items:center;gap:12px;
-    font-family:'Outfit',sans-serif;font-size:12.5px;color:#9d9a94;
+    position:fixed;
+    top:0;
+    left:var(--sidebar-w);
+    right:0;
+    z-index:500;
+    padding:8px 16px;
+    background:rgba(18,16,6,0.95);
+    border-bottom:1px solid rgba(201,168,76,0.25);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    font-family:'Outfit',sans-serif;
+    font-size:12.5px;
+    color:#9d9a94;
     backdrop-filter:blur(4px);
   `;
+
   banner.innerHTML = `
-    <span style="color:#c9a84c;font-size:14px;">◎</span>
-    <span>Demo mode — your data won't be saved when you close this tab.</span>
-    <a onclick="showLicenceScreen()" style="color:#c9a84c;cursor:pointer;text-decoration:underline;text-underline-offset:3px;white-space:nowrap;">Get a licence to keep everything →</a>
+    <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+      <span style="color:#c9a84c;font-size:14px;">◎</span>
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+        Demo mode — your data won't be saved when you close this tab.
+      </span>
+      <a onclick="showLicenceScreen()" style="color:#c9a84c;cursor:pointer;text-decoration:underline;text-underline-offset:3px;white-space:nowrap;">
+        Get a licence to keep everything →
+      </a>
+    </div>
+
+    <button
+      onclick="closeDemoBanner()"
+      style="
+        background:transparent;
+        border:none;
+        color:#c9a84c;
+        font-size:18px;
+        line-height:1;
+        cursor:pointer;
+        padding:0 4px;
+        flex:0 0 auto;
+      "
+      aria-label="Close demo banner"
+      title="Close"
+    >×</button>
   `;
+
   document.body.appendChild(banner);
-  // Push content down so banner doesn't overlap
+
   const main = document.querySelector('.main-content') || document.getElementById('mainContent');
-  if (main) main.style.paddingTop = (parseInt(main.style.paddingTop)||0) + 40 + 'px';
+  if (main) main.style.paddingTop = '40px';
+}
+
+function closeDemoBanner() {
+  const banner = document.getElementById('demoBanner');
+  if (banner) banner.remove();
+
+  const main = document.querySelector('.main-content') || document.getElementById('mainContent');
+  if (main) main.style.paddingTop = '0px';
 }
 
 function showPdfPaywall() {
