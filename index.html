@@ -3694,101 +3694,117 @@ function enterDemoMode() {
   setTimeout(showDemoBanner, 700);
 }
 
-function showDemoBanner() {
-  try {
-    if (sessionStorage.getItem('invokit_demo_banner_closed') === '1') return;
-  } catch(e) {}
-
-  const existing = document.getElementById('demoBanner');
-  if (existing) existing.remove();
-
-  const banner = document.createElement('div');
-  banner.id = 'demoBanner';
-  banner.style.cssText = `
-    position:fixed;
-    top:0;
-    left:var(--sidebar-w);
-    right:0;
-    z-index:500;
-    padding:8px 16px;
-    background:rgba(18,16,6,0.95);
-    border-bottom:1px solid rgba(201,168,76,0.25);
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    font-family:'Outfit',sans-serif;
-    font-size:12.5px;
-    color:#9d9a94;
-    backdrop-filter:blur(4px);
-  `;
-
-  banner.innerHTML = `
-    <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 auto;">
-      <span style="color:#c9a84c;font-size:14px;">◎</span>
-      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-        Demo mode — your data won't be saved when you close this tab.
-      </span>
-      <a onclick="showLicenceScreen()" style="color:#c9a84c;cursor:pointer;text-decoration:underline;text-underline-offset:3px;white-space:nowrap;">
-        Get a licence to keep everything →
-      </a>
-    </div>
-
-    <button
-      id="demoBannerCloseBtn"
-      type="button"
-      style="
-        background:transparent;
-        border:none;
-        color:#c9a84c;
-        font-size:18px;
-        line-height:1;
-        cursor:pointer;
-        padding:0 8px;
-        margin-left:8px;
-        flex:0 0 auto;
-      "
-      aria-label="Close demo banner"
-      title="Close"
-    >×</button>
-  `;
-
-  document.body.appendChild(banner);
-
-  const closeBtn = document.getElementById('demoBannerCloseBtn');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      closeDemoBanner();
-      return false;
-    });
-    closeBtn.addEventListener('touchend', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      closeDemoBanner();
-      return false;
-    }, { passive: false });
-  }
-
-  const main = document.querySelector('.main-content') || document.getElementById('mainContent');
-  if (main) main.style.paddingTop = '40px';
-}
-
 function closeDemoBanner() {
-  try { sessionStorage.setItem('invokit_demo_banner_closed', '1'); } catch(e) {}
+  try { sessionStorage.setItem('invokit_demo_banner_closed', '1'); } catch (e) {}
 
   const banner = document.getElementById('demoBanner');
-  if (banner) {
-    banner.style.display = 'none';
-    banner.remove();
-  }
+  if (banner) banner.remove();
 
   const main = document.querySelector('.main-content') || document.getElementById('mainContent');
   if (main) main.style.paddingTop = '0px';
 }
 
 window.closeDemoBanner = closeDemoBanner;
+
+function showDemoBanner() {
+  try {
+    if (sessionStorage.getItem('invokit_demo_banner_closed') === '1') return;
+  } catch (e) {}
+
+  const existing = document.getElementById('demoBanner');
+  if (existing) existing.remove();
+
+  const banner = document.createElement('div');
+  banner.id = 'demoBanner';
+  banner.style.cssText = [
+    'position:fixed',
+    'top:0',
+    'left:var(--sidebar-w)',
+    'right:0',
+    'z-index:10001',
+    'padding:8px 52px 8px 16px',
+    'background:rgba(18,16,6,0.97)',
+    'border-bottom:1px solid rgba(201,168,76,0.25)',
+    'display:flex',
+    'align-items:center',
+    'gap:12px',
+    "font-family:'Outfit',sans-serif",
+    'font-size:12.5px',
+    'color:#9d9a94',
+    'backdrop-filter:blur(4px)'
+  ].join(';');
+
+  const content = document.createElement('div');
+  content.style.cssText = 'display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 auto;overflow:hidden;';
+
+  const dot = document.createElement('span');
+  dot.textContent = '◎';
+  dot.style.cssText = 'color:#c9a84c;font-size:14px;flex:0 0 auto;';
+
+  const msg = document.createElement('span');
+  msg.textContent = "Demo mode — your data won't be saved when you close this tab.";
+  msg.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;';
+
+  const link = document.createElement('a');
+  link.textContent = 'Get a licence to keep everything →';
+  link.href = 'javascript:void(0)';
+  link.style.cssText = 'color:#c9a84c;cursor:pointer;text-decoration:underline;text-underline-offset:3px;white-space:nowrap;flex:0 0 auto;';
+  link.addEventListener('click', function (e) {
+    e.preventDefault();
+    if (typeof showLicenceScreen === 'function') showLicenceScreen();
+  });
+
+  const closeBtn = document.createElement('button');
+  closeBtn.id = 'demoBannerCloseBtn';
+  closeBtn.type = 'button';
+  closeBtn.setAttribute('aria-label', 'Close demo banner');
+  closeBtn.setAttribute('title', 'Close');
+  closeBtn.textContent = '×';
+  closeBtn.style.cssText = [
+    'position:absolute',
+    'top:50%',
+    'right:10px',
+    'transform:translateY(-50%)',
+    'width:30px',
+    'height:30px',
+    'display:flex',
+    'align-items:center',
+    'justify-content:center',
+    'background:transparent',
+    'border:none',
+    'border-radius:8px',
+    'color:#c9a84c',
+    'font-size:22px',
+    'line-height:1',
+    'cursor:pointer',
+    'padding:0',
+    'z-index:10002',
+    'pointer-events:auto',
+    'touch-action:manipulation'
+  ].join(';');
+
+  const doClose = function (e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    closeDemoBanner();
+    return false;
+  };
+
+  closeBtn.addEventListener('click', doClose, { passive: false });
+  closeBtn.addEventListener('touchend', doClose, { passive: false });
+
+  content.appendChild(dot);
+  content.appendChild(msg);
+  content.appendChild(link);
+  banner.appendChild(content);
+  banner.appendChild(closeBtn);
+  document.body.appendChild(banner);
+
+  const main = document.querySelector('.main-content') || document.getElementById('mainContent');
+  if (main) main.style.paddingTop = '40px';
+}
 
 function showPdfPaywall() {
   // Remove existing if any
