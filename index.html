@@ -1045,7 +1045,7 @@ input[type=color]::-webkit-color-swatch{border:3px solid var(--border2);border-r
     <div id="licenceMsg" style="font-size:13px;min-height:20px;margin-bottom:20px;color:#e05a5a;display:none;"></div>
 
     <!-- Activate button -->
-    <button onclick="activateLicence()" style="
+    <button id="activateLicenceBtn" type="button" onclick="activateLicence()" style="
       width:100%;padding:14px;border-radius:8px;border:none;cursor:pointer;
       background:linear-gradient(135deg,#c9a84c,#a8842c);
       color:#0c0c0e;font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;
@@ -3480,6 +3480,20 @@ function dismissSplash(animate=true) {
   document.body.style.overflow = '';
 }
 
+function showLicenceMsg(msg, type='error') {
+  const el = document.getElementById('licenceMsg');
+  if (!el) {
+    console.warn('licenceMsg element not found');
+    return;
+  }
+  el.style.display = 'block';
+  el.textContent = msg || '';
+  if (type === 'success') el.style.color = '#4caf7d';
+  else if (type === 'info') el.style.color = '#c9a84c';
+  else el.style.color = '#e05a5a';
+}
+
+
 // Valid key format: 4 groups of 4-8 alphanumeric chars separated by dashes
 // e.g. ABCD-1234-EFGH-5678 (Lemon Squeezy) or DEMO-MODE-FREE-XXXX
 function validateKeyFormat(key) {
@@ -3488,7 +3502,7 @@ function validateKeyFormat(key) {
 
 async function activateLicence() {
   const input = document.getElementById('licenceKeyInput');
-  const key = input.value.trim().toUpperCase();
+  const key = (input?.value || '').trim().toUpperCase();
 
   if (!key) {
     showLicenceMsg('Please enter your licence key.', 'error');
@@ -3507,6 +3521,15 @@ async function activateLicence() {
   }
 
   showLicenceMsg('Validating key...', 'info');
+
+  const activateBtn = document.getElementById('activateLicenceBtn');
+  const originalBtnText = activateBtn ? activateBtn.textContent : '';
+  if (activateBtn) {
+    activateBtn.disabled = true;
+    activateBtn.style.opacity = '0.7';
+    activateBtn.style.cursor = 'wait';
+    activateBtn.textContent = 'Validating...';
+  }
 
   try {
     let installId = localStorage.getItem('invokit_install_id');
@@ -3532,7 +3555,12 @@ async function activateLicence() {
 
     clearTimeout(timeout);
 
-    const data = await res.json();
+    let data = {};
+    try {
+      data = await res.json();
+    } catch (jsonErr) {
+      throw new Error('Invalid server response');
+    }
 
     if (!res.ok || !data.ok) {
       showLicenceMsg(data.error || 'Activation failed. Please contact support@getinvokitpro.com.', 'error');
@@ -3548,20 +3576,36 @@ async function activateLicence() {
       licenceMeta: data.activation?.licence || {}
     });
 
-    APP.licenceKey = key;
-    APP.licenceStatus = 'active';
-    persist();
+    if (typeof APP === 'object' && APP) {
+      APP.licenceKey = key;
+      APP.licenceStatus = 'active';
+    }
+    if (typeof persist === 'function') persist();
 
     showLicenceMsg('✓ Licence activated! Welcome to InvoKit Pro.', 'success');
     setTimeout(() => dismissSplash(true), 1200);
   } catch (e) {
     const msg = e?.name === 'AbortError'
       ? 'Activation timed out. Please check internet and try again.'
-      : 'Activation service is unavailable right now. First activation requires internet. If you already activated on this device, reopen the app offline. Otherwise contact support@getinvokitpro.com.';
+      : (e?.message === 'Failed to fetch'
+          ? 'Cannot reach activation server. Check internet and try again.'
+          : 'Activation service is unavailable right now. Please try again or contact support@getinvokitpro.com.');
     showLicenceMsg(msg, 'error');
     console.error('Activation error:', e);
+  } finally {
+    if (activateBtn) {
+      activateBtn.disabled = false;
+      activateBtn.style.opacity = '1';
+      activateBtn.style.cursor = 'pointer';
+      activateBtn.textContent = originalBtnText || 'Activate Licence';
+    }
   }
 }
+
+window.activateLicence = activateLicence;
+window.showSplash = showSplash;
+window.showLicenceScreen = showLicenceScreen;
+window.enterDemoMode = enterDemoMode;
 
 function enterDemoMode() {
   saveLicenceData({status:'demo', startedAt: Date.now()});
