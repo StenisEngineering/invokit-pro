@@ -3568,22 +3568,27 @@ async function activateLicence() {
     }
 
     saveLicenceData({
-      status: 'active',
-      key,
-      installId,
-      activatedAt: Date.now(),
-      activationToken: data.activation?.token || '',
-      licenceMeta: data.activation?.licence || {}
-    });
+  status: 'active',
+  key,
+  installId,
+  activatedAt: Date.now(),
+  activationToken: data.activation?.token || '',
+  licenceMeta: data.activation?.licence || {}
+});
 
-    if (typeof APP === 'object' && APP) {
-      APP.licenceKey = key;
-      APP.licenceStatus = 'active';
-    }
-    if (typeof persist === 'function') persist();
+APP.demo = false;
+APP.licenceKey = key;
+APP.licenceStatus = 'active';
+persist();
 
-    showLicenceMsg('✓ Licence activated! Welcome to InvoKit Pro.', 'success');
-    setTimeout(() => dismissSplash(true), 1200);
+const banner = document.getElementById('demoBanner');
+if (banner) banner.remove();
+
+const main = document.querySelector('.main-content') || document.getElementById('mainContent');
+if (main) main.style.paddingTop = '0px';
+
+showLicenceMsg('✓ Licence activated! Welcome to InvoKit Pro.', 'success');
+setTimeout(() => dismissSplash(true), 1200);
   } catch (e) {
     const msg = e?.name === 'AbortError'
       ? 'Activation timed out. Please check internet and try again.'
