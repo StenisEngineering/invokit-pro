@@ -3483,7 +3483,7 @@ function dismissSplash(animate=true) {
 // Valid key format: 4 groups of 4-8 alphanumeric chars separated by dashes
 // e.g. ABCD-1234-EFGH-5678 (Lemon Squeezy) or DEMO-MODE-FREE-XXXX
 function validateKeyFormat(key) {
-  return /^[A-Z0-9]{4,12}(-[A-Z0-9]{4,12}){2,5}$/.test(key.trim().toUpperCase());
+  return /^(?:IVK|[A-Z0-9]{4,12})(-[A-Z0-9]{4,12}){2,5}$/.test(key.trim().toUpperCase());
 }
 
 async function activateLicence() {
@@ -3513,7 +3513,7 @@ async function activateLicence() {
   // Once activated successfully, later launches work fully offline from local storage.
   let valid = false;
   try {
-    const res = await fetch('https://licence.getinvokitpro.com/validate', {
+    const res = await fetch('https://invokit-licence.engineeringstenis.workers.dev/validate', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({key, product:'invokit-pro', version:'8.0', hostname: location.hostname}),
