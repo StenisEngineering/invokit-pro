@@ -3488,64 +3488,72 @@ function validateKeyFormat(key) {
 
 async function activateLicence() {
   const input = document.getElementById('licenceKeyInput');
-  const msg = document.getElementById('licenceMsg');
   const key = input.value.trim().toUpperCase();
 
-  msg.style.display = 'none';
-  msg.style.color = '#e05a5a';
-
   if (!key) {
-    showLicenceMsg('Please enter your licence key.', 'error'); return;
-  }
-  if (!validateKeyFormat(key)) {
-    showLicenceMsg('Key format looks incorrect. Check your purchase email.', 'error'); return;
+    showLicenceMsg('Please enter your licence key.', 'error');
+    return;
   }
 
-  // Demo keys for testing
-  const demoKeys = ['DEMO-MODE-FREE-2026','TEST-INVOKIT-PRO-KEY','INVOKIT-DEMO-0000'];
+  if (!validateKeyFormat(key)) {
+    showLicenceMsg('Key format looks incorrect. Check your purchase email.', 'error');
+    return;
+  }
+
+  const demoKeys = ['DEMO-MODE-FREE-2026', 'TEST-INVOKIT-PRO-KEY', 'INVOKIT-DEMO-0000'];
   if (demoKeys.includes(key)) {
-    enterDemoMode(); return;
+    enterDemoMode();
+    return;
   }
 
   showLicenceMsg('Validating key...', 'info');
 
-  // First activation must validate online.
-  // Once activated successfully, later launches work fully offline from local storage.
-  let valid = false;
   try {
-    const res = await fetch('https://invokit-licence.engineeringstenis.workers.dev/validate', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({key, product:'invokit-pro', version:'8.0', hostname: location.hostname}),
-      signal: AbortSignal.timeout(8000)
-    });
-
-    if (!res.ok) {
-      throw new Error(`Validation service returned ${res.status}`);
+    let installId = localStorage.getItem('invokit_install_id');
+    if (!installId) {
+      installId = (crypto.randomUUID ? crypto.randomUUID() : 'install-' + Date.now() + '-' + Math.random().toString(36).slice(2));
+      localStorage.setItem('invokit_install_id', installId);
     }
 
-    const data = await res.json();
-    valid = data && data.valid === true;
-  } catch(e) {
-    showLicenceMsg('Activation service is unavailable right now. First activation requires internet. If you already activated on this device, reopen the app offline. Otherwise contact support@getinvokitpro.com.', 'error');
-    return;
-  }
+    const res = await fetch('https://invokit-licence.engineeringstenis.workers.dev/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        key,
+        installId,
+        deviceName: navigator.userAgent || 'Unknown device',
+        appVersion: '8.0'
+      })
+    });
 
-  if (valid) {
-    saveLicenceData({status:'active', key, activatedAt: Date.now(), verifiedOnline:true});
-    APP.licenceKey = key; APP.licenceStatus = 'active'; persist();
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      showLicenceMsg(data.error || 'Activation failed. Please contact support@getinvokitpro.com.', 'error');
+      return;
+    }
+
+    saveLicenceData({
+      status: 'active',
+      key,
+      installId,
+      activatedAt: Date.now(),
+      activationToken: data.activation?.token || '',
+      licenceMeta: data.activation?.licence || {}
+    });
+
+    APP.licenceKey = key;
+    APP.licenceStatus = 'active';
+    persist();
+
     showLicenceMsg('✓ Licence activated! Welcome to InvoKit Pro.', 'success');
     setTimeout(() => dismissSplash(true), 1200);
-  } else {
-    showLicenceMsg('Invalid key. Please check your purchase email or contact support@getinvokitpro.com', 'error');
+  } catch (e) {
+    showLicenceMsg(
+      'Activation service is unavailable right now. First activation requires internet. If you already activated on this device, reopen the app offline. Otherwise contact support@getinvokitpro.com.',
+      'error'
+    );
   }
-}
-
-function showLicenceMsg(msg, type) {
-  const el = document.getElementById('licenceMsg');
-  el.textContent = msg;
-  el.style.display = 'block';
-  el.style.color = type === 'success' ? '#4caf7d' : type === 'info' ? '#c9a84c' : '#e05a5a';
 }
 
 function enterDemoMode() {
