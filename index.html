@@ -3515,6 +3515,9 @@ async function activateLicence() {
       localStorage.setItem('invokit_install_id', installId);
     }
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
     const res = await fetch('https://invokit-licence.engineeringstenis.workers.dev/validate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -3523,8 +3526,11 @@ async function activateLicence() {
         installId,
         deviceName: navigator.userAgent || 'Unknown device',
         appVersion: '8.0'
-      })
+      }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeout);
 
     const data = await res.json();
 
@@ -3549,10 +3555,11 @@ async function activateLicence() {
     showLicenceMsg('✓ Licence activated! Welcome to InvoKit Pro.', 'success');
     setTimeout(() => dismissSplash(true), 1200);
   } catch (e) {
-    showLicenceMsg(
-      'Activation service is unavailable right now. First activation requires internet. If you already activated on this device, reopen the app offline. Otherwise contact support@getinvokitpro.com.',
-      'error'
-    );
+    const msg = e?.name === 'AbortError'
+      ? 'Activation timed out. Please check internet and try again.'
+      : 'Activation service is unavailable right now. First activation requires internet. If you already activated on this device, reopen the app offline. Otherwise contact support@getinvokitpro.com.';
+    showLicenceMsg(msg, 'error');
+    console.error('Activation error:', e);
   }
 }
 
