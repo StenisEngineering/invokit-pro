@@ -956,6 +956,19 @@ input[type=color]::-webkit-color-swatch{border:3px solid var(--border2);border-r
     padding: 14px !important;
   }
 }
+
+/* ===== Launch-safe usability improvements ===== */
+body,button,input,select,textarea{font-size:calc(100% + 1px);}
+@media (max-width:768px){
+  body,button,input,select,textarea{font-size:calc(100% + 1px) !important;}
+  .btn,.btn-sm,.btn-xs,.field-input,select.field-input,textarea.field-input,
+  .page-title,.page-subtitle,.nav-item,.nav-lbl,.stat-label,.card-title,
+  td,th,label,.settings-nav-item,.client-name,.client-email,.cat-name,.cat-desc{
+    font-size:calc(100% + 1px) !important;
+  }
+}
+.truncate,.ellipsis,[data-tooltip-auto]{cursor:help;}
+
 </style>
 </head>
 <body>
@@ -2970,8 +2983,52 @@ function openPrintWindow(html, type){
   const win=window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Mono:wght@400;500&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>${styles}</style>
-  </head><body>${html}</body></html>`);
+  <style>${styles}
+/* Readability bump */
+body,
+button,
+input,
+select,
+textarea {
+  font-size: calc(100% + 2px);
+}
+
+@media (max-width: 768px) {
+  body {
+    font-size: calc(100% + 2px) !important;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font-size: calc(100% + 2px) !important;
+  }
+
+  .btn,
+  .field-input,
+  .topbar,
+  .page-title,
+  .page-subtitle,
+  .nav-lbl,
+  .stat-label,
+  .card-title,
+  td,
+  th,
+  label,
+  a,
+  span,
+  div,
+  p,
+  small {
+    font-size: calc(100% + 2px) !important;
+  }
+}
+</style>
+  </head><body>${html}
+
+
+</body></html>`);
   win.document.close();
   win.onload=()=>{win.focus();win.print();};
 }
@@ -3768,6 +3825,105 @@ document.querySelectorAll('.nav-item').forEach(el => {
   });
 });
 
+
+
+// ============================================================
+// UX HELPERS: TOOLTIPS + BRAND HOME
+// ============================================================
+function applyAutoTooltips(root=document){
+  const candidates = root.querySelectorAll(`
+    .truncate,
+    .ellipsis,
+    [data-tooltip-auto],
+    .nav-item,
+    .nav-lbl,
+    .table-wrap td,
+    .table-wrap th,
+    .chip,
+    .tag,
+    .stat-label,
+    .card-title,
+    .client-name,
+    .client-email,
+    .cat-name,
+    .cat-desc,
+    .page-title,
+    .page-subtitle,
+    .settings-nav-item,
+    .logo-mark,
+    .logo-sub,
+    td, th, a, button, span, div, p, small, label
+  `);
+
+  candidates.forEach(el => {
+    const text = (el.getAttribute('data-full-text') || el.textContent || '')
+      .replace(/\s+/g,' ')
+      .trim();
+
+    if (!text || text.length < 8) return;
+
+    const style = window.getComputedStyle(el);
+    const isSingleLineCut =
+      style.whiteSpace === 'nowrap' && el.scrollWidth > el.clientWidth + 2;
+
+    const isMultiLineCut =
+      (style.overflow === 'hidden' || style.textOverflow === 'ellipsis') &&
+      el.scrollHeight > el.clientHeight + 2;
+
+    const isLikelyCut = isSingleLineCut || isMultiLineCut;
+
+    if (isLikelyCut) {
+      el.setAttribute('title', text);
+      el.setAttribute('aria-label', text);
+      el.style.cursor = 'help';
+    }
+  });
+}
+function goToDashboardHome(e){
+  if(e) e.preventDefault();
+  const dashboardTarget = document.querySelector('.nav-item[data-page="dashboard"]') || document.querySelector('.nav-item.active');
+  if(typeof navTo==='function' && dashboardTarget){
+    navTo('dashboard', dashboardTarget);
+  } else if (dashboardTarget) {
+    dashboardTarget.click();
+  }
+  if(typeof closeMobSidebar==='function'){ closeMobSidebar(); }
+  document.body.classList.remove('menu-open','drawer-open','sidebar-open');
+}
+
+function startAutoTooltips(){
+  applyAutoTooltips();
+  window.addEventListener('load', ()=>applyAutoTooltips());
+  window.addEventListener('resize', ()=>applyAutoTooltips());
+
+  if(document.body){
+    const obs = new MutationObserver(()=>{
+      clearTimeout(window.__invokitTooltipTimer);
+      window.__invokitTooltipTimer = setTimeout(()=>applyAutoTooltips(), 120);
+    });
+    obs.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true});
+  }
+
+  document.addEventListener('click', ()=>{
+    setTimeout(()=>applyAutoTooltips(), 150);
+  });
+}
+
+window.addEventListener('DOMContentLoaded', ()=>{
+  const brandTargets = [
+    document.querySelector('.logo-row'),
+    document.querySelector('.logo-mark')?.parentElement?.parentElement,
+    document.querySelector('.logo-mark')?.parentElement,
+    document.querySelector('.logo-mark')
+  ].filter(Boolean);
+  const brandEl = brandTargets[0];
+  if(brandEl){
+    brandEl.style.cursor='pointer';
+    brandEl.setAttribute('title','Go to Dashboard');
+    brandEl.addEventListener('click', goToDashboardHome);
+  }
+  startAutoTooltips();
+});
 </script>
 </body>
 </html>
