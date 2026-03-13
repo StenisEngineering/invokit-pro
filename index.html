@@ -612,8 +612,19 @@ select.field-input{appearance:none;background-image:url("data:image/svg+xml,%3Cs
 .confirm-btns{display:flex;justify-content:flex-end;gap:8px;}
 
 /* ============================================================ TOAST */
-.toast{position:fixed;bottom:22px;right:22px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 15px;display:flex;align-items:center;gap:8px;font-size:13.5px;z-index:9999;transform:translateY(60px);opacity:0;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);min-width:220px;max-width:340px;box-shadow:0 8px 32px var(--shadow);}
+.toast{position:fixed;top:calc(env(safe-area-inset-top, 0px) + 16px);right:16px;bottom:auto;left:auto;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 15px;display:flex;align-items:center;gap:8px;font-size:13.5px;z-index:9999;transform:translateY(-20px);opacity:0;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);min-width:220px;max-width:340px;box-shadow:0 8px 32px var(--shadow);}
 .toast.show{transform:translateY(0);opacity:1;}
+@media (max-width:768px){
+  .toast{
+    top:calc(env(safe-area-inset-top, 0px) + 12px);
+    left:12px;
+    right:12px;
+    bottom:auto;
+    min-width:0;
+    max-width:none;
+    width:auto;
+  }
+}
 
 /* ============================================================ RECURRING */
 .recurring-badge{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;padding:2px 7px;background:var(--blue-dim);color:var(--blue);border-radius:4px;font-family:'DM Mono',monospace;}
@@ -1526,7 +1537,7 @@ body,button,input,select,textarea{font-size:calc(100% + 1px);}
     </div>
     <div class="editor-header-right">
       <span class="badge badge-accent" id="statusBadge">Draft</span>
-      <button class="btn btn-ghost btn-sm" onclick="duplicateCurrentInvoice()">⊕ Dup</button>
+      <button class="btn btn-ghost btn-sm" type="button" title="Duplicate" aria-label="Duplicate" data-full-text="Duplicate" onclick="duplicateCurrentInvoice()">⊕ Dup</button>
       <button class="btn btn-ghost btn-sm" onclick="closeEditor()">✕</button>
     </div>
   </div>
@@ -3499,7 +3510,13 @@ function bootSplash() {
   // Demo mode previously chosen — skip to app with demo banner
   if (ld && ld.status === 'demo') {
     dismissSplash(false);
-    showDemoBanner();
+    try {
+      if (sessionStorage.getItem('invokit_demo_banner_closed') !== '1') {
+        showDemoBanner();
+      }
+    } catch(e) {
+      showDemoBanner();
+    }
     return;
   }
   // First launch — show splash
@@ -3672,12 +3689,18 @@ window.enterDemoMode = enterDemoMode;
 function enterDemoMode() {
   saveLicenceData({status:'demo', startedAt: Date.now()});
   APP.licenceStatus = 'demo'; persist();
+  try { sessionStorage.removeItem('invokit_demo_banner_closed'); } catch(e) {}
   dismissSplash(true);
   setTimeout(showDemoBanner, 700);
 }
 
 function showDemoBanner() {
-  if (document.getElementById('demoBanner')) return;
+  try {
+    if (sessionStorage.getItem('invokit_demo_banner_closed') === '1') return;
+  } catch(e) {}
+
+  const existing = document.getElementById('demoBanner');
+  if (existing) existing.remove();
 
   const banner = document.createElement('div');
   banner.id = 'demoBanner';
@@ -3701,7 +3724,7 @@ function showDemoBanner() {
   `;
 
   banner.innerHTML = `
-    <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+    <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 auto;">
       <span style="color:#c9a84c;font-size:14px;">◎</span>
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
         Demo mode — your data won't be saved when you close this tab.
@@ -3712,7 +3735,8 @@ function showDemoBanner() {
     </div>
 
     <button
-      onclick="closeDemoBanner()"
+      id="demoBannerCloseBtn"
+      type="button"
       style="
         background:transparent;
         border:none;
@@ -3720,7 +3744,8 @@ function showDemoBanner() {
         font-size:18px;
         line-height:1;
         cursor:pointer;
-        padding:0 4px;
+        padding:0 8px;
+        margin-left:8px;
         flex:0 0 auto;
       "
       aria-label="Close demo banner"
@@ -3730,17 +3755,40 @@ function showDemoBanner() {
 
   document.body.appendChild(banner);
 
+  const closeBtn = document.getElementById('demoBannerCloseBtn');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeDemoBanner();
+      return false;
+    });
+    closeBtn.addEventListener('touchend', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeDemoBanner();
+      return false;
+    }, { passive: false });
+  }
+
   const main = document.querySelector('.main-content') || document.getElementById('mainContent');
   if (main) main.style.paddingTop = '40px';
 }
 
 function closeDemoBanner() {
+  try { sessionStorage.setItem('invokit_demo_banner_closed', '1'); } catch(e) {}
+
   const banner = document.getElementById('demoBanner');
-  if (banner) banner.remove();
+  if (banner) {
+    banner.style.display = 'none';
+    banner.remove();
+  }
 
   const main = document.querySelector('.main-content') || document.getElementById('mainContent');
   if (main) main.style.paddingTop = '0px';
 }
+
+window.closeDemoBanner = closeDemoBanner;
 
 function showPdfPaywall() {
   // Remove existing if any
@@ -3860,7 +3908,7 @@ function applyAutoTooltips(root=document){
       .replace(/\s+/g,' ')
       .trim();
 
-    if (!text || text.length < 8) return;
+    if (!text || text.length < 3) return;
 
     const style = window.getComputedStyle(el);
     const isSingleLineCut =
