@@ -2227,7 +2227,7 @@ function renderTableInto(id, data) {
     <td><div class="client-name">${esc(inv.client)}</div><div class="client-email">${esc(inv.email)}</div></td>
     <td style="font-size:12px;color:var(--text2)">${fmtDate(inv.issued)}</td>
     <td style="font-size:12px;color:var(--text2)">${inv.status==='overdue'?'<span class="overdue-dot"></span>':''}${fmtDate(inv.due)}</td>
-    <td><span class="amount">${sym}${inv.amount.toLocaleString()}</span></td>
+    <td><span class="amount">${getInvoiceCurrency(inv)}${inv.amount.toLocaleString()}</span></td>
     <td onclick="event.stopPropagation()"><span class="status-pill sp-${inv.status}"><div class="status-select-wrap"><select class="status-sel" onchange="changeStatus('${inv.id}',this.value)"><option value="paid"${inv.status==='paid'?' selected':''}>Paid</option><option value="pending"${inv.status==='pending'?' selected':''}>Pending</option><option value="overdue"${inv.status==='overdue'?' selected':''}>Overdue</option><option value="draft"${inv.status==='draft'?' selected':''}>Draft</option></select><span class="status-sel-arrow">▾</span></div></span></td>
     <td><div class="row-actions" onclick="event.stopPropagation()">
       <button class="icon-btn" title="Edit" onclick="openEditorForInvoice('${inv.id}')">✎</button>
@@ -2592,7 +2592,7 @@ function renderReceiptsTable(){
       <td><div class="client-name">${esc(inv.client)}</div><div class="client-email">${esc(inv.email)}</div></td>
       <td style="font-size:12px;color:var(--text3)">${inv.id}</td>
       <td style="font-size:12px;color:var(--text2)">${fmtDate(inv.issued)}</td>
-      <td><span class="amount" style="color:var(--green)">${sym}${inv.amount.toLocaleString()}</span></td>
+      <td><span class="amount" style="color:var(--green)">${getInvoiceCurrency(inv)}${inv.amount.toLocaleString()}</span></td>
       <td><div class="row-actions" style="opacity:1" onclick="event.stopPropagation()">
         <button class="icon-btn" title="View Receipt" onclick="openReceiptById('${inv.id}')">👁</button>
         <button class="icon-btn" title="Print" onclick="openReceiptById('${inv.id}');setTimeout(printReceipt,350)">🖨</button>
@@ -2618,7 +2618,7 @@ function openReceiptById(id){
   };
   const recNum='REC-'+inv.id.replace('INV-','');
   document.getElementById('receiptTitle').textContent=recNum;
-  document.getElementById('receiptDoc').innerHTML=buildReceiptHTML(currentReceiptData,APP.settings.currency||'£');
+  document.getElementById('receiptDoc').innerHTML=buildReceiptHTML(currentReceiptData,getInvoiceCurrency(currentReceiptData));
   document.getElementById('receiptOverlay').classList.add('open');
 }
 function closeReceipt(){document.getElementById('receiptOverlay').classList.remove('open');}
@@ -2660,7 +2660,7 @@ function buildReceiptHTML(inv,sym){
 function printReceipt(){
   if(!currentReceiptData) return;
   if(APP.licenceStatus === 'demo') { showPdfPaywall(); return; }
-  const sym=APP.settings.currency||'£';
+  const sym=getInvoiceCurrency(currentReceiptData);
   const html=buildReceiptHTML(currentReceiptData,sym);
   openPrintWindow(html,'receipt');
 }
@@ -2723,6 +2723,10 @@ function loadSettingsForm(){
 function saveSettings(){
   const map={s_bizName:'bizName',s_ownerName:'ownerName',s_email:'email',s_phone:'phone',s_address:'address',s_vat:'vat',s_regNum:'regNum',s_website:'website',s_prefix:'prefix',s_currency:'currency',s_taxRate:'taxRate',s_terms:'terms',s_notes:'notes',s_template:'template'};
   Object.entries(map).forEach(([eid,key])=>{const el=document.getElementById(eid);if(el) APP.settings[key]=el.value;});
+  const editorCurrency=document.getElementById('currency');
+  if(editorCurrency && !editingId) editorCurrency.value=APP.settings.currency||'£';
+  renderItems();
+  recalc();
   persist(); updateSidebarProfile(); refreshAll(); showToast('✓ Settings saved');
 }
 function switchSettingsTab(tab,el){
@@ -2735,6 +2739,13 @@ function updateSidebarProfile(){
   const s=APP.settings;
   if(s.ownerName){document.getElementById('sidebarName').textContent=s.ownerName;document.getElementById('sidebarAvatar').textContent=s.ownerName.charAt(0).toUpperCase();}
   if(s.bizName) document.getElementById('sidebarRole').textContent=s.bizName;
+}
+function getInvoiceCurrency(inv){
+  return (inv && inv.currency) || APP.settings.currency || '£';
+}
+function syncCurrencySettingUI(){
+  const settingsCurrency=document.getElementById('s_currency');
+  if(settingsCurrency) settingsCurrency.value=APP.settings.currency||'£';
 }
 
 // ================================================================
@@ -2759,7 +2770,9 @@ function prefillFromSettings(){
   if(s.currency) setValue('currency',s.currency);
   if(s.terms) setValue('paymentTerms',s.terms);
   if(s.template) setValue('invTemplate',s.template);
-  if(s.taxRate) setValue('taxRate',s.taxRate);
+  if(s.taxRate!==undefined && s.taxRate!==null && s.taxRate!=='') setValue('taxRate',s.taxRate);
+  renderItems();
+  recalc();
 }
 function openEditorForInvoice(id){
   const inv=APP.invoices.find(i=>i.id===id); if(!inv) return;
@@ -2776,6 +2789,8 @@ function openEditorForInvoice(id){
   setValue('clientPhone',inv.phone||''); setValue('clientAddress',inv.address||'');
   setValue('issueDate',inv.issued); setValue('dueDate',inv.due);
   setValue('notes',inv.notes||'');
+  setValue('currency',inv.currency||APP.settings.currency||'£');
+  if(inv.paymentTerms||APP.settings.terms) setValue('paymentTerms',inv.paymentTerms||APP.settings.terms||'');
   if(inv.template) setValue('invTemplate',inv.template);
   items=(inv.items||[]).map(it=>({id:Date.now()+Math.random(),desc:it.desc,qty:it.qty,price:it.price}));
   if(!items.length) addItem();
@@ -2868,9 +2883,11 @@ function buildInvObj(status){
   const rate=parseFloat(document.getElementById('taxRate')?.value)||0;
   const tax=taxEnabled?afterDisc*(rate/100):0;
   const prefix=APP.settings.prefix||'INV-2026-';
-  return {id:editingId||(prefix+String(APP.nextNum||1).padStart(3,'0')),bizName:gv('bizName'),bizAddress:gv('bizAddress'),bizEmail:gv('bizEmail'),bizPhone:gv('bizPhone'),bizVAT:gv('bizVAT'),bizRegNum:APP.settings.regNum||'',client:gv('clientName'),email:gv('clientEmail'),phone:gv('clientPhone'),address:gv('clientAddress'),issued:gv('issueDate'),due:gv('dueDate'),subtotal:sub,discount:disc,tax,amount:afterDisc+tax,items:items.map(i=>({desc:i.desc,qty:i.qty,price:i.price})),status,notes:gv('notes'),template:gv('invTemplate')||APP.settings.template||'classic'};
+  return {id:editingId||(prefix+String(APP.nextNum||1).padStart(3,'0')),bizName:gv('bizName'),bizAddress:gv('bizAddress'),bizEmail:gv('bizEmail'),bizPhone:gv('bizPhone'),bizVAT:gv('bizVAT'),bizRegNum:APP.settings.regNum||'',client:gv('clientName'),email:gv('clientEmail'),phone:gv('clientPhone'),address:gv('clientAddress'),issued:gv('issueDate'),due:gv('dueDate'),subtotal:sub,discount:disc,tax,amount:afterDisc+tax,currency:sym,paymentTerms:gv('paymentTerms'),items:items.map(i=>({desc:i.desc,qty:i.qty,price:i.price})),status,notes:gv('notes'),template:gv('invTemplate')||APP.settings.template||'classic'};
 }
 function saveToList(inv){
+  APP.settings.currency=inv.currency||APP.settings.currency||'£';
+  syncCurrencySettingUI();
   if(editingId){const idx=APP.invoices.findIndex(i=>i.id===editingId);if(idx>-1) APP.invoices[idx]=inv;} else {APP.invoices.unshift(inv);APP.nextNum=(APP.nextNum||1)+1;}
   persist(); refreshAll();
 }
@@ -2907,7 +2924,7 @@ function previewById(id){
   openPreviewWith(currentPreviewData,currentPreviewTemplate);
 }
 function openPreviewWith(inv,tmpl){
-  const sym=APP.settings.currency||'£';
+  const sym=getInvoiceCurrency(inv);
   document.getElementById('previewTitle').textContent='Invoice '+inv.id;
   document.getElementById('previewDoc').innerHTML=buildTemplate(inv,tmpl,sym);
   document.querySelectorAll('.tmpl-tab').forEach(t=>t.classList.toggle('active',t.textContent.toLowerCase()===tmpl));
@@ -2916,14 +2933,14 @@ function openPreviewWith(inv,tmpl){
 function switchTemplate(tmpl,btn){
   document.querySelectorAll('.tmpl-tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active'); currentPreviewTemplate=tmpl;
-  if(currentPreviewData) document.getElementById('previewDoc').innerHTML=buildTemplate(currentPreviewData,tmpl,APP.settings.currency||'£');
+  if(currentPreviewData) document.getElementById('previewDoc').innerHTML=buildTemplate(currentPreviewData,tmpl,getInvoiceCurrency(currentPreviewData));
 }
 function closePreview(){document.getElementById('previewOverlay').classList.remove('open');}
 function downloadById(id){previewById(id);setTimeout(printInvoice,350);}
 function printInvoice(){
   if(!currentPreviewData) return;
   if(APP.licenceStatus === 'demo') { showPdfPaywall(); return; }
-  openPrintWindow(buildTemplate(currentPreviewData,currentPreviewTemplate,APP.settings.currency||'£'),'invoice');
+  openPrintWindow(buildTemplate(currentPreviewData,currentPreviewTemplate,getInvoiceCurrency(currentPreviewData)),'invoice');
 }
 
 // Single print function — inlines all required styles so print matches preview exactly
@@ -2933,7 +2950,7 @@ function openPrintWindow(html, type){
     *{box-sizing:border-box;margin:0;padding:0;font-family:'Outfit',sans-serif;}
     body{background:#fff;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     @page{size:A4;margin:0;}
-    @media print{body{margin:0;}}
+    @media print{body{margin:0;}#backupReminderOverlay,#backupReminderCard{display:none !important;}}
     /* SHARED */
     .t-logo-img{max-height:48px;object-fit:contain;display:block;margin-bottom:8px;}
     /* CLASSIC */
@@ -3105,19 +3122,6 @@ textarea {
 
 
 
-<div id="backupReminderOverlay" onclick="if(event.target===this) closeBackupReminder('later')">
-  <div id="backupReminderCard" role="dialog" aria-modal="true" aria-labelledby="backupReminderTitle">
-    <button id="backupReminderClose" type="button" aria-label="Close backup reminder" onclick="closeBackupReminder('later')">×</button>
-    <h3 id="backupReminderTitle">Backup your records</h3>
-    <p>It has been a while since your last backup. Download your data now so your invoices, receipts, clients, catalogue, and settings stay safe on your device.</p>
-    <div class="backup-reminder-note">JSON backup is best for restoring your app later. CSV is best for viewing in Excel.</div>
-    <div class="backup-reminder-actions">
-      <button class="btn btn-primary" type="button" onclick="downloadBackupFromReminder('json')">↓ Download JSON Backup</button>
-      <button class="btn btn-ghost" type="button" onclick="downloadBackupFromReminder('csv')">↓ Download CSV Export</button>
-      <button class="btn btn-secondary" type="button" onclick="closeBackupReminder('later')">Remind Me Later</button>
-    </div>
-  </div>
-</div>
 
 </body></html>`);
   win.document.close();
