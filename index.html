@@ -1751,8 +1751,8 @@ body,button,input,select,textarea{font-size:calc(100% + 1px);}
         <div class="tmpl-tab" onclick="switchTemplate('compact',this)">Compact</div>
       </div>
       <button class="ptb primary" onclick="printInvoice()">🖨 Print / PDF</button>
-      <button class="ptb ptb-share ptb-email" onclick="shareInvoiceEmail()">✉ Email Draft</button>
-      <button class="ptb ptb-share ptb-whatsapp" onclick="shareInvoiceWhatsApp()">💬 WhatsApp Message</button>
+      <button class="ptb ptb-share ptb-email" onclick="shareInvoiceEmail()">✉ Email</button>
+      <button class="ptb ptb-share ptb-whatsapp" onclick="shareInvoiceWhatsApp()">💬 WhatsApp</button>
       <button class="ptb" onclick="closePreview()">✕</button>
     </div>
   </div>
@@ -1767,8 +1767,8 @@ body,button,input,select,textarea{font-size:calc(100% + 1px);}
     <span class="preview-toolbar-title" id="receiptTitle">Receipt</span>
     <div style="display:flex;gap:8px">
       <button class="ptb primary" onclick="printReceipt()">🖨 Print / PDF</button>
-      <button class="ptb ptb-share ptb-email" onclick="shareReceiptEmail()">✉ Email Draft</button>
-      <button class="ptb ptb-share ptb-whatsapp" onclick="shareReceiptWhatsApp()">💬 WhatsApp Message</button>
+      <button class="ptb ptb-share ptb-email" onclick="shareReceiptEmail()">✉ Email</button>
+      <button class="ptb ptb-share ptb-whatsapp" onclick="shareReceiptWhatsApp()">💬 WhatsApp</button>
       <button class="ptb" onclick="closeReceipt()">✕</button>
     </div>
   </div>
@@ -3558,84 +3558,108 @@ PAID IN FULL: ${sym}${parseFloat(inv.amount).toFixed(2)}
 ${APP.settings.bizName || 'InvoKit Pro'}`.trim();
 }
 
-function confirmShareAfterPdf(docLabel, channelLabel) {
-  return window.confirm(
-    `For the best result, click Print / PDF first, save the ${docLabel} PDF to your device, then attach it in ${channelLabel}.\n\nOpen ${channelLabel} draft now?`
-  );
-}
-
 function shareInvoiceEmail() {
-  if (!currentPreviewData) { showToast('⚠ Preview the invoice first'); return; }
+  if (!currentPreviewData) return;
   const inv = currentPreviewData;
   const sym = getInvoiceCurrency(inv);
-  const biz = inv.bizName || APP.settings.bizName || 'Your Business';
-  if (!confirmShareAfterPdf('invoice', 'Email')) return;
+  const biz = APP.settings.bizName || 'Your Business';
+  const clientName = (inv.client || '').trim() || 'Customer';
   const subject = encodeURIComponent(`Invoice ${inv.id} from ${biz} — ${sym}${parseFloat(inv.amount).toFixed(2)} due ${fmtDate(inv.due)}`);
   const body = encodeURIComponent(
-    `Dear ${inv.client},\n\nAttached is your invoice for review and payment.\n\n` +
+    `Dear ${clientName},
+
+Attached is your invoice for review and payment.
+
+` +
     buildInvoiceSummary(inv, sym) +
-    `\n\nPlease attach the PDF you saved from Preview → Print / PDF before sending this email.\n\nThank you for your business.\n\n${biz}`
+    `
+
+Thank you for your business.
+
+${biz}`
   );
   window.open(`mailto:${inv.email || ''}?subject=${subject}&body=${body}`);
-  showToast('✉ Email draft opened — attach the saved invoice PDF');
 }
 
 function shareInvoiceWhatsApp() {
-  if (!currentPreviewData) { showToast('⚠ Preview the invoice first'); return; }
+  if (!currentPreviewData) return;
   const inv = currentPreviewData;
   const sym = getInvoiceCurrency(inv);
-  const biz = inv.bizName || APP.settings.bizName || 'Your Business';
-  if (!confirmShareAfterPdf('invoice', 'WhatsApp')) return;
+  const biz = APP.settings.bizName || 'Your Business';
+  const clientName = (inv.client || '').trim() || 'Customer';
   const msg = encodeURIComponent(
-    `Hello ${inv.client},\n\n` +
-    `Attached is your invoice from *${biz}* for review and payment.\n\n` +
-    `*Invoice:* ${inv.id}\n` +
-    `*Amount Due:* ${sym}${parseFloat(inv.amount).toFixed(2)}\n` +
-    `*Due Date:* ${fmtDate(inv.due)}\n\n` +
-    (inv.notes ? `${inv.notes}\n\n` : '') +
-    `Please attach the invoice PDF saved from Preview → Print / PDF before sending.\n\nThank you.`
+    `Hello ${clientName},
+
+` +
+    `Attached is your invoice from *${biz}*.
+
+` +
+    `*Invoice:* ${inv.id}
+` +
+    `*Amount Due:* ${sym}${parseFloat(inv.amount).toFixed(2)}
+` +
+    `*Due Date:* ${fmtDate(inv.due)}
+
+` +
+    (inv.notes ? `${inv.notes}
+
+` : '') +
+    `Thank you.`
   );
   const phone = (inv.phone || '').replace(/\D/g, '');
   window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
-  showToast('💬 WhatsApp opened — attach the saved invoice PDF');
 }
 
 function shareReceiptEmail() {
-  if (!currentReceiptData) { showToast('⚠ Preview the receipt first'); return; }
+  if (!currentReceiptData) return;
   const inv = currentReceiptData;
   const sym = getInvoiceCurrency(inv);
-  const biz = inv.bizName || APP.settings.bizName || 'Your Business';
+  const biz = APP.settings.bizName || 'Your Business';
+  const clientName = (inv.client || '').trim() || 'Customer';
   const recNum = 'REC-' + inv.id.replace('INV-', '');
-  if (!confirmShareAfterPdf('receipt', 'Email')) return;
   const subject = encodeURIComponent(`Receipt ${recNum} from ${biz} — Payment Confirmed`);
   const body = encodeURIComponent(
-    `Dear ${inv.client},\n\nAttached is your payment receipt.\n\n` +
+    `Dear ${clientName},
+
+Attached is your payment receipt.
+
+` +
     buildReceiptSummary(inv, sym) +
-    `\n\nPlease attach the PDF you saved from Preview → Print / PDF before sending this email.\n\nKind regards,\n${biz}`
+    `
+
+Kind regards,
+${biz}`
   );
   window.open(`mailto:${inv.email || ''}?subject=${subject}&body=${body}`);
-  showToast('✉ Email draft opened — attach the saved receipt PDF');
 }
 
 function shareReceiptWhatsApp() {
-  if (!currentReceiptData) { showToast('⚠ Preview the receipt first'); return; }
+  if (!currentReceiptData) return;
   const inv = currentReceiptData;
   const sym = getInvoiceCurrency(inv);
-  const biz = inv.bizName || APP.settings.bizName || 'Your Business';
+  const biz = APP.settings.bizName || 'Your Business';
+  const clientName = (inv.client || '').trim() || 'Customer';
   const recNum = 'REC-' + inv.id.replace('INV-', '');
-  if (!confirmShareAfterPdf('receipt', 'WhatsApp')) return;
   const msg = encodeURIComponent(
-    `Hello ${inv.client},\n\n` +
-    `Attached is your payment receipt from *${biz}*.\n\n` +
-    `*Receipt:* ${recNum}\n` +
-    `*Invoice Ref:* ${inv.id}\n` +
-    `*Amount Paid:* ${sym}${parseFloat(inv.amount).toFixed(2)}\n` +
-    `*Date:* ${fmtDate(inv.issued)}\n\n` +
-    `Please attach the receipt PDF saved from Preview → Print / PDF before sending.\n\nThank you.`
+    `Hello ${clientName},
+
+` +
+    `Attached is your payment receipt from *${biz}*.
+
+` +
+    `*Receipt:* ${recNum}
+` +
+    `*Invoice Ref:* ${inv.id}
+` +
+    `*Amount Paid:* ${sym}${parseFloat(inv.amount).toFixed(2)}
+` +
+    `*Date:* ${fmtDate(inv.issued)}
+
+` +
+    `Thank you.`
   );
   const phone = (inv.phone || '').replace(/\D/g, '');
   window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
-  showToast('💬 WhatsApp opened — attach the saved receipt PDF');
 }
 
 // ================================================================
