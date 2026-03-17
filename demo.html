@@ -29,7 +29,7 @@
   if(a) a.href=b180;
 })();
 </script>
-<title>InvoKit Pro</title>
+<title>InvoKit Pro Demo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -1045,6 +1045,14 @@ body,button,input,select,textarea{font-size:calc(100% + 1px);}
 @keyframes backupDrop{from{opacity:0;transform:translateY(-12px);}to{opacity:1;transform:translateY(0);}} 
 @media (max-width:768px){#backupReminderOverlay{padding:12px 10px 10px;}#backupReminderCard{border-radius:16px;padding:16px 14px 14px;}#backupReminderCard h3{font-size:16px;padding-right:20px;} .backup-reminder-actions{flex-direction:column;} .backup-reminder-actions .btn{width:100%;justify-content:center;}}
 
+
+/* ===== Demo mode polish ===== */
+.demo-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.28);color:var(--accent);font-family:'DM Mono',monospace;font-size:11.5px;letter-spacing:0.12em;text-transform:uppercase;white-space:nowrap;}
+.demo-topbar-chip{margin-left:10px;vertical-align:middle;}
+.demo-lock-note{margin:0 0 16px;padding:12px 14px;border-radius:12px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);color:var(--text2);font-size:13px;line-height:1.6;}
+.demo-disabled-nav{display:none !important;}
+@media (max-width:768px){.demo-chip{font-size:10.5px;padding:4px 8px;letter-spacing:0.08em;}}
+
 </style>
 </head>
 <body>
@@ -1072,7 +1080,7 @@ body,button,input,select,textarea{font-size:calc(100% + 1px);}
     <!-- Tagline -->
     <div style="font-size:17px;color:#c9a84c;font-weight:500;margin-bottom:10px;letter-spacing:0.01em;">Run your business. Own your data.</div>
     <!-- Subtitle -->
-    <div style="font-size:14px;color:#6e6b65;line-height:1.6;margin-bottom:44px;">Professional business management.<br>No cloud. No subscription. No limits.</div>
+    <div style="font-size:14px;color:#6e6b65;line-height:1.6;margin-bottom:44px;">Professional business management demo.<br>Explore the interface before activation.</div>
     <!-- Feature pills -->
     <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:48px;">
       <span style="padding:6px 14px;border-radius:20px;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:#c9a84c;font-size:12px;">📄 Invoices</span>
@@ -1082,7 +1090,7 @@ body,button,input,select,textarea{font-size:calc(100% + 1px);}
       <span style="padding:6px 14px;border-radius:20px;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:#c9a84c;font-size:12px;">📊 Analytics</span>
     </div>
     <!-- CTA Button -->
-    <button id="splashGetStarted" onclick="handleSplashCTA()" style="
+    <button id="splashGetStarted" onclick="enterDemoMode()" style="
       padding:16px 52px;border-radius:10px;border:none;cursor:pointer;
       background:linear-gradient(135deg,#c9a84c,#a8842c);
       color:#0c0c0e;font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;
@@ -1091,11 +1099,11 @@ body,button,input,select,textarea{font-size:calc(100% + 1px);}
     "
     onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 10px 40px rgba(201,168,76,0.45)'"
     onmouseout="this.style.transform='none';this.style.boxShadow='0 6px 32px rgba(201,168,76,0.35)'">
-      Get Started →
+      Enter Demo →
     </button>
     <!-- Already have key link -->
     <div style="margin-top:18px;">
-      <span onclick="showLicenceScreen()" style="font-size:13px;color:#6e6b65;cursor:pointer;text-decoration:underline;text-underline-offset:3px;">Already have a licence key?</span>
+      <span onclick="window.open('https://getinvokitpro.com','_blank')" style="font-size:13px;color:#6e6b65;cursor:pointer;text-decoration:underline;text-underline-offset:3px;">Buy full version</span>
     </div>
   </div>
   <!-- Version -->
@@ -1179,10 +1187,10 @@ body,button,input,select,textarea{font-size:calc(100% + 1px);}
   </div>
   <nav class="nav">
     <div class="nav-lbl">Overview</div>
-    <div class="nav-item active" data-page="dashboard" onclick="navTo('dashboard',this)"><span class="nav-icon">◈</span>Dashboard</div>
+    <div class="nav-item" data-page="dashboard" onclick="navTo('dashboard',this)"><span class="nav-icon">◈</span>Dashboard</div>
     <div class="nav-item" onclick="openEditor()"><span class="nav-icon">⊕</span>New Invoice</div>
     <div class="nav-lbl">Manage</div>
-    <div class="nav-item" data-page="invoices" onclick="navTo('invoices',this)"><span class="nav-icon">◻</span>Invoices<span class="nav-badge" id="overdueBadge" style="display:none">0</span></div>
+    <div class="nav-item active" data-page="invoices" onclick="navTo('invoices',this)"><span class="nav-icon">◻</span>Invoices<span class="nav-badge" id="overdueBadge" style="display:none">0</span></div>
     <div class="nav-item" data-page="clients" onclick="navTo('clients',this)"><span class="nav-icon">◉</span>Clients</div>
     <div class="nav-item" data-page="catalogue" onclick="navTo('catalogue',this)"><span class="nav-icon">▦</span>Catalogue</div>
     <div class="nav-item" data-page="receipts" onclick="navTo('receipts',this)"><span class="nav-icon">✓</span>Receipts</div>
@@ -1241,7 +1249,7 @@ body,button,input,select,textarea{font-size:calc(100% + 1px);}
 <div class="gold-line"></div>
 
 <!-- ===== DASHBOARD ===== -->
-<div class="page active" id="page-dashboard">
+<div class="page" id="page-dashboard">
   <header class="topbar">
     <button class="mob-menu-btn" onclick="toggleMobSidebar()">☰</button>
     <div><div class="page-title">Dashboard</div><div class="page-subtitle" id="dashSubtitle">—</div></div>
@@ -1286,7 +1294,7 @@ body,button,input,select,textarea{font-size:calc(100% + 1px);}
 </div>
 
 <!-- ===== INVOICES ===== -->
-<div class="page" id="page-invoices">
+<div class="page active" id="page-invoices">
   <header class="topbar">
     <button class="mob-menu-btn" onclick="toggleMobSidebar()">☰</button>
     <div><div class="page-title">Invoices</div><div class="page-subtitle">Full management</div></div>
@@ -1919,7 +1927,7 @@ body,button,input,select,textarea{font-size:calc(100% + 1px);}
 // ================================================================
 // DATA & STORE — IndexedDB (PWA-grade, survives browser clears)
 // ================================================================
-const STORE = 'invokit_v6';
+const STORE = 'invokit_demo_v1';
 const DB_NAME = 'InvoKitPro';
 const DB_VER = 1;
 let _db = null;
@@ -3128,6 +3136,113 @@ textarea {
 }
 </style>
   </head><body><div class="print-shell">${html}</div>
+
+<script>
+(function(){
+  function demoBlock(msg){
+    if (typeof showToast === 'function') showToast(msg || '🔒 Activation required in demo mode');
+    const buy = 'https://getinvokitpro.com';
+    let existing = document.getElementById('demoActionOverlay');
+    if (existing) existing.remove();
+    const ov = document.createElement('div');
+    ov.id = 'demoActionOverlay';
+    ov.className = 'overlay open';
+    ov.innerHTML = `
+      <div class="confirm-box" style="max-width:460px">
+        <div class="confirm-title">Activation required</div>
+        <div class="confirm-msg">You are using the demo version of InvoKit Pro. Saving invoices, clients, catalogue items, recurring workflows, and advanced reporting are unlocked after activation.</div>
+        <div class="confirm-btns">
+          <button class="btn btn-ghost" onclick="this.closest('#demoActionOverlay').remove()">Maybe later</button>
+          <button class="btn btn-primary" onclick="window.open('${buy}','_blank')">Activate now</button>
+        </div>
+      </div>`;
+    ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove();});
+    document.body.appendChild(ov);
+  }
+  window.demoBlock = demoBlock;
+
+  const origNavTo = window.navTo;
+  window.navTo = function(page, el){
+    if(['dashboard','analytics','recurring'].includes(page)){
+      demoBlock('🔒 This area is locked in the demo version');
+      page = 'invoices';
+      el = document.querySelector('.nav-item[data-page="invoices"]');
+    }
+    return origNavTo(page, el);
+  };
+
+  window.saveDraft = function(){ demoBlock('🔒 Draft saving requires activation'); };
+  window.sendInvoice = function(){ if(!gv('clientName').trim()){ showToast('⚠ Client name required'); return; } demoBlock('🔒 Saving invoices requires activation'); };
+  window.saveClient = function(){ if(!gv('cm_name').trim()){ showToast('⚠ Client name required'); return; } demoBlock('🔒 Saving clients requires activation'); };
+  window.saveCatItem = function(){ if(!gv('cat_name').trim()){ showToast('⚠ Item name required'); return; } demoBlock('🔒 Saving catalogue items requires activation'); };
+  window.openRecurringModal = function(){ demoBlock('🔒 Recurring invoices require activation'); };
+  window.saveRecurring = function(){ demoBlock('🔒 Recurring invoices require activation'); };
+  const origExportCSV = window.exportCSV;
+  window.exportCSV = function(){ demoBlock('🔒 Export is available after activation'); };
+
+  const origEnterDemoMode = window.enterDemoMode;
+  window.enterDemoMode = function(){
+    APP.demo = true;
+    APP.licenceStatus = 'demo';
+    APP.licenceKey = 'DEMO';
+    saveLicenceData({status:'demo', startedAt: Date.now()});
+    persist();
+    dismissSplash(true);
+    setTimeout(()=>{
+      setupDemoUI();
+      const invNav = document.querySelector('.nav-item[data-page="invoices"]');
+      if(invNav) origNavTo('invoices', invNav);
+      showDemoBanner();
+    }, 650);
+  };
+
+  const origBootSplash = window.bootSplash;
+  window.bootSplash = function(){
+    const ld = getLicenceData();
+    if (ld && ld.status === 'demo') {
+      dismissSplash(false);
+      APP.demo = true;
+      setupDemoUI();
+      const invNav = document.querySelector('.nav-item[data-page="invoices"]');
+      if(invNav) origNavTo('invoices', invNav);
+      showDemoBanner();
+      return;
+    }
+    document.getElementById('splashScreen').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  };
+
+  function setupDemoUI(){
+    document.querySelectorAll('[data-page="dashboard"],[data-page="analytics"],[data-page="recurring"]').forEach(el=>el.classList.add('demo-disabled-nav'));
+    ['page-dashboard','page-analytics','page-recurring'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
+    const logoRow = document.querySelector('.logo-row > div');
+    if (logoRow && !document.getElementById('sidebarDemoChip')) {
+      const chip = document.createElement('span'); chip.className = 'demo-chip'; chip.id='sidebarDemoChip'; chip.textContent='Demo'; logoRow.appendChild(chip);
+    }
+    document.querySelectorAll('.topbar .page-title').forEach(tt=>{
+      if(!tt.querySelector('.demo-topbar-chip')){
+        const chip=document.createElement('span'); chip.className='demo-chip demo-topbar-chip'; chip.textContent='Demo version'; tt.appendChild(chip);
+      }
+    });
+    document.querySelectorAll('.content').forEach((content,idx)=>{
+      const page = content.closest('.page');
+      if(!page) return;
+      if(['page-invoices','page-clients','page-catalogue'].includes(page.id) && !content.querySelector('.demo-lock-note')){
+        const note = document.createElement('div'); note.className='demo-lock-note';
+        note.textContent='You can explore this screen in demo mode, but saving invoices, clients, and catalogue items requires activation.';
+        content.insertBefore(note, content.firstChild);
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    const licenceScreen = document.getElementById('licenceScreen'); if(licenceScreen) licenceScreen.style.display='none';
+    const splashBtn = document.getElementById('splashGetStarted'); if(splashBtn) splashBtn.onclick = window.enterDemoMode;
+    setupDemoUI();
+  });
+})();
+</script>
+
 </body></html>`);
   win.document.close();
   win.onload=()=>{win.focus();win.print();};
@@ -3643,7 +3758,7 @@ updateInstallStatus();
 // ================================================================
 // SPLASH / LICENCE / ONBOARDING FLOW
 // ================================================================
-const LICENCE_STORE = 'invokit_licence_v1';
+const LICENCE_STORE = 'invokit_demo_licence_v1';
 
 function getLicenceData() {
   try { const r = localStorage.getItem(LICENCE_STORE); return r ? JSON.parse(r) : null; } catch(e){ return null; }
@@ -4048,7 +4163,7 @@ function showPdfPaywall() {
 }
 
 // Boot
-bootSplash();
+window.bootSplash();
 
 // ── COMING SOON TOGGLE ───────────────────────────────────────────
 function toggleComingSoon() {
