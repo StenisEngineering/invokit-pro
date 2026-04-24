@@ -5069,7 +5069,8 @@ function openReceiptById(id){
     bizPhone:inv.bizPhone||s.phone||'',
     bizVAT:inv.bizVAT||s.vat||'',
     bizRegNum:inv.bizRegNum||s.regNum||'',
-    bizLogo:s.bizLogo||''
+    bizLogo:s.bizLogo||'',
+    docTitle:inv.docTitle||''
   };
   const recNum='REC-'+inv.id.replace('INV-','');
   document.getElementById('receiptTitle').textContent=recNum;
@@ -5409,7 +5410,8 @@ function previewById(id){
     bizPhone:inv.bizPhone||s.phone||'',
     bizVAT:inv.bizVAT||s.vat||'',
     bizRegNum:inv.bizRegNum||s.regNum||'',
-    bizLogo:s.bizLogo||''
+    bizLogo:s.bizLogo||'',
+    docTitle:inv.docTitle||''
   };
   currentPreviewTemplate=inv.template||s.template||'classic';
   openPreviewWith(currentPreviewData,currentPreviewTemplate);
