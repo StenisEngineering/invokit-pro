@@ -8723,7 +8723,7 @@ function renderLicenceSettings() {
   var activatedDate = ld.activatedAt ? new Date(ld.activatedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
   var planColor = plan === 'FREE' ? '#c9a84c' : '#3dba7e';
   var upgradeRow = plan === 'FREE'
-    ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--text3)">Free plan · 5 invoices max · No PDF · <a href="#" onclick="showUpgradeRow();navTo('settings');return false;" style="color:#c9a84c">Upgrade</a></div>'
+    ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--text3)">Free plan · 5 invoices max · No PDF · <span onclick="showUpgradeRow()" style="color:#c9a84c;cursor:pointer;text-decoration:underline;">Upgrade</span></div>'
     : '';
   display.innerHTML =
     '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">' +
