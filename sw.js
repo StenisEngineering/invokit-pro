@@ -1,4 +1,4 @@
-const CACHE_NAME = 'invokit-v7';
+const CACHE_NAME = 'invokit-v8';
 const APP_SHELL = [
   '/',
   '/index.html',
