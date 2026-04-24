@@ -8710,30 +8710,32 @@ async function activateLicence() {
 
 // ── LICENCE SETTINGS PANEL ──────────────────────────────────────────────────
 function renderLicenceSettings() {
-  const ld = getLicenceData();
-  const display = document.getElementById('currentPlanDisplay');
+  var ld = getLicenceData();
+  var display = document.getElementById('currentPlanDisplay');
   if (!display) return;
   if (!ld || !ld.status || ld.status === 'demo') {
-    display.innerHTML = '<span style="color:var(--text3);">No active licence.</span>';
+    display.innerHTML = '<span style="color:var(--text3)">No active licence.</span>';
     return;
   }
-  const plan = String(ld.licenceMeta?.plan || 'unknown').toUpperCase();
-  const key = ld.key ? ld.key.slice(0,8) + '••••••••' : '—';
-  const activatedDate = ld.activatedAt ? new Date(ld.activatedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
-  const planColor = plan === 'FREE' ? '#c9a84c' : '#3dba7e';
-  display.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-      <div>
-        <span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;">Current Plan</span><br>
-        <span style="font-size:16px;font-weight:700;color:${planColor};">${plan}</span>
-      </div>
-      <div style="text-align:right;">
-        <span style="font-size:11px;color:var(--text3);">Key: ${key}</span><br>
-        <span style="font-size:11px;color:var(--text3);">Activated: ${activatedDate}</span>
-      </div>
-    </div>
-    ${plan === 'FREE' ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);">Free plan &middot; 5 invoices max &middot; No PDF export &middot; <a href="https://getinvokitpro.com/#pricing" target="_blank" style="color:#c9a84c;">Upgrade &rarr;</a></div>' : ''}
-  `;
+  var plan = String((ld.licenceMeta && ld.licenceMeta.plan) || 'unknown').toUpperCase();
+  var rawKey = ld.key || '';
+  var keyDisplay = rawKey ? rawKey.slice(0,8) + '••••' : '—';
+  var activatedDate = ld.activatedAt ? new Date(ld.activatedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+  var planColor = plan === 'FREE' ? '#c9a84c' : '#3dba7e';
+  var upgradeRow = plan === 'FREE'
+    ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--text3)">Free plan · 5 invoices max · No PDF · <a href="https://getinvokitpro.com/#pricing" target="_blank" style="color:#c9a84c">Upgrade</a></div>'
+    : '';
+  display.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">' +
+      '<div>' +
+        '<span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em">Current Plan</span><br>' +
+        '<span style="font-size:16px;font-weight:700;color:' + planColor + '">' + plan + '</span>' +
+      '</div>' +
+      '<div style="text-align:right">' +
+        '<span style="font-size:11px;color:var(--text3)">Key: ' + keyDisplay + '</span><br>' +
+        '<span style="font-size:11px;color:var(--text3)">Activated: ' + activatedDate + '</span>' +
+      '</div>' +
+    '</div>' + upgradeRow;
 }
 
 function showUpgradeRow() {
