@@ -4073,13 +4073,6 @@ body .demo-mode-banner a{
         </div>
       </div>
     </div>
-    <div class="field-group" style="margin-bottom:16px;">
-      <label class="field-label" style="display:flex;align-items:center;gap:6px;">
-        Document Title
-        <span style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:0.04em;">(optional — replaces INVOICE / QUOTATION heading)</span>
-      </label>
-      <input class="field-input" type="text" id="docTitle" placeholder="e.g. Quotation for Website Redesign · Invoice for Monthly Retainer">
-    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;margin-bottom:20px">
       <div class="field-group" style="margin:0"><label class="field-label">Currency</label>
         <select class="field-input" id="currency" onchange="renderItems();recalc()">
@@ -4127,6 +4120,9 @@ body .demo-mode-banner a{
           <div id="catPickerList"></div>
         </div>
       </div>
+    </div>
+    <div style="margin-bottom:8px;">
+      <input class="field-input" type="text" id="docTitle" placeholder="Document title — e.g. Quotation for Website Redesign (optional)" style="font-size:13px;font-weight:600;letter-spacing:0.01em;color:var(--accent);">
     </div>
     <div class="items-table">
       <div class="items-head"><span>Description</span><span>Qty</span><span>Unit Price</span><span>Amount</span><span></span></div>
