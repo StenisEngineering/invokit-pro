@@ -3962,6 +3962,28 @@ body .demo-mode-banner a{
             </div>
           </div>
         </div>
+        <!-- Licence -->
+        <div class="settings-section" id="settings-licence">
+          <div class="settings-card">
+            <div class="settings-title">Licence</div>
+            <div class="settings-desc">Manage your InvoKit Pro licence. Upgrading keeps all your existing data intact.</div>
+            <div style="display:flex;flex-direction:column;gap:10px;" id="licenceSettingsBlock">
+              <div id="currentPlanDisplay" style="padding:12px;background:var(--surface2);border-radius:8px;font-size:13px;color:var(--text2);border:1px solid var(--border);">
+                Loading licence info...
+              </div>
+              <div id="upgradeLicenceRow" style="display:none;flex-direction:column;gap:8px;">
+                <div style="font-size:13px;color:var(--text2);">Enter a new or upgraded licence key:</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  <input type="text" id="upgradeLicenceInput" placeholder="IVK-XXXX-XXXX-XXXX" class="field-input" style="flex:1;min-width:200px;font-family:'DM Mono',monospace;letter-spacing:0.08em;">
+                  <button class="btn btn-primary" onclick="applyUpgradeKey()">Apply Key</button>
+                </div>
+                <div id="upgradeKeyMsg" style="font-size:12px;min-height:16px;"></div>
+              </div>
+              <button class="btn btn-ghost" onclick="showUpgradeRow()" id="changeLicenceBtn">🔑 Change / Upgrade Licence Key</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Data -->
         <div class="settings-section" id="settings-data">
           <div class="settings-card">
@@ -5199,6 +5221,7 @@ function loadSettingsForm(){
   const map={s_bizName:'bizName',s_ownerName:'ownerName',s_email:'email',s_phone:'phone',s_address:'address',s_vat:'vat',s_regNum:'regNum',s_website:'website',s_prefix:'prefix',s_currency:'currency',s_taxRate:'taxRate',s_terms:'terms',s_notes:'notes',s_template:'template'};
   Object.entries(map).forEach(([eid,key])=>{const el=document.getElementById(eid);if(el) el.value=s[key]||'';});
   updateSidebarProfile();
+  renderLicenceSettings();
   // biz logo
   if(s.bizLogo){const prev=document.getElementById('bizLogoPreview');if(prev){prev.src=s.bizLogo;prev.style.display='block';document.getElementById('bizLogoPlaceholder').style.display='none';document.getElementById('bizLogoRemove').style.display='flex';}}
 }
@@ -8612,39 +8635,61 @@ async function activateLicence() {
     const licenceMeta = data.activation?.licence || {};
     const activatedPlan = String(licenceMeta.plan || 'lifetime').toLowerCase();
     const planFeatures = licenceMeta.features || {};
+    const wasFreePlan = isFreePlan();
+    const isUpgrade = wasFreePlan && activatedPlan !== 'free';
 
     saveLicenceData({
-  status: 'active',
-  key,
-  installId,
-  activatedAt: Date.now(),
-  activationToken: data.activation?.token || '',
-  licenceMeta
-});
+      status: 'active',
+      key,
+      installId,
+      activatedAt: Date.now(),
+      activationToken: data.activation?.token || '',
+      licenceMeta
+    });
 
-APP.demo = false;
-APP.licenceKey = key;
-APP.licenceStatus = 'active';
-APP.plan = activatedPlan;
-APP.planFeatures = planFeatures;
-persist();
+    APP.demo = false;
+    APP.licenceKey = key;
+    APP.licenceStatus = 'active';
+    APP.plan = activatedPlan;
+    APP.planFeatures = planFeatures;
+    persist();
 
-// Apply free plan UI restrictions if needed
-if (activatedPlan === 'free') {
-  applyFreePlanUI();
-}
+    // If upgrading from free — remove restrictions without losing data
+    if (isUpgrade) {
+      // Remove free plan badge
+      const badge = document.getElementById('freePlanBadge');
+      if (badge) badge.remove();
+      // Remove free paywall overlay if open
+      const paywall = document.getElementById('freePaywallOverlay');
+      if (paywall) paywall.remove();
+      // Show all nav items that were hidden
+      ['analytics','recurring'].forEach(page => {
+        const el = document.querySelector('.nav-item[data-page="' + page + '"]');
+        if (el) el.style.display = '';
+      });
+    }
 
-const banner = document.getElementById('demoBanner');
-if (banner) banner.remove();
+    // Apply free plan UI if on free plan
+    if (activatedPlan === 'free') {
+      applyFreePlanUI();
+    }
 
-const main = document.querySelector('.main-content') || document.getElementById('mainContent');
-if (main) main.style.paddingTop = '0px';
+    const banner = document.getElementById('demoBanner');
+    if (banner) banner.remove();
 
-const welcomeMsg = activatedPlan === 'free'
-  ? '✓ Free licence activated! You can create up to 5 invoices on this device.'
-  : '✓ Licence activated! Welcome to InvoKit Pro.';
-showLicenceMsg(welcomeMsg, 'success');
-setTimeout(() => dismissSplash(true), 1200);
+    const main = document.querySelector('.main-content') || document.getElementById('mainContent');
+    if (main) main.style.paddingTop = '0px';
+
+    let welcomeMsg;
+    if (isUpgrade) {
+      welcomeMsg = '✓ Upgraded successfully! All your data is intact. Welcome to InvoKit Pro.';
+    } else if (activatedPlan === 'free') {
+      welcomeMsg = '✓ Free licence activated! You can create up to 5 invoices on this device.';
+    } else {
+      welcomeMsg = '✓ Licence activated! Welcome to InvoKit Pro.';
+    }
+    showLicenceMsg(welcomeMsg, 'success');
+    setTimeout(() => dismissSplash(true), 1200);
   } catch (e) {
     const msg = e?.name === 'AbortError'
       ? 'Activation timed out. Please check internet and try again.'
@@ -8662,6 +8707,107 @@ setTimeout(() => dismissSplash(true), 1200);
     }
   }
 }
+
+// ── LICENCE SETTINGS PANEL ──────────────────────────────────────────────────
+function renderLicenceSettings() {
+  const ld = getLicenceData();
+  const display = document.getElementById('currentPlanDisplay');
+  if (!display) return;
+  if (!ld || !ld.status || ld.status === 'demo') {
+    display.innerHTML = '<span style="color:var(--text3);">No active licence.</span>';
+    return;
+  }
+  const plan = String(ld.licenceMeta?.plan || 'unknown').toUpperCase();
+  const key = ld.key ? ld.key.slice(0,8) + '••••••••' : '—';
+  const activatedDate = ld.activatedAt ? new Date(ld.activatedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+  const planColor = plan === 'FREE' ? '#c9a84c' : '#3dba7e';
+  display.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <div>
+        <span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;">Current Plan</span><br>
+        <span style="font-size:16px;font-weight:700;color:${planColor};">${plan}</span>
+      </div>
+      <div style="text-align:right;">
+        <span style="font-size:11px;color:var(--text3);">Key: ${key}</span><br>
+        <span style="font-size:11px;color:var(--text3);">Activated: ${activatedDate}</span>
+      </div>
+    </div>
+    ${plan === 'FREE' ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);">Free plan · 5 invoices max · No PDF export · <a href='https://getinvokitpro.com/#pricing' target='_blank' style='color:#c9a84c;'>Upgrade →</a></div>' : ''}
+  `;
+}
+
+function showUpgradeRow() {
+  const row = document.getElementById('upgradeLicenceRow');
+  const btn = document.getElementById('changeLicenceBtn');
+  if (row) { row.style.display = 'flex'; }
+  if (btn) { btn.style.display = 'none'; }
+  setTimeout(() => document.getElementById('upgradeLicenceInput')?.focus(), 100);
+}
+
+async function applyUpgradeKey() {
+  const input = document.getElementById('upgradeLicenceInput');
+  const msgEl = document.getElementById('upgradeKeyMsg');
+  const key = (input?.value || '').trim().toUpperCase();
+  if (!key) { if(msgEl) msgEl.innerHTML = '<span style="color:#e05a5a;">Please enter a key.</span>'; return; }
+  if (!validateKeyFormat(key)) { if(msgEl) msgEl.innerHTML = '<span style="color:#e05a5a;">Key format looks incorrect.</span>'; return; }
+  if(msgEl) msgEl.innerHTML = '<span style="color:var(--text3);">Validating...</span>';
+  try {
+    let installId = localStorage.getItem('invokit_install_id');
+    if (!installId) {
+      installId = crypto.randomUUID ? crypto.randomUUID() : 'install-' + Date.now();
+      localStorage.setItem('invokit_install_id', installId);
+    }
+    const res = await fetch('https://invokit-licence.engineeringstenis.workers.dev/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, installId, deviceName: navigator.userAgent || 'Unknown', appVersion: '8.0' })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      if(msgEl) msgEl.innerHTML = `<span style="color:#e05a5a;">${data.error || 'Activation failed.'}</span>`;
+      return;
+    }
+    const licenceMeta = data.activation?.licence || {};
+    const activatedPlan = String(licenceMeta.plan || 'lifetime').toLowerCase();
+    const planFeatures = licenceMeta.features || {};
+    const wasFreePlan = isFreePlan();
+    const isUpgrade = wasFreePlan && activatedPlan !== 'free';
+    // Save new licence data — all app data (APP object) stays untouched
+    saveLicenceData({ status:'active', key, installId, activatedAt: Date.now(), activationToken: data.activation?.token || '', licenceMeta });
+    APP.licenceKey = key;
+    APP.licenceStatus = 'active';
+    APP.plan = activatedPlan;
+    APP.planFeatures = planFeatures;
+    // Remove free plan restrictions if upgrading
+    if (isUpgrade) {
+      const badge = document.getElementById('freePlanBadge');
+      if (badge) badge.remove();
+      ['analytics','recurring'].forEach(page => {
+        const el = document.querySelector('.nav-item[data-page="' + page + '"]');
+        if (el) el.style.display = '';
+      });
+    }
+    if (activatedPlan === 'free') applyFreePlanUI();
+    renderLicenceSettings();
+    const row = document.getElementById('upgradeLicenceRow');
+    if (row) row.style.display = 'none';
+    const btn = document.getElementById('changeLicenceBtn');
+    if (btn) btn.style.display = '';
+    if(input) input.value = '';
+    const successMsg = isUpgrade
+      ? '✓ Upgraded to ' + activatedPlan.toUpperCase() + '! All your data is intact.'
+      : '✓ Licence updated successfully.';
+    if(msgEl) msgEl.innerHTML = `<span style="color:#3dba7e;">${successMsg}</span>`;
+    showToast(isUpgrade ? '🎉 Upgraded successfully! Your data is safe.' : '✓ Licence key updated.');
+  } catch(e) {
+    if(msgEl) msgEl.innerHTML = '<span style="color:#e05a5a;">Could not reach server. Check internet and try again.</span>';
+  }
+}
+
+window.showUpgradeRow = showUpgradeRow;
+window.applyUpgradeKey = applyUpgradeKey;
+window.renderLicenceSettings = renderLicenceSettings;
+// ────────────────────────────────────────────────────────────────────────────
 
 window.activateLicence = activateLicence;
 window.showSplash = showSplash;
