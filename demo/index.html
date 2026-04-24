@@ -358,6 +358,9 @@ select.field-input{appearance:none;background-image:url("data:image/svg+xml,%3Cs
 .del-btn{width:24px;height:24px;border-radius:var(--radius-xs);border:none;background:transparent;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all var(--tr);}
 .del-btn:hover{background:var(--red-dim);color:var(--red);}
 .add-item-btn{display:flex;align-items:center;gap:7px;padding:9px 13px;background:transparent;border:1px dashed var(--border2);border-radius:var(--radius-sm);color:var(--text3);font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer;width:100%;transition:all var(--tr);margin-bottom:20px;}
+.item-heading-row{display:grid;grid-template-columns:1fr 30px;gap:8px;padding:8px 13px;align-items:center;border-bottom:1px solid var(--border);background:rgba(201,168,76,0.06);}
+[data-theme="light"] .item-heading-row{background:rgba(201,168,76,0.08);}
+[data-theme="hybrid"] .item-heading-row{background:rgba(201,168,76,0.07);}
 .add-item-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
 .totals-section{display:flex;justify-content:flex-end;margin-bottom:20px;}
 .totals-box{width:296px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
@@ -4204,6 +4207,10 @@ body.demo-file .nav-item[data-page="recurring"]{display:none !important;}
         </select>
       </div>
     </div>
+    <div class="field-group" style="margin-bottom:14px;">
+      <label class="field-label">Document Title (optional)</label>
+      <input class="field-input" type="text" id="docTitle" placeholder="Document title — e.g. Quotation for Website Redesign (optional)" style="font-size:13px;font-weight:600;letter-spacing:0.01em;color:var(--accent);">
+    </div>
     <div class="section-divider">Line Items
       <div class="cat-picker-wrap" style="margin:0;flex:1;max-width:260px;" id="catPickerWrap">
         <button class="cat-picker-btn" onclick="toggleCatPicker()" id="catPickerBtn">▦ Add from Catalogue</button>
@@ -4218,6 +4225,7 @@ body.demo-file .nav-item[data-page="recurring"]{display:none !important;}
       <div id="itemsContainer"></div>
     </div>
     <button class="add-item-btn" onclick="addItem()">＋ Add Line Item</button>
+    <button class="add-item-btn" onclick="addHeading()" style="background:rgba(201,168,76,0.08);border-color:rgba(201,168,76,0.25);color:var(--accent);font-size:12px;">＋ Add Heading</button>
     <div class="totals-section">
       <div class="totals-box">
         <div class="discount-row">
@@ -4641,11 +4649,11 @@ function resetAccentColour() { applyAccentColour('#c9a84c'); persist(); showToas
 function buildPalette() {
   const grid = document.getElementById('paletteGrid');
   if (!grid) return;
-  grid.innerHTML = PALETTE.map(p => `
-    <div class="palette-swatch${APP.settings.accentColour===p.hex?' active':''}"
-      style="background:${p.hex}" data-hex="${p.hex}"
-      title="${p.name}" onclick="applyAccentColour('${p.hex}');persist();showToast('Colour applied')">
-    </div>`).join('');
+  grid.innerHTML = PALETTE.map(function(p) {
+    var activeClass = APP.settings.accentColour===p.hex ? ' active' : '';
+    return '<div class="palette-swatch' + activeClass + '" style="background:' + p.hex + '" data-hex="' + p.hex + '" title="' + p.name + '" onclick="applyAccentColour(\'' + p.hex + '\');persist();showToast(\'Colour applied\')">' +
+    '</div>';
+  }).join('');
 }
 
 function applyTheme(t) {
@@ -5295,7 +5303,7 @@ function openEditorForInvoice(id){
   setValue('bizVAT',inv.bizVAT||APP.settings.vat||'');
   setValue('clientName',inv.client); setValue('clientEmail',inv.email);
   setValue('clientPhone',inv.phone||''); setValue('clientAddress',inv.address||'');
-  setValue('issueDate',inv.issued); setValue('dueDate',inv.due);
+  setValue('issueDate',inv.issued); setValue('dueDate',inv.due); setValue('docTitle',inv.docTitle||'');
   setValue('notes',inv.notes||'');
   setValue('currency',inv.currency||APP.settings.currency||'£');
   if(inv.paymentTerms||APP.settings.terms) setValue('paymentTerms',inv.paymentTerms||APP.settings.terms||'');
@@ -5325,7 +5333,7 @@ function clearEditor(){
   document.getElementById('discFixed')?.classList.remove('active');
   const today=new Date().toISOString().split('T')[0];
   const due30=new Date(Date.now()+30*864e5).toISOString().split('T')[0];
-  setValue('issueDate',today); setValue('dueDate',due30);
+  setValue('issueDate',today); setValue('dueDate',due30); setValue('docTitle','');
   recalc();
 }
 function duplicateCurrentInvoice(){if(editingId) duplicateInvoice(editingId); else showToast('⚠ Save invoice first to duplicate');}
@@ -5343,15 +5351,22 @@ function duplicateInvoice(id){
 // LINE ITEMS
 // ================================================================
 function addItem(){items.push({id:Date.now()+Math.random(),desc:'',qty:1,price:0});renderItems();}
+function addHeading(){items.push({id:Date.now()+Math.random(),type:'heading',desc:''});renderItems();}
 function renderItems(){
   const sym=getCurrency();
-  document.getElementById('itemsContainer').innerHTML=items.map(it=>`<div class="item-row">
+  document.getElementById('itemsContainer').innerHTML=items.map(it=>{
+    if(it.type==='heading') return `<div class="item-heading-row">
+      <input class="item-input" type="text" placeholder="Section heading…" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)" style="font-weight:600;color:var(--accent);font-size:13px;">
+      <button class="del-btn" onclick="removeItem(${it.id})">×</button>
+    </div>`;
+    return `<div class="item-row">
     <input class="item-input" type="text" placeholder="Description…" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)">
     <input class="item-input" type="number" min="1" placeholder="1" value="${it.qty||''}" oninput="updateItem(${it.id},'qty',this.value)" style="text-align:center">
     <input class="item-input" type="number" min="0" step="0.01" placeholder="0.00" value="${it.price>0?it.price:''}" oninput="updateItem(${it.id},'price',this.value)">
     <span class="item-amount" id="amt-${it.id}">${sym}${(it.qty*it.price).toFixed(2)}</span>
     <button class="del-btn" onclick="removeItem(${it.id})">×</button>
-  </div>`).join('');
+  </div>`;
+  }).join('');
 }
 function updateItem(id,field,val){
   const it=items.find(i=>i.id===id);if(!it) return;
@@ -5392,7 +5407,7 @@ function buildInvObj(status){
   const rate=parseFloat(document.getElementById('taxRate')?.value)||0;
   const tax=taxEnabled?afterDisc*(rate/100):0;
   const prefix=APP.settings.prefix||'INV-2026-';
-  return {id:editingId||(prefix+String(APP.nextNum||1).padStart(3,'0')),bizName:gv('bizName'),bizAddress:gv('bizAddress'),bizEmail:gv('bizEmail'),bizPhone:gv('bizPhone'),bizVAT:gv('bizVAT'),bizRegNum:APP.settings.regNum||'',client:gv('clientName'),email:gv('clientEmail'),phone:gv('clientPhone'),address:gv('clientAddress'),issued:gv('issueDate'),due:gv('dueDate'),subtotal:sub,discount:disc,tax,amount:afterDisc+tax,currency:sym,paymentTerms:gv('paymentTerms'),items:items.map(i=>({desc:i.desc,qty:i.qty,price:i.price})),status,notes:gv('notes'),template:gv('invTemplate')||APP.settings.template||'classic'};
+  return {id:editingId||(prefix+String(APP.nextNum||1).padStart(3,'0')),bizName:gv('bizName'),bizAddress:gv('bizAddress'),bizEmail:gv('bizEmail'),bizPhone:gv('bizPhone'),bizVAT:gv('bizVAT'),bizRegNum:APP.settings.regNum||'',client:gv('clientName'),email:gv('clientEmail'),phone:gv('clientPhone'),address:gv('clientAddress'),issued:gv('issueDate'),due:gv('dueDate'),subtotal:sub,discount:disc,tax,amount:afterDisc+tax,currency:sym,paymentTerms:gv('paymentTerms'),docTitle:gv('docTitle'),items:items.map(i=>i.type==='heading'?{type:'heading',desc:i.desc}:{desc:i.desc,qty:i.qty,price:i.price}),status,notes:gv('notes'),template:gv('invTemplate')||APP.settings.template||'classic'};
 }
 function saveToList(inv){
   APP.settings.currency=inv.currency||APP.settings.currency||'£';
@@ -7989,7 +8004,7 @@ function buildTemplate(inv,tmpl,sym){
   // Always read bizLogo from settings first — this is the source of truth
   const bizLogo=APP.settings.bizLogo||inv.bizLogo||'';
   const logoHtml=bizLogo?`<img src="${bizLogo}" class="t-logo-img" style="max-height:44px;object-fit:contain">`:'' ;
-  const rows=(inv.items||[]).map(it=>`<tr><td>${esc(it.desc||'—')}</td><td style="text-align:center">${it.qty}</td><td style="text-align:right">${sym}${parseFloat(it.price||0).toFixed(2)}</td><td style="text-align:right">${sym}${(it.qty*(it.price||0)).toFixed(2)}</td></tr>`).join('');
+  const rows=(inv.items||[]).map(it=>it.type==='heading'?`<tr><td colspan="4" style="padding:10px 13px 4px;font-weight:600;color:#c9a84c;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;border-bottom:2px solid rgba(201,168,76,0.25);background:rgba(201,168,76,0.04);">${esc(it.desc||'')}</td></tr>`:`<tr><td>${esc(it.desc||'—')}</td><td style="text-align:center">${it.qty}</td><td style="text-align:right">${sym}${parseFloat(it.price||0).toFixed(2)}</td><td style="text-align:right">${sym}${(it.qty*(it.price||0)).toFixed(2)}</td></tr>`).join('');
   const totRows=`<div class="t-tot-row"><span>Subtotal</span><span>${sym}${sub.toFixed(2)}</span></div>${disc>0?`<div class="t-tot-row"><span>Discount</span><span style="color:#27a060">-${sym}${disc.toFixed(2)}</span></div>`:''} ${tax>0?`<div class="t-tot-row"><span>VAT</span><span>${sym}${tax.toFixed(2)}</span></div>`:''}`;
 
   if(tmpl==='modern') return `<div class="tmpl-modern">
@@ -8014,7 +8029,7 @@ function buildTemplate(inv,tmpl,sym){
 
   if(tmpl==='compact') return `<div class="tmpl-compact">
     <div class="t-header"><div>${logoHtml}<div class="t-biz-name">${esc(inv.bizName)}</div><div class="t-biz-small">${esc(inv.bizAddress)}<br>${esc(inv.bizEmail)}</div></div>
-    <div class="t-inv-right"><div class="t-inv-title">INVOICE</div><div class="t-inv-details">${esc(inv.id)}<br>Issued: ${fmtDate(inv.issued)}<br>Due: ${fmtDate(inv.due)}</div></div></div>
+    <div class="t-inv-right"><div class="t-inv-title">${inv.docTitle ? esc(inv.docTitle) : "INVOICE"}</div><div class="t-inv-details">${esc(inv.id)}<br>Issued: ${fmtDate(inv.issued)}<br>Due: ${fmtDate(inv.due)}</div></div></div>
     <div class="t-to-section"><div><div class="t-to-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:22px;object-fit:contain;margin-bottom:3px;display:block">`:''}<div class="t-to-val">${esc(inv.client)}</div><div class="t-to-sub">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div></div>
     <table class="t-table"><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Total</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="t-bottom-row"><div class="t-notes-sm">${inv.notes?esc(inv.notes):''}</div>
@@ -8030,6 +8045,7 @@ function buildTemplate(inv,tmpl,sym){
       <div><div class="t-addr-label">From</div><div class="t-addr-name">${esc(inv.bizName)}</div><div class="t-addr-info">${esc(inv.bizAddress)}</div></div>
       <div><div class="t-addr-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:28px;object-fit:contain;margin-bottom:5px;display:block">`:''}<div class="t-addr-name">${esc(inv.client)}</div><div class="t-addr-info">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div>
     </div>
+    ${inv.docTitle?`<div style="padding:10px 0 14px;font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600;color:#1a1814;letter-spacing:0.01em;">${esc(inv.docTitle)}</div>`:''}
     <table class="t-table"><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Amount</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="t-totals-wrap"><div class="t-totals">${totRows}<div class="t-tot-final"><span class="lbl">Total Due</span><span class="val">${sym}${total.toFixed(2)}</span></div></div></div>
     ${inv.notes?`<div class="t-notes">${esc(inv.notes)}</div>`:''}
@@ -8800,12 +8816,12 @@ function showPdfPaywall() {
         You've seen how InvoKit Pro works. A licence pays for itself with your first invoice.
       </p>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
-        <a href="https://getinvokitpro.com/#pricing" target="_blank" style="
-          display:block;padding:13px 20px;border-radius:10px;
+        <button onclick="document.getElementById('pdfPaywallOverlay').remove();showLicenceScreen();" style="
+          display:block;width:100%;padding:13px 20px;border-radius:10px;
           background:linear-gradient(135deg,#c9a84c,#e8c97a);
-          color:#0c0d14;font-weight:700;font-size:14px;text-decoration:none;
-          letter-spacing:0.3px;
-        ">Get InvoKit Pro — from $19/year →</a>
+          color:#0c0d14;font-weight:700;font-size:14px;cursor:pointer;border:none;
+          font-family:'Outfit',sans-serif;letter-spacing:0.3px;
+        ">Get InvoKit Pro — Activate Licence →</button>
         <button onclick="document.getElementById('pdfPaywallOverlay').remove()" style="
           padding:11px 20px;border-radius:10px;border:1px solid rgba(201,168,76,0.2);
           background:transparent;color:#9d9a94;font-family:'Outfit',sans-serif;
