@@ -4073,6 +4073,13 @@ body .demo-mode-banner a{
         </div>
       </div>
     </div>
+    <div class="field-group" style="margin-bottom:16px;">
+      <label class="field-label" style="display:flex;align-items:center;gap:6px;">
+        Document Title
+        <span style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:0.04em;">(optional — replaces INVOICE / QUOTATION heading)</span>
+      </label>
+      <input class="field-input" type="text" id="docTitle" placeholder="e.g. Quotation for Website Redesign · Invoice for Monthly Retainer">
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;margin-bottom:20px">
       <div class="field-group" style="margin:0"><label class="field-label">Currency</label>
         <select class="field-input" id="currency" onchange="renderItems();recalc()">
@@ -5265,7 +5272,7 @@ function openEditorForInvoice(id){
   setValue('bizVAT',inv.bizVAT||APP.settings.vat||'');
   setValue('clientName',inv.client); setValue('clientEmail',inv.email);
   setValue('clientPhone',inv.phone||''); setValue('clientAddress',inv.address||'');
-  setValue('issueDate',inv.issued); setValue('dueDate',inv.due);
+  setValue('issueDate',inv.issued); setValue('dueDate',inv.due); setValue('docTitle',inv.docTitle||'');
   setValue('notes',inv.notes||'');
   setValue('currency',inv.currency||APP.settings.currency||'£');
   if(inv.paymentTerms||APP.settings.terms) setValue('paymentTerms',inv.paymentTerms||APP.settings.terms||'');
@@ -5295,7 +5302,7 @@ function clearEditor(){
   document.getElementById('discFixed')?.classList.remove('active');
   const today=new Date().toISOString().split('T')[0];
   const due30=new Date(Date.now()+30*864e5).toISOString().split('T')[0];
-  setValue('issueDate',today); setValue('dueDate',due30);
+  setValue('issueDate',today); setValue('dueDate',due30); setValue('docTitle','');
   recalc();
 }
 function duplicateCurrentInvoice(){if(editingId) duplicateInvoice(editingId); else showToast('⚠ Save invoice first to duplicate');}
@@ -5371,7 +5378,7 @@ function buildInvObj(status){
   const rate=parseFloat(document.getElementById('taxRate')?.value)||0;
   const tax=taxEnabled?afterDisc*(rate/100):0;
   const prefix=APP.settings.prefix||'INV-2026-';
-  return {id:editingId||(prefix+String(APP.nextNum||1).padStart(3,'0')),bizName:gv('bizName'),bizAddress:gv('bizAddress'),bizEmail:gv('bizEmail'),bizPhone:gv('bizPhone'),bizVAT:gv('bizVAT'),bizRegNum:APP.settings.regNum||'',client:gv('clientName'),email:gv('clientEmail'),phone:gv('clientPhone'),address:gv('clientAddress'),issued:gv('issueDate'),due:gv('dueDate'),subtotal:sub,discount:disc,tax,amount:afterDisc+tax,currency:sym,paymentTerms:gv('paymentTerms'),items:items.map(i=>i.type==='heading'?{type:'heading',desc:i.desc}:{desc:i.desc,qty:i.qty,price:i.price}),status,notes:gv('notes'),template:gv('invTemplate')||APP.settings.template||'classic'};
+  return {id:editingId||(prefix+String(APP.nextNum||1).padStart(3,'0')),bizName:gv('bizName'),bizAddress:gv('bizAddress'),bizEmail:gv('bizEmail'),bizPhone:gv('bizPhone'),bizVAT:gv('bizVAT'),bizRegNum:APP.settings.regNum||'',client:gv('clientName'),email:gv('clientEmail'),phone:gv('clientPhone'),address:gv('clientAddress'),issued:gv('issueDate'),due:gv('dueDate'),docTitle:gv('docTitle'),subtotal:sub,discount:disc,tax,amount:afterDisc+tax,currency:sym,paymentTerms:gv('paymentTerms'),items:items.map(i=>i.type==='heading'?{type:'heading',desc:i.desc}:{desc:i.desc,qty:i.qty,price:i.price}),status,notes:gv('notes'),template:gv('invTemplate')||APP.settings.template||'classic'};
 }
 function saveToList(inv){
   APP.settings.currency=inv.currency||APP.settings.currency||'£';
@@ -7956,11 +7963,14 @@ function buildTemplate(inv,tmpl,sym){
   // Always read bizLogo from settings first — this is the source of truth
   const bizLogo=APP.settings.bizLogo||inv.bizLogo||'';
   const logoHtml=bizLogo?`<img src="${bizLogo}" class="t-logo-img" style="max-height:44px;object-fit:contain">`:'' ;
-  const rows=(inv.items||[]).map(it=>`<tr><td>${esc(it.desc||'—')}</td><td style="text-align:center">${it.qty}</td><td style="text-align:right">${sym}${parseFloat(it.price||0).toFixed(2)}</td><td style="text-align:right">${sym}${(it.qty*(it.price||0)).toFixed(2)}</td></tr>`).join('');
+  const rows=(inv.items||[]).map(it=>{
+    if(it.type==='heading') return `<tr><td colspan="4" style="padding:10px 8px 4px;font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#c9a84c;border-bottom:1px solid rgba(201,168,76,0.25);background:rgba(201,168,76,0.04);">${esc(it.desc||'')}</td></tr>`;
+    return `<tr><td>${esc(it.desc||'—')}</td><td style="text-align:center">${it.qty}</td><td style="text-align:right">${sym}${parseFloat(it.price||0).toFixed(2)}</td><td style="text-align:right">${sym}${(it.qty*(it.price||0)).toFixed(2)}</td></tr>`;
+  }).join('');
   const totRows=`<div class="t-tot-row"><span>Subtotal</span><span>${sym}${sub.toFixed(2)}</span></div>${disc>0?`<div class="t-tot-row"><span>Discount</span><span style="color:#27a060">-${sym}${disc.toFixed(2)}</span></div>`:''} ${tax>0?`<div class="t-tot-row"><span>VAT</span><span>${sym}${tax.toFixed(2)}</span></div>`:''}`;
 
   if(tmpl==='modern') return `<div class="tmpl-modern">
-    <div class="t-top-bar">${logoHtml?`<div>${logoHtml}<div class="t-biz-name">${esc(inv.bizName)}</div></div>`:`<div class="t-biz-name">${esc(inv.bizName)}</div>`}<div><div class="t-biz-tagline">${esc(inv.bizEmail)}</div></div><div class="t-inv-chip">${esc(inv.id)}</div></div>
+    <div class="t-top-bar">${logoHtml?`<div>${logoHtml}<div class="t-biz-name">${esc(inv.bizName)}</div></div>`:`<div class="t-biz-name">${esc(inv.bizName)}</div>`}<div><div class="t-biz-tagline">${esc(inv.bizEmail)}</div></div><div class="t-inv-chip">${esc(inv.id)}</div>${inv.docTitle?`<div class="t-inv-chip" style="background:rgba(201,168,76,0.15);color:#c9a84c;margin-top:5px;">${esc(inv.docTitle)}</div>`:''}</div>
     <div class="t-body"><div class="t-meta-row"><div><div class="t-meta-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:28px;object-fit:contain;margin-bottom:4px;display:block">`:''}  <div class="t-meta-val">${esc(inv.client)}</div><div class="t-meta-sub">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div><div><div class="t-meta-label">From</div><div class="t-meta-val">${esc(inv.bizName)}</div><div class="t-meta-sub">${esc(inv.bizAddress)}</div></div><div><div class="t-meta-label">Issued</div><div class="t-meta-val">${fmtDate(inv.issued)}</div></div><div><div class="t-meta-label">Due</div><div class="t-meta-val">${fmtDate(inv.due)}</div></div></div>
     <div class="t-divider"></div>
     <table class="t-table"><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Amount</th></tr></thead><tbody>${rows}</tbody></table>
@@ -7970,7 +7980,7 @@ function buildTemplate(inv,tmpl,sym){
   if(tmpl==='bold') return `<div class="tmpl-bold">
     <div class="t-hero">${logoHtml?`<div style="margin-bottom:10px">${logoHtml}</div>`:''}
       <div class="t-biz-name">${esc(inv.bizName)}</div><div class="t-biz-info">${esc(inv.bizAddress)}<br>${esc(inv.bizEmail)}${inv.bizVAT?' | VAT: '+esc(inv.bizVAT):''}${inv.bizRegNum?' | Reg: '+esc(inv.bizRegNum):''}</div>
-      <div class="t-inv-row"><div class="t-inv-big">${esc(inv.id)} · ${fmtDate(inv.issued)}</div><div class="t-status-big">Due ${fmtDate(inv.due)}</div></div></div>
+      <div class="t-inv-row"><div class="t-inv-big">${esc(inv.id)} · ${fmtDate(inv.issued)}</div><div class="t-status-big">Due ${fmtDate(inv.due)}</div></div>${inv.docTitle?`<div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:#f0ede8;margin-top:8px;letter-spacing:0.01em;">${esc(inv.docTitle)}</div>`:''}</div>
     <div class="t-body"><div class="t-bill-row">
       <div class="t-bill-item"><div class="t-bill-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:26px;object-fit:contain;margin-bottom:4px;display:block">`:''}<div class="t-bill-val">${esc(inv.client)}</div><div class="t-bill-sub">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div>
       <div class="t-bill-item"><div class="t-bill-label">From</div><div class="t-bill-val">${esc(inv.bizName)}</div><div class="t-bill-sub">${esc(inv.bizAddress)}</div></div>
@@ -7981,7 +7991,7 @@ function buildTemplate(inv,tmpl,sym){
 
   if(tmpl==='compact') return `<div class="tmpl-compact">
     <div class="t-header"><div>${logoHtml}<div class="t-biz-name">${esc(inv.bizName)}</div><div class="t-biz-small">${esc(inv.bizAddress)}<br>${esc(inv.bizEmail)}</div></div>
-    <div class="t-inv-right"><div class="t-inv-title">INVOICE</div><div class="t-inv-details">${esc(inv.id)}<br>Issued: ${fmtDate(inv.issued)}<br>Due: ${fmtDate(inv.due)}</div></div></div>
+    <div class="t-inv-right"><div class="t-inv-title">${inv.docTitle ? esc(inv.docTitle) : "INVOICE"}</div><div class="t-inv-details">${esc(inv.id)}<br>Issued: ${fmtDate(inv.issued)}<br>Due: ${fmtDate(inv.due)}</div></div></div>
     <div class="t-to-section"><div><div class="t-to-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:22px;object-fit:contain;margin-bottom:3px;display:block">`:''}<div class="t-to-val">${esc(inv.client)}</div><div class="t-to-sub">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div></div>
     <table class="t-table"><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Total</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="t-bottom-row"><div class="t-notes-sm">${inv.notes?esc(inv.notes):''}</div>
@@ -7992,7 +8002,7 @@ function buildTemplate(inv,tmpl,sym){
   // Classic (default)
   return `<div class="tmpl-classic">
     <div class="t-header"><div>${logoHtml}<div class="t-biz-name">${esc(inv.bizName)}</div><div class="t-biz-info">${esc(inv.bizAddress)}<br>${esc(inv.bizEmail)}${inv.bizPhone?' · '+esc(inv.bizPhone):''}</div></div>
-    <div class="t-inv-meta"><div class="t-inv-label">Invoice</div><div class="t-inv-num">${esc(inv.id)}</div><div class="t-dates">Issued: ${fmtDate(inv.issued)}<br>Due: ${fmtDate(inv.due)}</div></div></div>
+    <div class="t-inv-meta"><div class="t-inv-label">${inv.docTitle ? esc(inv.docTitle) : "Invoice"}</div><div class="t-inv-num">${esc(inv.id)}</div><div class="t-dates">Issued: ${fmtDate(inv.issued)}<br>Due: ${fmtDate(inv.due)}</div></div></div>
     <div class="t-addresses">
       <div><div class="t-addr-label">From</div><div class="t-addr-name">${esc(inv.bizName)}</div><div class="t-addr-info">${esc(inv.bizAddress)}</div></div>
       <div><div class="t-addr-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:28px;object-fit:contain;margin-bottom:5px;display:block">`:''}<div class="t-addr-name">${esc(inv.client)}</div><div class="t-addr-info">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div>
