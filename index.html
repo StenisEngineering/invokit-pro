@@ -7968,9 +7968,10 @@ function buildTemplate(inv,tmpl,sym){
   const totRows=`<div class="t-tot-row"><span>Subtotal</span><span>${sym}${sub.toFixed(2)}</span></div>${disc>0?`<div class="t-tot-row"><span>Discount</span><span style="color:#27a060">-${sym}${disc.toFixed(2)}</span></div>`:''} ${tax>0?`<div class="t-tot-row"><span>VAT</span><span>${sym}${tax.toFixed(2)}</span></div>`:''}`;
 
   if(tmpl==='modern') return `<div class="tmpl-modern">
-    <div class="t-top-bar">${logoHtml?`<div>${logoHtml}<div class="t-biz-name">${esc(inv.bizName)}</div></div>`:`<div class="t-biz-name">${esc(inv.bizName)}</div>`}<div><div class="t-biz-tagline">${esc(inv.bizEmail)}</div></div><div class="t-inv-chip">${esc(inv.id)}</div>${inv.docTitle?`<div class="t-inv-chip" style="background:rgba(201,168,76,0.15);color:#c9a84c;margin-top:5px;">${esc(inv.docTitle)}</div>`:''}</div>
+    <div class="t-top-bar">${logoHtml?`<div>${logoHtml}<div class="t-biz-name">${esc(inv.bizName)}</div></div>`:`<div class="t-biz-name">${esc(inv.bizName)}</div>`}<div><div class="t-biz-tagline">${esc(inv.bizEmail)}</div></div><div class="t-inv-chip">${esc(inv.id)}</div></div>
     <div class="t-body"><div class="t-meta-row"><div><div class="t-meta-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:28px;object-fit:contain;margin-bottom:4px;display:block">`:''}  <div class="t-meta-val">${esc(inv.client)}</div><div class="t-meta-sub">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div><div><div class="t-meta-label">From</div><div class="t-meta-val">${esc(inv.bizName)}</div><div class="t-meta-sub">${esc(inv.bizAddress)}</div></div><div><div class="t-meta-label">Issued</div><div class="t-meta-val">${fmtDate(inv.issued)}</div></div><div><div class="t-meta-label">Due</div><div class="t-meta-val">${fmtDate(inv.due)}</div></div></div>
     <div class="t-divider"></div>
+    ${inv.docTitle?`<div style="padding:10px 0 14px;font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600;color:#1a1814;letter-spacing:0.01em;">${esc(inv.docTitle)}</div>`:''}
     <table class="t-table"><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Amount</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="t-totals-section"><div class="t-totals">${totRows}<div class="t-grand"><span class="lbl">Total Due</span><span class="val">${sym}${total.toFixed(2)}</span></div></div></div></div>
     <div class="t-bottom"><div class="t-bottom-notes">${inv.notes?esc(inv.notes):''}</div><div class="t-bottom-badge">INVOKIT PRO</div></div></div>`;
@@ -7978,11 +7979,12 @@ function buildTemplate(inv,tmpl,sym){
   if(tmpl==='bold') return `<div class="tmpl-bold">
     <div class="t-hero">${logoHtml?`<div style="margin-bottom:10px">${logoHtml}</div>`:''}
       <div class="t-biz-name">${esc(inv.bizName)}</div><div class="t-biz-info">${esc(inv.bizAddress)}<br>${esc(inv.bizEmail)}${inv.bizVAT?' | VAT: '+esc(inv.bizVAT):''}${inv.bizRegNum?' | Reg: '+esc(inv.bizRegNum):''}</div>
-      <div class="t-inv-row"><div class="t-inv-big">${esc(inv.id)} · ${fmtDate(inv.issued)}</div><div class="t-status-big">Due ${fmtDate(inv.due)}</div></div>${inv.docTitle?`<div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:#f0ede8;margin-top:8px;letter-spacing:0.01em;">${esc(inv.docTitle)}</div>`:''}</div>
+      <div class="t-inv-row"><div class="t-inv-big">${esc(inv.id)} · ${fmtDate(inv.issued)}</div><div class="t-status-big">Due ${fmtDate(inv.due)}</div></div></div>
     <div class="t-body"><div class="t-bill-row">
       <div class="t-bill-item"><div class="t-bill-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:26px;object-fit:contain;margin-bottom:4px;display:block">`:''}<div class="t-bill-val">${esc(inv.client)}</div><div class="t-bill-sub">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div>
       <div class="t-bill-item"><div class="t-bill-label">From</div><div class="t-bill-val">${esc(inv.bizName)}</div><div class="t-bill-sub">${esc(inv.bizAddress)}</div></div>
       <div class="t-bill-item"><div class="t-bill-label">Terms</div><div class="t-bill-val">${esc(inv.terms||inv.paymentTerms||'')}</div><div class="t-bill-sub">Due ${fmtDate(inv.due)}</div></div></div>
+    ${inv.docTitle?`<div style="padding:12px 0 14px;border-top:1px solid rgba(255,255,255,0.08);font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:#1a1814;letter-spacing:0.01em;">${esc(inv.docTitle)}</div>`:''}
     <table class="t-table"><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Amount</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="t-summary"><div class="t-summary-inner">${totRows}<div class="t-s-total"><span class="lbl">Total Due</span><span class="val">${sym}${total.toFixed(2)}</span></div></div></div></div>
     <div class="t-foot"><span>${inv.notes?esc(inv.notes).substring(0,80):''}</span><span>InvoKit Pro</span></div></div>`;
@@ -8000,11 +8002,12 @@ function buildTemplate(inv,tmpl,sym){
   // Classic (default)
   return `<div class="tmpl-classic">
     <div class="t-header"><div>${logoHtml}<div class="t-biz-name">${esc(inv.bizName)}</div><div class="t-biz-info">${esc(inv.bizAddress)}<br>${esc(inv.bizEmail)}${inv.bizPhone?' · '+esc(inv.bizPhone):''}</div></div>
-    <div class="t-inv-meta"><div class="t-inv-label">${inv.docTitle ? esc(inv.docTitle) : "Invoice"}</div><div class="t-inv-num">${esc(inv.id)}</div><div class="t-dates">Issued: ${fmtDate(inv.issued)}<br>Due: ${fmtDate(inv.due)}</div></div></div>
+    <div class="t-inv-meta"><div class="t-inv-label">Invoice</div><div class="t-inv-num">${esc(inv.id)}</div><div class="t-dates">Issued: ${fmtDate(inv.issued)}<br>Due: ${fmtDate(inv.due)}</div></div></div>
     <div class="t-addresses">
       <div><div class="t-addr-label">From</div><div class="t-addr-name">${esc(inv.bizName)}</div><div class="t-addr-info">${esc(inv.bizAddress)}</div></div>
       <div><div class="t-addr-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:28px;object-fit:contain;margin-bottom:5px;display:block">`:''}<div class="t-addr-name">${esc(inv.client)}</div><div class="t-addr-info">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div>
     </div>
+    ${inv.docTitle?`<div style="padding:14px 0 10px;border-top:1px solid #e8e5e0;border-bottom:1px solid #e8e5e0;margin-bottom:16px;font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:#1a1814;letter-spacing:0.01em;">${esc(inv.docTitle)}</div>`:''}
     <table class="t-table"><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Amount</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="t-totals-wrap"><div class="t-totals">${totRows}<div class="t-tot-final"><span class="lbl">Total Due</span><span class="val">${sym}${total.toFixed(2)}</span></div></div></div>
     ${inv.notes?`<div class="t-notes">${esc(inv.notes)}</div>`:''}
