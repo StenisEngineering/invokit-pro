@@ -348,6 +348,11 @@ select.field-input{appearance:none;background-image:url("data:image/svg+xml,%3Cs
 .items-head{display:grid;grid-template-columns:3fr 0.75fr 1fr 1fr 30px;gap:8px;padding:9px 13px;background:var(--surface2);border-bottom:1px solid var(--border);}
 .items-head span{font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);letter-spacing:0.14em;text-transform:uppercase;}
 .item-row{display:grid;grid-template-columns:3fr 0.75fr 1fr 1fr 30px;gap:8px;padding:8px 13px;align-items:center;border-bottom:1px solid var(--border);transition:background var(--tr);}
+.item-heading-row{display:grid;grid-template-columns:1fr 30px;gap:8px;padding:8px 13px;align-items:center;border-bottom:1px solid var(--border);background:rgba(201,168,76,0.06);}
+.item-heading-input{background:transparent;border:none;border-bottom:1px solid rgba(201,168,76,0.3);color:var(--accent);font-weight:600;font-size:13px;letter-spacing:0.04em;padding:3px 0;width:100%;outline:none;font-family:inherit;}
+.item-heading-input::placeholder{color:rgba(201,168,76,0.4);font-style:italic;}
+[data-theme="light"] .item-heading-row{background:rgba(201,168,76,0.08);}
+[data-theme="hybrid"] .item-heading-row{background:rgba(201,168,76,0.07);}
 .item-row:last-child{border-bottom:none;}
 .item-row:hover{background:rgba(255,255,255,0.02);}
 [data-theme="light"] .item-row:hover,[data-theme="hybrid"] .item-row:hover{background:rgba(0,0,0,0.02);}
@@ -3896,8 +3901,14 @@ body .demo-mode-banner a{
               <div class="field-group"><label class="field-label">Default Tax Rate (%)</label><input class="field-input" type="number" id="s_taxRate" placeholder="20" min="0" max="100"></div>
               <div class="field-group"><label class="field-label">Default Terms</label>
                 <select class="field-input" id="s_terms">
-                  <option>Net 30</option><option>Net 14</option><option>Net 7</option>
-                  <option>Due on Receipt</option><option>50% Upfront</option>
+                  <option value="">No terms</option>
+                  <option>Due on receipt</option>
+                  <option>Due in 7 days</option>
+                  <option>Due in 14 days</option>
+                  <option>Due in 30 days</option>
+                  <option>Due in 60 days</option>
+                  <option>50% upfront</option>
+                  <option>Net 7</option><option>Net 14</option><option>Net 30</option>
                 </select>
               </div>
             </div>
@@ -4084,8 +4095,14 @@ body .demo-mode-banner a{
       </div>
       <div class="field-group" style="margin:0"><label class="field-label">Terms</label>
         <select class="field-input" id="paymentTerms">
-          <option>Net 30</option><option>Net 14</option><option>Net 7</option>
-          <option>Due on Receipt</option><option>50% Upfront</option>
+          <option value="">No terms</option>
+          <option>Due on receipt</option>
+          <option>Due in 7 days</option>
+          <option>Due in 14 days</option>
+          <option>Due in 30 days</option>
+          <option>Due in 60 days</option>
+          <option>50% upfront</option>
+          <option>Net 7</option><option>Net 14</option><option>Net 30</option>
         </select>
       </div>
       <div class="field-group" style="margin:0"><label class="field-label">Template</label>
@@ -4108,7 +4125,10 @@ body .demo-mode-banner a{
       <div class="items-head"><span>Description</span><span>Qty</span><span>Unit Price</span><span>Amount</span><span></span></div>
       <div id="itemsContainer"></div>
     </div>
-    <button class="add-item-btn" onclick="addItem()">＋ Add Line Item</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="add-item-btn" onclick="addItem()">＋ Add Line Item</button>
+      <button class="add-item-btn" onclick="addHeading()" style="background:rgba(201,168,76,0.08);border-color:rgba(201,168,76,0.25);color:var(--accent);font-size:12px;">＋ Add Heading</button>
+    </div>
     <div class="totals-section">
       <div class="totals-box">
         <div class="discount-row">
@@ -4445,7 +4465,7 @@ function getMonthlyAnalyticsData() {
 
 const DEF_SETTINGS = {
   bizName:'',ownerName:'',email:'',phone:'',address:'',vat:'',regNum:'',website:'',
-  prefix:'INV-2026-',currency:'£',taxRate:20,terms:'Net 30',
+  prefix:'INV-2026-',currency:'£',taxRate:20,terms:'',
   notes:'Thank you for your business.',template:'classic',
   theme:'dark',accentColour:'#c9a84c',bizLogo:''
 };
@@ -5067,7 +5087,10 @@ function buildReceiptHTML(inv,sym){
   // get client logo from clients db
   const clientRec=APP.clients.find(c=>c.name===inv.client);
   const clientLogoHtml=clientRec?.logo?`<img src="${clientRec.logo}" style="height:32px;object-fit:contain;margin-bottom:5px;display:block">`:'';
-  const rows=(inv.items||[]).map(it=>`<tr><td>${esc(it.desc||'—')}</td><td style="text-align:center">${it.qty}</td><td style="text-align:right">${sym}${parseFloat(it.price||0).toFixed(2)}</td><td style="text-align:right">${sym}${(it.qty*it.price).toFixed(2)}</td></tr>`).join('');
+  const rows=(inv.items||[]).map(it=>{
+    if(it.type==='heading') return `<tr><td colspan="4" style="padding:10px 8px 4px;font-weight:700;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#c9a84c;border-bottom:1px solid rgba(201,168,76,0.3);background:rgba(201,168,76,0.04);">${esc(it.desc||'')}</td></tr>`;
+    return `<tr><td>${esc(it.desc||'—')}</td><td style="text-align:center">${it.qty}</td><td style="text-align:right">${sym}${parseFloat(it.price||0).toFixed(2)}</td><td style="text-align:right">${sym}${(it.qty*it.price).toFixed(2)}</td></tr>`;
+  }).join('');
   return `<div class="receipt-doc">
   <div class="rec-header">
     <div>${logoHtml}<div class="rec-logo-name">${esc(inv.bizName)}</div><div class="rec-biz-info">${esc(inv.bizAddress)}<br>${esc(inv.bizEmail)}${inv.bizPhone?' · '+esc(inv.bizPhone):''}${inv.bizVAT?'<br>VAT: '+esc(inv.bizVAT):''}${inv.bizRegNum?'<br>Reg: '+esc(inv.bizRegNum):''}</div></div>
@@ -5247,7 +5270,7 @@ function openEditorForInvoice(id){
   setValue('currency',inv.currency||APP.settings.currency||'£');
   if(inv.paymentTerms||APP.settings.terms) setValue('paymentTerms',inv.paymentTerms||APP.settings.terms||'');
   if(inv.template) setValue('invTemplate',inv.template);
-  items=(inv.items||[]).map(it=>({id:Date.now()+Math.random(),desc:it.desc,qty:it.qty,price:it.price}));
+  items=(inv.items||[]).map(it=>it.type==='heading'?{id:Date.now()+Math.random(),type:'heading',desc:it.desc}:{id:Date.now()+Math.random(),type:'item',desc:it.desc,qty:it.qty||1,price:it.price||0});
   if(!items.length) addItem();
   renderItems(); recalc();
   document.getElementById('editorOverlay').classList.add('open');
@@ -5289,16 +5312,25 @@ function duplicateInvoice(id){
 // ================================================================
 // LINE ITEMS
 // ================================================================
-function addItem(){items.push({id:Date.now()+Math.random(),desc:'',qty:1,price:0});renderItems();}
+function addItem(){items.push({id:Date.now()+Math.random(),type:'item',desc:'',qty:1,price:0});renderItems();}
+function addHeading(){items.push({id:Date.now()+Math.random(),type:'heading',desc:''});renderItems();}
 function renderItems(){
   const sym=getCurrency();
-  document.getElementById('itemsContainer').innerHTML=items.map(it=>`<div class="item-row">
-    <input class="item-input" type="text" placeholder="Description…" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)">
-    <input class="item-input" type="number" min="1" placeholder="1" value="${it.qty||''}" oninput="updateItem(${it.id},'qty',this.value)" style="text-align:center">
-    <input class="item-input" type="number" min="0" step="0.01" placeholder="0.00" value="${it.price>0?it.price:''}" oninput="updateItem(${it.id},'price',this.value)">
-    <span class="item-amount" id="amt-${it.id}">${sym}${(it.qty*it.price).toFixed(2)}</span>
-    <button class="del-btn" onclick="removeItem(${it.id})">×</button>
-  </div>`).join('');
+  document.getElementById('itemsContainer').innerHTML=items.map(it=>{
+    if(it.type==='heading'){
+      return `<div class="item-heading-row">
+        <input class="item-heading-input" type="text" placeholder="Section heading (e.g. Labour, Materials…)" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)">
+        <button class="del-btn" onclick="removeItem(${it.id})">×</button>
+      </div>`;
+    }
+    return `<div class="item-row">
+      <input class="item-input" type="text" placeholder="Description…" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)">
+      <input class="item-input" type="number" min="1" placeholder="1" value="${it.qty||''}" oninput="updateItem(${it.id},'qty',this.value)" style="text-align:center">
+      <input class="item-input" type="number" min="0" step="0.01" placeholder="0.00" value="${it.price>0?it.price:''}" oninput="updateItem(${it.id},'price',this.value)">
+      <span class="item-amount" id="amt-${it.id}">${sym}${(it.qty*it.price).toFixed(2)}</span>
+      <button class="del-btn" onclick="removeItem(${it.id})">×</button>
+    </div>`;
+  }).join('');
 }
 function updateItem(id,field,val){
   const it=items.find(i=>i.id===id);if(!it) return;
@@ -5309,7 +5341,7 @@ function updateItem(id,field,val){
 function removeItem(id){items=items.filter(i=>i.id!==id);renderItems();recalc();}
 function recalc(){
   const sym=getCurrency();
-  const sub=items.reduce((s,i)=>s+(i.qty*i.price),0);
+  const sub=items.reduce((s,i)=>i.type==='heading'?s:s+(i.qty*i.price),0);
   const dval=parseFloat(document.getElementById('discountVal')?.value)||0;
   const disc=discountType==='pct'?sub*(dval/100):Math.min(dval,sub);
   const afterDisc=sub-disc;
@@ -5332,14 +5364,14 @@ function setDiscountType(t){discountType=t;document.getElementById('discPct').cl
 // ================================================================
 function buildInvObj(status){
   const sym=getCurrency();
-  const sub=items.reduce((s,i)=>s+(i.qty*i.price),0);
+  const sub=items.reduce((s,i)=>i.type==='heading'?s:s+(i.qty*i.price),0);
   const dval=parseFloat(document.getElementById('discountVal')?.value)||0;
   const disc=discountType==='pct'?sub*(dval/100):Math.min(dval,sub);
   const afterDisc=sub-disc;
   const rate=parseFloat(document.getElementById('taxRate')?.value)||0;
   const tax=taxEnabled?afterDisc*(rate/100):0;
   const prefix=APP.settings.prefix||'INV-2026-';
-  return {id:editingId||(prefix+String(APP.nextNum||1).padStart(3,'0')),bizName:gv('bizName'),bizAddress:gv('bizAddress'),bizEmail:gv('bizEmail'),bizPhone:gv('bizPhone'),bizVAT:gv('bizVAT'),bizRegNum:APP.settings.regNum||'',client:gv('clientName'),email:gv('clientEmail'),phone:gv('clientPhone'),address:gv('clientAddress'),issued:gv('issueDate'),due:gv('dueDate'),subtotal:sub,discount:disc,tax,amount:afterDisc+tax,currency:sym,paymentTerms:gv('paymentTerms'),items:items.map(i=>({desc:i.desc,qty:i.qty,price:i.price})),status,notes:gv('notes'),template:gv('invTemplate')||APP.settings.template||'classic'};
+  return {id:editingId||(prefix+String(APP.nextNum||1).padStart(3,'0')),bizName:gv('bizName'),bizAddress:gv('bizAddress'),bizEmail:gv('bizEmail'),bizPhone:gv('bizPhone'),bizVAT:gv('bizVAT'),bizRegNum:APP.settings.regNum||'',client:gv('clientName'),email:gv('clientEmail'),phone:gv('clientPhone'),address:gv('clientAddress'),issued:gv('issueDate'),due:gv('dueDate'),subtotal:sub,discount:disc,tax,amount:afterDisc+tax,currency:sym,paymentTerms:gv('paymentTerms'),items:items.map(i=>i.type==='heading'?{type:'heading',desc:i.desc}:{desc:i.desc,qty:i.qty,price:i.price}),status,notes:gv('notes'),template:gv('invTemplate')||APP.settings.template||'classic'};
 }
 function saveToList(inv){
   APP.settings.currency=inv.currency||APP.settings.currency||'£';
@@ -7942,7 +7974,7 @@ function buildTemplate(inv,tmpl,sym){
     <div class="t-body"><div class="t-bill-row">
       <div class="t-bill-item"><div class="t-bill-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:26px;object-fit:contain;margin-bottom:4px;display:block">`:''}<div class="t-bill-val">${esc(inv.client)}</div><div class="t-bill-sub">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div>
       <div class="t-bill-item"><div class="t-bill-label">From</div><div class="t-bill-val">${esc(inv.bizName)}</div><div class="t-bill-sub">${esc(inv.bizAddress)}</div></div>
-      <div class="t-bill-item"><div class="t-bill-label">Terms</div><div class="t-bill-val">${esc(inv.terms||'Net 30')}</div><div class="t-bill-sub">Due ${fmtDate(inv.due)}</div></div></div>
+      <div class="t-bill-item"><div class="t-bill-label">Terms</div><div class="t-bill-val">${esc(inv.terms||inv.paymentTerms||'')}</div><div class="t-bill-sub">Due ${fmtDate(inv.due)}</div></div></div>
     <table class="t-table"><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Amount</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="t-summary"><div class="t-summary-inner">${totRows}<div class="t-s-total"><span class="lbl">Total Due</span><span class="val">${sym}${total.toFixed(2)}</span></div></div></div></div>
     <div class="t-foot"><span>${inv.notes?esc(inv.notes).substring(0,80):''}</span><span>InvoKit Pro</span></div></div>`;
@@ -8662,7 +8694,7 @@ function showFreeUpgradePaywall(feature) {
   if (existing) existing.remove();
   const messages = {
     invoice:   { icon: '📄', title: 'Invoice limit reached',       body: 'Free licences are limited to 5 invoices. Upgrade to create unlimited invoices, unlock Analytics, Recurring invoices, and PDF export.' },
-    pdf:       { icon: '📑', title: 'PDF export is a paid feature', body: 'Upgrade your licence to export professional PDF invoices and access all paid features.' },
+    pdf:       { icon: '📑', title: 'PDF export is not available on your plan', body: 'Your free licence does not include PDF export. Upgrade to a paid plan to save and share professional PDF invoices with your clients.' },
     export:    { icon: '💾', title: 'Data export is a paid feature', body: 'Upgrade your licence to export your data and unlock all features.' },
     analytics: { icon: '📊', title: 'Analytics is a paid feature',  body: 'Upgrade to unlock Analytics, Recurring invoices, PDF export, and unlimited invoices.' },
   };
