@@ -8723,7 +8723,7 @@ function renderLicenceSettings() {
   var activatedDate = ld.activatedAt ? new Date(ld.activatedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
   var planColor = plan === 'FREE' ? '#c9a84c' : '#3dba7e';
   var upgradeRow = plan === 'FREE'
-    ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--text3)">Free plan · 5 invoices max · No PDF · <a href="https://getinvokitpro.com/#pricing" target="_blank" style="color:#c9a84c">Upgrade</a></div>'
+    ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--text3)">Free plan · 5 invoices max · No PDF · <a href="#" onclick="showUpgradeRow();navTo('settings');return false;" style="color:#c9a84c">Upgrade</a></div>'
     : '';
   display.innerHTML =
     '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">' +
@@ -8833,7 +8833,7 @@ function applyFreePlanUI() {
     const badge = document.createElement('div');
     badge.id = 'freePlanBadge';
     badge.style.cssText = 'position:fixed;bottom:72px;left:0;width:200px;background:rgba(201,168,76,0.12);border-top:1px solid rgba(201,168,76,0.2);padding:8px 16px;font-size:11px;color:#c9a84c;font-family:Outfit,sans-serif;letter-spacing:0.05em;z-index:100;display:flex;align-items:center;gap:6px;';
-    badge.innerHTML = '<span style="font-size:14px;">\u{1F513}</span><span>FREE PLAN &middot; 5 invoices max<br><a href="https://getinvokitpro.com" target="_blank" style="color:#c9a84c;text-decoration:underline;font-size:10px;">Upgrade &rarr;</a></span>';
+    badge.innerHTML = '<span style="font-size:14px;">\u{1F513}</span><span>FREE PLAN &middot; 5 invoices max<br><a href="#" onclick="showLicenceScreen();return false;" style="color:#c9a84c;text-decoration:underline;font-size:10px;">Upgrade &rarr;</a></span>';
     document.body.appendChild(badge);
   }
 }
@@ -8861,7 +8861,7 @@ function showFreeUpgradePaywall(feature) {
   const overlay = document.createElement('div');
   overlay.id = 'freePaywallOverlay';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(4,5,10,0.85);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;';
-  overlay.innerHTML = `<div style="background:#0e0f1a;border:1px solid rgba(201,168,76,0.25);border-radius:16px;padding:40px 36px;max-width:420px;width:90%;text-align:center;font-family:'Outfit',sans-serif;box-shadow:0 24px 64px rgba(0,0,0,0.6);"><div style="font-size:36px;margin-bottom:16px;">${m.icon}</div><h2 style="color:#e8e6e0;font-size:20px;font-weight:600;margin:0 0 10px;">${m.title}</h2><p style="color:#9d9a94;font-size:14px;line-height:1.6;margin:0 0 28px;">${m.body}</p><div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;"><a href="https://getinvokitpro.com" target="_blank" style="display:block;padding:14px;background:#c9a84c;color:#0a0b14;border-radius:10px;font-weight:700;font-size:15px;text-decoration:none;">Upgrade Now &rarr;</a><button onclick="document.getElementById('freePaywallOverlay').remove()" style="padding:12px;background:transparent;border:1px solid rgba(255,255,255,0.1);color:#9d9a94;border-radius:10px;font-size:14px;cursor:pointer;">Maybe later</button></div><p style="color:#6e6b65;font-size:12px;margin:0;">Annual &middot; 2 devices &nbsp;|&nbsp; Lifetime &middot; 5 devices</p></div>`;
+  overlay.innerHTML = `<div style="background:#0e0f1a;border:1px solid rgba(201,168,76,0.25);border-radius:16px;padding:40px 36px;max-width:420px;width:90%;text-align:center;font-family:'Outfit',sans-serif;box-shadow:0 24px 64px rgba(0,0,0,0.6);"><div style="font-size:36px;margin-bottom:16px;">${m.icon}</div><h2 style="color:#e8e6e0;font-size:20px;font-weight:600;margin:0 0 10px;">${m.title}</h2><p style="color:#9d9a94;font-size:14px;line-height:1.6;margin:0 0 28px;">${m.body}</p><div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;"><button onclick="document.getElementById('freePaywallOverlay').remove();showLicenceScreen();" style="display:block;width:100%;padding:14px;background:#c9a84c;color:#0a0b14;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;border:none;font-family:'Outfit',sans-serif;">Upgrade Now &rarr;</button><button onclick="document.getElementById('freePaywallOverlay').remove()" style="padding:12px;background:transparent;border:1px solid rgba(255,255,255,0.1);color:#9d9a94;border-radius:10px;font-size:14px;cursor:pointer;">Maybe later</button></div><p style="color:#6e6b65;font-size:12px;margin:0;">Annual &middot; 2 devices &nbsp;|&nbsp; Lifetime &middot; 5 devices</p></div>`;
   document.body.appendChild(overlay);
 }
 
@@ -9048,7 +9048,7 @@ function showPdfPaywall() {
         You've seen how InvoKit Pro works. A licence pays for itself with your first invoice.
       </p>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
-        <a href="https://getinvokitpro.com/#pricing" target="_blank" style="
+        <a href="#" onclick="showUpgradeRow();return false;" style="
           display:block;padding:13px 20px;border-radius:10px;
           background:linear-gradient(135deg,#c9a84c,#e8c97a);
           color:#0c0d14;font-weight:700;font-size:14px;text-decoration:none;
