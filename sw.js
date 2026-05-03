@@ -1,62 +1,75 @@
-const CACHE_NAME = 'invokit-v8';
-const APP_SHELL = [
+const CACHE = 'invokit-v9';
+const SHELL = [
   '/',
   '/index.html',
-  '/manifest.json',
-  '/sw.js',
-  '/invokit-icon-192.png',
-  '/invokit-icon-512.png'
+  '/manifest.json'
 ];
 
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(APP_SHELL))
+// Install: cache the app shell
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(c => c.addAll(SHELL))
       .then(() => self.skipWaiting())
   );
 });
 
-self.addEventListener('activate', event => {
-  event.waitUntil(
+// Activate: delete old caches
+self.addEventListener('activate', e => {
+  e.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
         keys
-          .filter(key => key !== CACHE_NAME)
-          .map(key => caches.delete(key))
+          .filter(k => k !== CACHE)
+          .map(k => caches.delete(k))
       )
     ).then(() => self.clients.claim())
   );
 });
 
-self.addEventListener('fetch', event => {
-  const req = event.request;
+// Fetch: cache-first for shell, network-first for everything else
+self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
 
-  if (req.method !== 'GET') return;
+  // Only handle same-origin requests
+  if (url.origin !== self.location.origin) return;
 
-  // Navigation requests: network first, fallback to cached index
-  if (req.mode === 'navigate') {
-    event.respondWith(
-      fetch(req)
-        .then(res => {
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put('/index.html', copy));
-          return res;
+  // Cache-first for the HTML shell
+  if (e.request.mode === 'navigate' || url.pathname === '/' || url.pathname === '/index.html') {
+    e.respondWith(
+      caches.match(e.request)
+        .then(cached => {
+          if (cached) return cached;
+          return fetch(e.request).then(res => {
+            if (res && res.status === 200) {
+              const clone = res.clone();
+              caches.open(CACHE).then(c => c.put(e.request, clone));
+            }
+            return res;
+          });
         })
         .catch(() => caches.match('/index.html'))
     );
     return;
   }
 
-  // Static assets: cache first, then network fallback
-  event.respondWith(
-    caches.match(req).then(cached => {
-      if (cached) return cached;
+  // Network-first for API calls (licence validation)
+  if (url.hostname.includes('workers.dev') || url.hostname.includes('anthropic')) {
+    e.respondWith(fetch(e.request));
+    return;
+  }
 
-      return fetch(req).then(res => {
-        const copy = res.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(req, copy));
+  // Stale-while-revalidate for everything else (fonts, assets)
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      const fetchPromise = fetch(e.request).then(res => {
+        if (res && res.status === 200) {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
         return res;
-      });
+      }).catch(() => cached);
+      return cached || fetchPromise;
     })
   );
 });
