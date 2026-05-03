@@ -348,11 +348,6 @@ select.field-input{appearance:none;background-image:url("data:image/svg+xml,%3Cs
 .items-head{display:grid;grid-template-columns:3fr 0.75fr 1fr 1fr 30px;gap:8px;padding:9px 13px;background:var(--surface2);border-bottom:1px solid var(--border);}
 .items-head span{font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);letter-spacing:0.14em;text-transform:uppercase;}
 .item-row{display:grid;grid-template-columns:3fr 0.75fr 1fr 1fr 30px;gap:8px;padding:8px 13px;align-items:center;border-bottom:1px solid var(--border);transition:background var(--tr);}
-.item-heading-row{display:grid;grid-template-columns:1fr 30px;gap:8px;padding:8px 13px;align-items:center;border-bottom:1px solid var(--border);background:rgba(201,168,76,0.06);}
-.item-heading-input{background:transparent;border:none;border-bottom:1px solid rgba(201,168,76,0.3);color:var(--accent);font-weight:600;font-size:13px;letter-spacing:0.04em;padding:3px 0;width:100%;outline:none;font-family:inherit;}
-.item-heading-input::placeholder{color:rgba(201,168,76,0.4);font-style:italic;}
-[data-theme="light"] .item-heading-row{background:rgba(201,168,76,0.08);}
-[data-theme="hybrid"] .item-heading-row{background:rgba(201,168,76,0.07);}
 .item-row:last-child{border-bottom:none;}
 .item-row:hover{background:rgba(255,255,255,0.02);}
 [data-theme="light"] .item-row:hover,[data-theme="hybrid"] .item-row:hover{background:rgba(0,0,0,0.02);}
@@ -3901,14 +3896,8 @@ body .demo-mode-banner a{
               <div class="field-group"><label class="field-label">Default Tax Rate (%)</label><input class="field-input" type="number" id="s_taxRate" placeholder="20" min="0" max="100"></div>
               <div class="field-group"><label class="field-label">Default Terms</label>
                 <select class="field-input" id="s_terms">
-                  <option value="">No terms</option>
-                  <option>Due on receipt</option>
-                  <option>Due in 7 days</option>
-                  <option>Due in 14 days</option>
-                  <option>Due in 30 days</option>
-                  <option>Due in 60 days</option>
-                  <option>50% upfront</option>
-                  <option>Net 7</option><option>Net 14</option><option>Net 30</option>
+                  <option>Net 30</option><option>Net 14</option><option>Net 7</option>
+                  <option>Due on Receipt</option><option>50% Upfront</option>
                 </select>
               </div>
             </div>
@@ -3962,28 +3951,6 @@ body .demo-mode-banner a{
             </div>
           </div>
         </div>
-        <!-- Licence -->
-        <div class="settings-section" id="settings-licence">
-          <div class="settings-card">
-            <div class="settings-title">Licence</div>
-            <div class="settings-desc">Manage your InvoKit Pro licence. Upgrading keeps all your existing data intact.</div>
-            <div style="display:flex;flex-direction:column;gap:10px;" id="licenceSettingsBlock">
-              <div id="currentPlanDisplay" style="padding:12px;background:var(--surface2);border-radius:8px;font-size:13px;color:var(--text2);border:1px solid var(--border);">
-                Loading licence info...
-              </div>
-              <div id="upgradeLicenceRow" style="display:none;flex-direction:column;gap:8px;">
-                <div style="font-size:13px;color:var(--text2);">Enter a new or upgraded licence key:</div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                  <input type="text" id="upgradeLicenceInput" placeholder="IVK-XXXX-XXXX-XXXX" class="field-input" style="flex:1;min-width:200px;font-family:'DM Mono',monospace;letter-spacing:0.08em;">
-                  <button class="btn btn-primary" onclick="applyUpgradeKey()">Apply Key</button>
-                </div>
-                <div id="upgradeKeyMsg" style="font-size:12px;min-height:16px;"></div>
-              </div>
-              <button class="btn btn-ghost" onclick="showUpgradeRow()" id="changeLicenceBtn">🔑 Change / Upgrade Licence Key</button>
-            </div>
-          </div>
-        </div>
-
         <!-- Data -->
         <div class="settings-section" id="settings-data">
           <div class="settings-card">
@@ -4117,14 +4084,8 @@ body .demo-mode-banner a{
       </div>
       <div class="field-group" style="margin:0"><label class="field-label">Terms</label>
         <select class="field-input" id="paymentTerms">
-          <option value="">No terms</option>
-          <option>Due on receipt</option>
-          <option>Due in 7 days</option>
-          <option>Due in 14 days</option>
-          <option>Due in 30 days</option>
-          <option>Due in 60 days</option>
-          <option>50% upfront</option>
-          <option>Net 7</option><option>Net 14</option><option>Net 30</option>
+          <option>Net 30</option><option>Net 14</option><option>Net 7</option>
+          <option>Due on Receipt</option><option>50% Upfront</option>
         </select>
       </div>
       <div class="field-group" style="margin:0"><label class="field-label">Template</label>
@@ -4143,17 +4104,11 @@ body .demo-mode-banner a{
         </div>
       </div>
     </div>
-    <div style="margin-bottom:8px;">
-      <input class="field-input" type="text" id="docTitle" placeholder="Document title — e.g. Quotation for Website Redesign (optional)" style="font-size:13px;font-weight:600;letter-spacing:0.01em;color:var(--accent);">
-    </div>
     <div class="items-table">
       <div class="items-head"><span>Description</span><span>Qty</span><span>Unit Price</span><span>Amount</span><span></span></div>
       <div id="itemsContainer"></div>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="add-item-btn" onclick="addItem()">＋ Add Line Item</button>
-      <button class="add-item-btn" onclick="addHeading()" style="background:rgba(201,168,76,0.08);border-color:rgba(201,168,76,0.25);color:var(--accent);font-size:12px;">＋ Add Heading</button>
-    </div>
+    <button class="add-item-btn" onclick="addItem()">＋ Add Line Item</button>
     <div class="totals-section">
       <div class="totals-box">
         <div class="discount-row">
@@ -4375,11 +4330,11 @@ body .demo-mode-banner a{
   <div class="pwa-banner-icon">I</div>
   <div class="pwa-banner-text">
     <div class="pwa-banner-title">Install InvoKit Pro</div>
-    <div class="pwa-banner-sub">Works offline · Saves to home screen · No internet needed</div>
+    <div class="pwa-banner-sub" id="pwaBannerSub">Works offline · Saves to home screen · No internet needed</div>
   </div>
   <div class="pwa-banner-btns">
     <button class="btn btn-ghost btn-sm" onclick="dismissPWA()">Not now</button>
-    <button class="btn btn-primary btn-sm" onclick="installPWA()">Install on this device</button>
+    <button class="btn btn-primary btn-sm" id="pwaBannerInstallBtn" onclick="installPWA()">Install on this device</button>
   </div>
 </div>
 
@@ -4490,7 +4445,7 @@ function getMonthlyAnalyticsData() {
 
 const DEF_SETTINGS = {
   bizName:'',ownerName:'',email:'',phone:'',address:'',vat:'',regNum:'',website:'',
-  prefix:'INV-2026-',currency:'£',taxRate:20,terms:'',
+  prefix:'INV-2026-',currency:'£',taxRate:20,terms:'Net 30',
   notes:'Thank you for your business.',template:'classic',
   theme:'dark',accentColour:'#c9a84c',bizLogo:''
 };
@@ -5091,8 +5046,7 @@ function openReceiptById(id){
     bizPhone:inv.bizPhone||s.phone||'',
     bizVAT:inv.bizVAT||s.vat||'',
     bizRegNum:inv.bizRegNum||s.regNum||'',
-    bizLogo:s.bizLogo||'',
-    docTitle:inv.docTitle||''
+    bizLogo:s.bizLogo||''
   };
   const recNum='REC-'+inv.id.replace('INV-','');
   document.getElementById('receiptTitle').textContent=recNum;
@@ -5113,10 +5067,7 @@ function buildReceiptHTML(inv,sym){
   // get client logo from clients db
   const clientRec=APP.clients.find(c=>c.name===inv.client);
   const clientLogoHtml=clientRec?.logo?`<img src="${clientRec.logo}" style="height:32px;object-fit:contain;margin-bottom:5px;display:block">`:'';
-  const rows=(inv.items||[]).map(it=>{
-    if(it.type==='heading') return `<tr><td colspan="4" style="padding:10px 8px 4px;font-weight:700;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#c9a84c;border-bottom:1px solid rgba(201,168,76,0.3);background:rgba(201,168,76,0.04);">${esc(it.desc||'')}</td></tr>`;
-    return `<tr><td>${esc(it.desc||'—')}</td><td style="text-align:center">${it.qty}</td><td style="text-align:right">${sym}${parseFloat(it.price||0).toFixed(2)}</td><td style="text-align:right">${sym}${(it.qty*it.price).toFixed(2)}</td></tr>`;
-  }).join('');
+  const rows=(inv.items||[]).map(it=>`<tr><td>${esc(it.desc||'—')}</td><td style="text-align:center">${it.qty}</td><td style="text-align:right">${sym}${parseFloat(it.price||0).toFixed(2)}</td><td style="text-align:right">${sym}${(it.qty*it.price).toFixed(2)}</td></tr>`).join('');
   return `<div class="receipt-doc">
   <div class="rec-header">
     <div>${logoHtml}<div class="rec-logo-name">${esc(inv.bizName)}</div><div class="rec-biz-info">${esc(inv.bizAddress)}<br>${esc(inv.bizEmail)}${inv.bizPhone?' · '+esc(inv.bizPhone):''}${inv.bizVAT?'<br>VAT: '+esc(inv.bizVAT):''}${inv.bizRegNum?'<br>Reg: '+esc(inv.bizRegNum):''}</div></div>
@@ -5221,7 +5172,6 @@ function loadSettingsForm(){
   const map={s_bizName:'bizName',s_ownerName:'ownerName',s_email:'email',s_phone:'phone',s_address:'address',s_vat:'vat',s_regNum:'regNum',s_website:'website',s_prefix:'prefix',s_currency:'currency',s_taxRate:'taxRate',s_terms:'terms',s_notes:'notes',s_template:'template'};
   Object.entries(map).forEach(([eid,key])=>{const el=document.getElementById(eid);if(el) el.value=s[key]||'';});
   updateSidebarProfile();
-  renderLicenceSettings();
   // biz logo
   if(s.bizLogo){const prev=document.getElementById('bizLogoPreview');if(prev){prev.src=s.bizLogo;prev.style.display='block';document.getElementById('bizLogoPlaceholder').style.display='none';document.getElementById('bizLogoRemove').style.display='flex';}}
 }
@@ -5292,12 +5242,12 @@ function openEditorForInvoice(id){
   setValue('bizVAT',inv.bizVAT||APP.settings.vat||'');
   setValue('clientName',inv.client); setValue('clientEmail',inv.email);
   setValue('clientPhone',inv.phone||''); setValue('clientAddress',inv.address||'');
-  setValue('issueDate',inv.issued); setValue('dueDate',inv.due); setValue('docTitle',inv.docTitle||'');
+  setValue('issueDate',inv.issued); setValue('dueDate',inv.due);
   setValue('notes',inv.notes||'');
   setValue('currency',inv.currency||APP.settings.currency||'£');
   if(inv.paymentTerms||APP.settings.terms) setValue('paymentTerms',inv.paymentTerms||APP.settings.terms||'');
   if(inv.template) setValue('invTemplate',inv.template);
-  items=(inv.items||[]).map(it=>it.type==='heading'?{id:Date.now()+Math.random(),type:'heading',desc:it.desc}:{id:Date.now()+Math.random(),type:'item',desc:it.desc,qty:it.qty||1,price:it.price||0});
+  items=(inv.items||[]).map(it=>({id:Date.now()+Math.random(),desc:it.desc,qty:it.qty,price:it.price}));
   if(!items.length) addItem();
   renderItems(); recalc();
   document.getElementById('editorOverlay').classList.add('open');
@@ -5322,7 +5272,7 @@ function clearEditor(){
   document.getElementById('discFixed')?.classList.remove('active');
   const today=new Date().toISOString().split('T')[0];
   const due30=new Date(Date.now()+30*864e5).toISOString().split('T')[0];
-  setValue('issueDate',today); setValue('dueDate',due30); setValue('docTitle','');
+  setValue('issueDate',today); setValue('dueDate',due30);
   recalc();
 }
 function duplicateCurrentInvoice(){if(editingId) duplicateInvoice(editingId); else showToast('⚠ Save invoice first to duplicate');}
@@ -5339,25 +5289,16 @@ function duplicateInvoice(id){
 // ================================================================
 // LINE ITEMS
 // ================================================================
-function addItem(){items.push({id:Date.now()+Math.random(),type:'item',desc:'',qty:1,price:0});renderItems();}
-function addHeading(){items.push({id:Date.now()+Math.random(),type:'heading',desc:''});renderItems();}
+function addItem(){items.push({id:Date.now()+Math.random(),desc:'',qty:1,price:0});renderItems();}
 function renderItems(){
   const sym=getCurrency();
-  document.getElementById('itemsContainer').innerHTML=items.map(it=>{
-    if(it.type==='heading'){
-      return `<div class="item-heading-row">
-        <input class="item-heading-input" type="text" placeholder="Section heading (e.g. Labour, Materials…)" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)">
-        <button class="del-btn" onclick="removeItem(${it.id})">×</button>
-      </div>`;
-    }
-    return `<div class="item-row">
-      <input class="item-input" type="text" placeholder="Description…" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)">
-      <input class="item-input" type="number" min="1" placeholder="1" value="${it.qty||''}" oninput="updateItem(${it.id},'qty',this.value)" style="text-align:center">
-      <input class="item-input" type="number" min="0" step="0.01" placeholder="0.00" value="${it.price>0?it.price:''}" oninput="updateItem(${it.id},'price',this.value)">
-      <span class="item-amount" id="amt-${it.id}">${sym}${(it.qty*it.price).toFixed(2)}</span>
-      <button class="del-btn" onclick="removeItem(${it.id})">×</button>
-    </div>`;
-  }).join('');
+  document.getElementById('itemsContainer').innerHTML=items.map(it=>`<div class="item-row">
+    <input class="item-input" type="text" placeholder="Description…" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)">
+    <input class="item-input" type="number" min="1" placeholder="1" value="${it.qty||''}" oninput="updateItem(${it.id},'qty',this.value)" style="text-align:center">
+    <input class="item-input" type="number" min="0" step="0.01" placeholder="0.00" value="${it.price>0?it.price:''}" oninput="updateItem(${it.id},'price',this.value)">
+    <span class="item-amount" id="amt-${it.id}">${sym}${(it.qty*it.price).toFixed(2)}</span>
+    <button class="del-btn" onclick="removeItem(${it.id})">×</button>
+  </div>`).join('');
 }
 function updateItem(id,field,val){
   const it=items.find(i=>i.id===id);if(!it) return;
@@ -5368,7 +5309,7 @@ function updateItem(id,field,val){
 function removeItem(id){items=items.filter(i=>i.id!==id);renderItems();recalc();}
 function recalc(){
   const sym=getCurrency();
-  const sub=items.reduce((s,i)=>i.type==='heading'?s:s+(i.qty*i.price),0);
+  const sub=items.reduce((s,i)=>s+(i.qty*i.price),0);
   const dval=parseFloat(document.getElementById('discountVal')?.value)||0;
   const disc=discountType==='pct'?sub*(dval/100):Math.min(dval,sub);
   const afterDisc=sub-disc;
@@ -5391,14 +5332,14 @@ function setDiscountType(t){discountType=t;document.getElementById('discPct').cl
 // ================================================================
 function buildInvObj(status){
   const sym=getCurrency();
-  const sub=items.reduce((s,i)=>i.type==='heading'?s:s+(i.qty*i.price),0);
+  const sub=items.reduce((s,i)=>s+(i.qty*i.price),0);
   const dval=parseFloat(document.getElementById('discountVal')?.value)||0;
   const disc=discountType==='pct'?sub*(dval/100):Math.min(dval,sub);
   const afterDisc=sub-disc;
   const rate=parseFloat(document.getElementById('taxRate')?.value)||0;
   const tax=taxEnabled?afterDisc*(rate/100):0;
   const prefix=APP.settings.prefix||'INV-2026-';
-  return {id:editingId||(prefix+String(APP.nextNum||1).padStart(3,'0')),bizName:gv('bizName'),bizAddress:gv('bizAddress'),bizEmail:gv('bizEmail'),bizPhone:gv('bizPhone'),bizVAT:gv('bizVAT'),bizRegNum:APP.settings.regNum||'',client:gv('clientName'),email:gv('clientEmail'),phone:gv('clientPhone'),address:gv('clientAddress'),issued:gv('issueDate'),due:gv('dueDate'),docTitle:gv('docTitle'),subtotal:sub,discount:disc,tax,amount:afterDisc+tax,currency:sym,paymentTerms:gv('paymentTerms'),items:items.map(i=>i.type==='heading'?{type:'heading',desc:i.desc}:{desc:i.desc,qty:i.qty,price:i.price}),status,notes:gv('notes'),template:gv('invTemplate')||APP.settings.template||'classic'};
+  return {id:editingId||(prefix+String(APP.nextNum||1).padStart(3,'0')),bizName:gv('bizName'),bizAddress:gv('bizAddress'),bizEmail:gv('bizEmail'),bizPhone:gv('bizPhone'),bizVAT:gv('bizVAT'),bizRegNum:APP.settings.regNum||'',client:gv('clientName'),email:gv('clientEmail'),phone:gv('clientPhone'),address:gv('clientAddress'),issued:gv('issueDate'),due:gv('dueDate'),subtotal:sub,discount:disc,tax,amount:afterDisc+tax,currency:sym,paymentTerms:gv('paymentTerms'),items:items.map(i=>({desc:i.desc,qty:i.qty,price:i.price})),status,notes:gv('notes'),template:gv('invTemplate')||APP.settings.template||'classic'};
 }
 function saveToList(inv){
   APP.settings.currency=inv.currency||APP.settings.currency||'£';
@@ -5433,8 +5374,7 @@ function previewById(id){
     bizPhone:inv.bizPhone||s.phone||'',
     bizVAT:inv.bizVAT||s.vat||'',
     bizRegNum:inv.bizRegNum||s.regNum||'',
-    bizLogo:s.bizLogo||'',
-    docTitle:inv.docTitle||''
+    bizLogo:s.bizLogo||''
   };
   currentPreviewTemplate=inv.template||s.template||'classic';
   openPreviewWith(currentPreviewData,currentPreviewTemplate);
@@ -7984,17 +7924,13 @@ function buildTemplate(inv,tmpl,sym){
   // Always read bizLogo from settings first — this is the source of truth
   const bizLogo=APP.settings.bizLogo||inv.bizLogo||'';
   const logoHtml=bizLogo?`<img src="${bizLogo}" class="t-logo-img" style="max-height:44px;object-fit:contain">`:'' ;
-  const rows=(inv.items||[]).map(it=>{
-    if(it.type==='heading') return `<tr><td colspan="4" style="padding:10px 8px 4px;font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#c9a84c;border-bottom:1px solid rgba(201,168,76,0.25);background:rgba(201,168,76,0.04);">${esc(it.desc||'')}</td></tr>`;
-    return `<tr><td>${esc(it.desc||'—')}</td><td style="text-align:center">${it.qty}</td><td style="text-align:right">${sym}${parseFloat(it.price||0).toFixed(2)}</td><td style="text-align:right">${sym}${(it.qty*(it.price||0)).toFixed(2)}</td></tr>`;
-  }).join('');
+  const rows=(inv.items||[]).map(it=>`<tr><td>${esc(it.desc||'—')}</td><td style="text-align:center">${it.qty}</td><td style="text-align:right">${sym}${parseFloat(it.price||0).toFixed(2)}</td><td style="text-align:right">${sym}${(it.qty*(it.price||0)).toFixed(2)}</td></tr>`).join('');
   const totRows=`<div class="t-tot-row"><span>Subtotal</span><span>${sym}${sub.toFixed(2)}</span></div>${disc>0?`<div class="t-tot-row"><span>Discount</span><span style="color:#27a060">-${sym}${disc.toFixed(2)}</span></div>`:''} ${tax>0?`<div class="t-tot-row"><span>VAT</span><span>${sym}${tax.toFixed(2)}</span></div>`:''}`;
 
   if(tmpl==='modern') return `<div class="tmpl-modern">
     <div class="t-top-bar">${logoHtml?`<div>${logoHtml}<div class="t-biz-name">${esc(inv.bizName)}</div></div>`:`<div class="t-biz-name">${esc(inv.bizName)}</div>`}<div><div class="t-biz-tagline">${esc(inv.bizEmail)}</div></div><div class="t-inv-chip">${esc(inv.id)}</div></div>
     <div class="t-body"><div class="t-meta-row"><div><div class="t-meta-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:28px;object-fit:contain;margin-bottom:4px;display:block">`:''}  <div class="t-meta-val">${esc(inv.client)}</div><div class="t-meta-sub">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div><div><div class="t-meta-label">From</div><div class="t-meta-val">${esc(inv.bizName)}</div><div class="t-meta-sub">${esc(inv.bizAddress)}</div></div><div><div class="t-meta-label">Issued</div><div class="t-meta-val">${fmtDate(inv.issued)}</div></div><div><div class="t-meta-label">Due</div><div class="t-meta-val">${fmtDate(inv.due)}</div></div></div>
     <div class="t-divider"></div>
-    ${inv.docTitle?`<div style="padding:10px 0 14px;font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600;color:#1a1814;letter-spacing:0.01em;">${esc(inv.docTitle)}</div>`:''}
     <table class="t-table"><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Amount</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="t-totals-section"><div class="t-totals">${totRows}<div class="t-grand"><span class="lbl">Total Due</span><span class="val">${sym}${total.toFixed(2)}</span></div></div></div></div>
     <div class="t-bottom"><div class="t-bottom-notes">${inv.notes?esc(inv.notes):''}</div><div class="t-bottom-badge">INVOKIT PRO</div></div></div>`;
@@ -8006,15 +7942,14 @@ function buildTemplate(inv,tmpl,sym){
     <div class="t-body"><div class="t-bill-row">
       <div class="t-bill-item"><div class="t-bill-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:26px;object-fit:contain;margin-bottom:4px;display:block">`:''}<div class="t-bill-val">${esc(inv.client)}</div><div class="t-bill-sub">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div>
       <div class="t-bill-item"><div class="t-bill-label">From</div><div class="t-bill-val">${esc(inv.bizName)}</div><div class="t-bill-sub">${esc(inv.bizAddress)}</div></div>
-      <div class="t-bill-item"><div class="t-bill-label">Terms</div><div class="t-bill-val">${esc(inv.terms||inv.paymentTerms||'')}</div><div class="t-bill-sub">Due ${fmtDate(inv.due)}</div></div></div>
-    ${inv.docTitle?`<div style="padding:12px 0 14px;border-top:1px solid rgba(255,255,255,0.08);font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:#1a1814;letter-spacing:0.01em;">${esc(inv.docTitle)}</div>`:''}
+      <div class="t-bill-item"><div class="t-bill-label">Terms</div><div class="t-bill-val">${esc(inv.terms||'Net 30')}</div><div class="t-bill-sub">Due ${fmtDate(inv.due)}</div></div></div>
     <table class="t-table"><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Amount</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="t-summary"><div class="t-summary-inner">${totRows}<div class="t-s-total"><span class="lbl">Total Due</span><span class="val">${sym}${total.toFixed(2)}</span></div></div></div></div>
     <div class="t-foot"><span>${inv.notes?esc(inv.notes).substring(0,80):''}</span><span>InvoKit Pro</span></div></div>`;
 
   if(tmpl==='compact') return `<div class="tmpl-compact">
     <div class="t-header"><div>${logoHtml}<div class="t-biz-name">${esc(inv.bizName)}</div><div class="t-biz-small">${esc(inv.bizAddress)}<br>${esc(inv.bizEmail)}</div></div>
-    <div class="t-inv-right"><div class="t-inv-title">${inv.docTitle ? esc(inv.docTitle) : "INVOICE"}</div><div class="t-inv-details">${esc(inv.id)}<br>Issued: ${fmtDate(inv.issued)}<br>Due: ${fmtDate(inv.due)}</div></div></div>
+    <div class="t-inv-right"><div class="t-inv-title">INVOICE</div><div class="t-inv-details">${esc(inv.id)}<br>Issued: ${fmtDate(inv.issued)}<br>Due: ${fmtDate(inv.due)}</div></div></div>
     <div class="t-to-section"><div><div class="t-to-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:22px;object-fit:contain;margin-bottom:3px;display:block">`:''}<div class="t-to-val">${esc(inv.client)}</div><div class="t-to-sub">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div></div>
     <table class="t-table"><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Total</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="t-bottom-row"><div class="t-notes-sm">${inv.notes?esc(inv.notes):''}</div>
@@ -8030,7 +7965,6 @@ function buildTemplate(inv,tmpl,sym){
       <div><div class="t-addr-label">From</div><div class="t-addr-name">${esc(inv.bizName)}</div><div class="t-addr-info">${esc(inv.bizAddress)}</div></div>
       <div><div class="t-addr-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:28px;object-fit:contain;margin-bottom:5px;display:block">`:''}<div class="t-addr-name">${esc(inv.client)}</div><div class="t-addr-info">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div>
     </div>
-    ${inv.docTitle?`<div style="padding:14px 0 10px;border-top:1px solid #e8e5e0;border-bottom:1px solid #e8e5e0;margin-bottom:16px;font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:#1a1814;letter-spacing:0.01em;">${esc(inv.docTitle)}</div>`:''}
     <table class="t-table"><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Amount</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="t-totals-wrap"><div class="t-totals">${totRows}<div class="t-tot-final"><span class="lbl">Total Due</span><span class="val">${sym}${total.toFixed(2)}</span></div></div></div>
     ${inv.notes?`<div class="t-notes">${esc(inv.notes)}</div>`:''}
@@ -8097,6 +8031,50 @@ function showToast(msg){const t=document.getElementById('toast');document.getEle
 // ================================================================
 let _pwaInstallPrompt = null;
 
+function isIOSDevice() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+}
+
+function isAppInstalled() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function showIOSInstallOverlay() {
+  const existing = document.getElementById('iosInstallOverlay');
+  if (existing) { existing.remove(); return; }
+  const overlay = document.createElement('div');
+  overlay.id = 'iosInstallOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:10002;background:rgba(4,5,10,0.88);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;padding:0 0 24px;';
+  overlay.innerHTML = `
+    <div style="background:#131520;border:1px solid rgba(201,168,76,0.25);border-radius:20px;padding:28px 26px 24px;max-width:420px;width:92%;font-family:'Outfit',sans-serif;box-shadow:0 -8px 40px rgba(0,0,0,0.5);position:relative;">
+      <button onclick="document.getElementById('iosInstallOverlay').remove()" style="position:absolute;top:14px;right:14px;background:transparent;border:none;color:#9d9a94;font-size:22px;cursor:pointer;line-height:1;padding:4px;">×</button>
+      <div style="font-size:28px;margin-bottom:12px;">📱</div>
+      <div style="font-size:18px;font-weight:700;color:#f0ede8;margin-bottom:6px;">Install InvoKit Pro</div>
+      <div style="font-size:13px;color:#9d9a94;margin-bottom:20px;line-height:1.6;">Add to your iPhone home screen for the best offline experience. Takes 10 seconds:</div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:30px;height:30px;border-radius:50%;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#c9a84c;flex-shrink:0;">1</div>
+          <span style="font-size:14px;color:#c8c4bc;">Open this page in <strong style="color:#f0ede8;">Safari</strong></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:30px;height:30px;border-radius:50%;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#c9a84c;flex-shrink:0;">2</div>
+          <span style="font-size:14px;color:#c8c4bc;">Tap the <strong style="color:#f0ede8;">Share</strong> button <span style="font-size:16px;">⎋</span> at the bottom</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:30px;height:30px;border-radius:50%;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#c9a84c;flex-shrink:0;">3</div>
+          <span style="font-size:14px;color:#c8c4bc;">Tap <strong style="color:#f0ede8;">Add to Home Screen</strong></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:30px;height:30px;border-radius:50%;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#c9a84c;flex-shrink:0;">4</div>
+          <span style="font-size:14px;color:#c8c4bc;">Tap <strong style="color:#f0ede8;">Add</strong> — done! ✓</span>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#5a5850;text-align:center;">Once installed, always open InvoKit Pro from your home screen icon for full offline access.</div>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
 function initPWA() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
@@ -8106,6 +8084,22 @@ function initPWA() {
       .catch(err => {
         console.log('SW registration failed:', err);
       });
+  }
+
+  // iOS: show install button if not already installed
+  if (isIOSDevice() && !isAppInstalled()) {
+    const installBtn = document.getElementById('sidebarInstallBtn');
+    if (installBtn) installBtn.style.display = 'flex';
+    const dismissed = localStorage.getItem('pwa_dismissed');
+    if (!dismissed) showPWABanner();
+  }
+
+  // iOS: show install button if not already installed as standalone
+  if (isIOSDevice() && !isAppInstalled()) {
+    const installBtn = document.getElementById('sidebarInstallBtn');
+    if (installBtn) installBtn.style.display = 'flex';
+    const dismissed = localStorage.getItem('pwa_dismissed');
+    if (!dismissed) showPWABanner();
   }
 
   window.addEventListener('beforeinstallprompt', e => {
@@ -8219,7 +8213,15 @@ function buildIconDataURL(size) {
 }
 
 function showPWABanner() {
-  setTimeout(() => document.getElementById('pwaBanner')?.classList.add('show'), 2000);
+  setTimeout(() => {
+    if (isIOSDevice()) {
+      const sub = document.getElementById('pwaBannerSub');
+      const btn = document.getElementById('pwaBannerInstallBtn');
+      if (sub) sub.textContent = 'Tap to see how to add InvoKit Pro to your home screen';
+      if (btn) btn.textContent = 'How to install →';
+    }
+    document.getElementById('pwaBanner')?.classList.add('show');
+  }, 2000);
 }
 function hidePWABanner() {
   document.getElementById('pwaBanner')?.classList.remove('show');
@@ -8229,8 +8231,20 @@ function dismissPWA() {
   localStorage.setItem('pwa_dismissed', '1');
 }
 async function installPWA() {
+  // Already installed — nothing to do
+  if (isAppInstalled()) {
+    showToast('✓ InvoKit Pro is already installed on this device');
+    return;
+  }
+  // iOS: show step-by-step overlay
+  if (isIOSDevice()) {
+    hidePWABanner();
+    showIOSInstallOverlay();
+    return;
+  }
+  // Android / Desktop Chrome: trigger native prompt
   if (!_pwaInstallPrompt) {
-    showToast('ⓘ Use browser menu → "Add to Home Screen" or "Install App", then keep opening InvoKit Pro from the installed icon');
+    showToast('ⓘ Use browser menu → "Add to Home Screen" or "Install App"');
     hidePWABanner();
     return;
   }
@@ -8242,9 +8256,10 @@ async function installPWA() {
   if (outcome === 'accepted') showToast('✓ Installing InvoKit Pro…');
 }
 function updateInstallStatus() {
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-  if (isStandalone) {
-    // Running as installed PWA — show indicator
+  if (isAppInstalled()) {
+    // Running as installed PWA — hide install button, update logo label
+    const installBtn = document.getElementById('sidebarInstallBtn');
+    if (installBtn) installBtn.style.display = 'none';
     const logoSub = document.querySelector('.logo-sub');
     if (logoSub) logoSub.textContent = 'Pro · Installed ✓';
   }
@@ -8635,61 +8650,39 @@ async function activateLicence() {
     const licenceMeta = data.activation?.licence || {};
     const activatedPlan = String(licenceMeta.plan || 'lifetime').toLowerCase();
     const planFeatures = licenceMeta.features || {};
-    const wasFreePlan = isFreePlan();
-    const isUpgrade = wasFreePlan && activatedPlan !== 'free';
 
     saveLicenceData({
-      status: 'active',
-      key,
-      installId,
-      activatedAt: Date.now(),
-      activationToken: data.activation?.token || '',
-      licenceMeta
-    });
+  status: 'active',
+  key,
+  installId,
+  activatedAt: Date.now(),
+  activationToken: data.activation?.token || '',
+  licenceMeta
+});
 
-    APP.demo = false;
-    APP.licenceKey = key;
-    APP.licenceStatus = 'active';
-    APP.plan = activatedPlan;
-    APP.planFeatures = planFeatures;
-    persist();
+APP.demo = false;
+APP.licenceKey = key;
+APP.licenceStatus = 'active';
+APP.plan = activatedPlan;
+APP.planFeatures = planFeatures;
+persist();
 
-    // If upgrading from free — remove restrictions without losing data
-    if (isUpgrade) {
-      // Remove free plan badge
-      const badge = document.getElementById('freePlanBadge');
-      if (badge) badge.remove();
-      // Remove free paywall overlay if open
-      const paywall = document.getElementById('freePaywallOverlay');
-      if (paywall) paywall.remove();
-      // Show all nav items that were hidden
-      ['analytics','recurring'].forEach(page => {
-        const el = document.querySelector('.nav-item[data-page="' + page + '"]');
-        if (el) el.style.display = '';
-      });
-    }
+// Apply free plan UI restrictions if needed
+if (activatedPlan === 'free') {
+  applyFreePlanUI();
+}
 
-    // Apply free plan UI if on free plan
-    if (activatedPlan === 'free') {
-      applyFreePlanUI();
-    }
+const banner = document.getElementById('demoBanner');
+if (banner) banner.remove();
 
-    const banner = document.getElementById('demoBanner');
-    if (banner) banner.remove();
+const main = document.querySelector('.main-content') || document.getElementById('mainContent');
+if (main) main.style.paddingTop = '0px';
 
-    const main = document.querySelector('.main-content') || document.getElementById('mainContent');
-    if (main) main.style.paddingTop = '0px';
-
-    let welcomeMsg;
-    if (isUpgrade) {
-      welcomeMsg = '✓ Upgraded successfully! All your data is intact. Welcome to InvoKit Pro.';
-    } else if (activatedPlan === 'free') {
-      welcomeMsg = '✓ Free licence activated! You can create up to 5 invoices on this device.';
-    } else {
-      welcomeMsg = '✓ Licence activated! Welcome to InvoKit Pro.';
-    }
-    showLicenceMsg(welcomeMsg, 'success');
-    setTimeout(() => dismissSplash(true), 1200);
+const welcomeMsg = activatedPlan === 'free'
+  ? '✓ Free licence activated! You can create up to 5 invoices on this device.'
+  : '✓ Licence activated! Welcome to InvoKit Pro.';
+showLicenceMsg(welcomeMsg, 'success');
+setTimeout(() => dismissSplash(true), 1200);
   } catch (e) {
     const msg = e?.name === 'AbortError'
       ? 'Activation timed out. Please check internet and try again.'
@@ -8707,109 +8700,6 @@ async function activateLicence() {
     }
   }
 }
-
-// ── LICENCE SETTINGS PANEL ──────────────────────────────────────────────────
-function renderLicenceSettings() {
-  var ld = getLicenceData();
-  var display = document.getElementById('currentPlanDisplay');
-  if (!display) return;
-  if (!ld || !ld.status || ld.status === 'demo') {
-    display.innerHTML = '<span style="color:var(--text3)">No active licence.</span>';
-    return;
-  }
-  var plan = String((ld.licenceMeta && ld.licenceMeta.plan) || 'unknown').toUpperCase();
-  var rawKey = ld.key || '';
-  var keyDisplay = rawKey ? rawKey.slice(0,8) + '••••' : '—';
-  var activatedDate = ld.activatedAt ? new Date(ld.activatedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
-  var planColor = plan === 'FREE' ? '#c9a84c' : '#3dba7e';
-  var upgradeRow = plan === 'FREE'
-    ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--text3)">Free plan · 5 invoices max · No PDF · <span onclick="showUpgradeRow()" style="color:#c9a84c;cursor:pointer;text-decoration:underline;">Upgrade</span></div>'
-    : '';
-  display.innerHTML =
-    '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">' +
-      '<div>' +
-        '<span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em">Current Plan</span><br>' +
-        '<span style="font-size:16px;font-weight:700;color:' + planColor + '">' + plan + '</span>' +
-      '</div>' +
-      '<div style="text-align:right">' +
-        '<span style="font-size:11px;color:var(--text3)">Key: ' + keyDisplay + '</span><br>' +
-        '<span style="font-size:11px;color:var(--text3)">Activated: ' + activatedDate + '</span>' +
-      '</div>' +
-    '</div>' + upgradeRow;
-}
-
-function showUpgradeRow() {
-  const row = document.getElementById('upgradeLicenceRow');
-  const btn = document.getElementById('changeLicenceBtn');
-  if (row) { row.style.display = 'flex'; }
-  if (btn) { btn.style.display = 'none'; }
-  setTimeout(() => document.getElementById('upgradeLicenceInput')?.focus(), 100);
-}
-
-async function applyUpgradeKey() {
-  const input = document.getElementById('upgradeLicenceInput');
-  const msgEl = document.getElementById('upgradeKeyMsg');
-  const key = (input?.value || '').trim().toUpperCase();
-  if (!key) { if(msgEl) msgEl.innerHTML = '<span style="color:#e05a5a;">Please enter a key.</span>'; return; }
-  if (!validateKeyFormat(key)) { if(msgEl) msgEl.innerHTML = '<span style="color:#e05a5a;">Key format looks incorrect.</span>'; return; }
-  if(msgEl) msgEl.innerHTML = '<span style="color:var(--text3);">Validating...</span>';
-  try {
-    let installId = localStorage.getItem('invokit_install_id');
-    if (!installId) {
-      installId = crypto.randomUUID ? crypto.randomUUID() : 'install-' + Date.now();
-      localStorage.setItem('invokit_install_id', installId);
-    }
-    const res = await fetch('https://invokit-licence.engineeringstenis.workers.dev/validate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, installId, deviceName: navigator.userAgent || 'Unknown', appVersion: '8.0' })
-    });
-    const data = await res.json();
-    if (!res.ok || !data.ok) {
-      if(msgEl) msgEl.innerHTML = `<span style="color:#e05a5a;">${data.error || 'Activation failed.'}</span>`;
-      return;
-    }
-    const licenceMeta = data.activation?.licence || {};
-    const activatedPlan = String(licenceMeta.plan || 'lifetime').toLowerCase();
-    const planFeatures = licenceMeta.features || {};
-    const wasFreePlan = isFreePlan();
-    const isUpgrade = wasFreePlan && activatedPlan !== 'free';
-    // Save new licence data — all app data (APP object) stays untouched
-    saveLicenceData({ status:'active', key, installId, activatedAt: Date.now(), activationToken: data.activation?.token || '', licenceMeta });
-    APP.licenceKey = key;
-    APP.licenceStatus = 'active';
-    APP.plan = activatedPlan;
-    APP.planFeatures = planFeatures;
-    // Remove free plan restrictions if upgrading
-    if (isUpgrade) {
-      const badge = document.getElementById('freePlanBadge');
-      if (badge) badge.remove();
-      ['analytics','recurring'].forEach(page => {
-        const el = document.querySelector('.nav-item[data-page="' + page + '"]');
-        if (el) el.style.display = '';
-      });
-    }
-    if (activatedPlan === 'free') applyFreePlanUI();
-    renderLicenceSettings();
-    const row = document.getElementById('upgradeLicenceRow');
-    if (row) row.style.display = 'none';
-    const btn = document.getElementById('changeLicenceBtn');
-    if (btn) btn.style.display = '';
-    if(input) input.value = '';
-    const successMsg = isUpgrade
-      ? '✓ Upgraded to ' + activatedPlan.toUpperCase() + '! All your data is intact.'
-      : '✓ Licence updated successfully.';
-    if(msgEl) msgEl.innerHTML = `<span style="color:#3dba7e;">${successMsg}</span>`;
-    showToast(isUpgrade ? '🎉 Upgraded successfully! Your data is safe.' : '✓ Licence key updated.');
-  } catch(e) {
-    if(msgEl) msgEl.innerHTML = '<span style="color:#e05a5a;">Could not reach server. Check internet and try again.</span>';
-  }
-}
-
-window.showUpgradeRow = showUpgradeRow;
-window.applyUpgradeKey = applyUpgradeKey;
-window.renderLicenceSettings = renderLicenceSettings;
-// ────────────────────────────────────────────────────────────────────────────
 
 window.activateLicence = activateLicence;
 window.showSplash = showSplash;
@@ -8833,7 +8723,7 @@ function applyFreePlanUI() {
     const badge = document.createElement('div');
     badge.id = 'freePlanBadge';
     badge.style.cssText = 'position:fixed;bottom:72px;left:0;width:200px;background:rgba(201,168,76,0.12);border-top:1px solid rgba(201,168,76,0.2);padding:8px 16px;font-size:11px;color:#c9a84c;font-family:Outfit,sans-serif;letter-spacing:0.05em;z-index:100;display:flex;align-items:center;gap:6px;';
-    badge.innerHTML = '<span style="font-size:14px;">\u{1F513}</span><span>FREE PLAN &middot; 5 invoices max<br><a href="#" onclick="showLicenceScreen();return false;" style="color:#c9a84c;text-decoration:underline;font-size:10px;">Upgrade &rarr;</a></span>';
+    badge.innerHTML = '<span style="font-size:14px;">\u{1F513}</span><span>FREE PLAN &middot; 5 invoices max<br><a href="https://getinvokitpro.com" target="_blank" style="color:#c9a84c;text-decoration:underline;font-size:10px;">Upgrade &rarr;</a></span>';
     document.body.appendChild(badge);
   }
 }
@@ -8853,7 +8743,7 @@ function showFreeUpgradePaywall(feature) {
   if (existing) existing.remove();
   const messages = {
     invoice:   { icon: '📄', title: 'Invoice limit reached',       body: 'Free licences are limited to 5 invoices. Upgrade to create unlimited invoices, unlock Analytics, Recurring invoices, and PDF export.' },
-    pdf:       { icon: '📑', title: 'PDF export is not available on your plan', body: 'Your free licence does not include PDF export. Upgrade to a paid plan to save and share professional PDF invoices with your clients.' },
+    pdf:       { icon: '📑', title: 'PDF export is a paid feature', body: 'Upgrade your licence to export professional PDF invoices and access all paid features.' },
     export:    { icon: '💾', title: 'Data export is a paid feature', body: 'Upgrade your licence to export your data and unlock all features.' },
     analytics: { icon: '📊', title: 'Analytics is a paid feature',  body: 'Upgrade to unlock Analytics, Recurring invoices, PDF export, and unlimited invoices.' },
   };
@@ -8861,7 +8751,7 @@ function showFreeUpgradePaywall(feature) {
   const overlay = document.createElement('div');
   overlay.id = 'freePaywallOverlay';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(4,5,10,0.85);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;';
-  overlay.innerHTML = `<div style="background:#0e0f1a;border:1px solid rgba(201,168,76,0.25);border-radius:16px;padding:40px 36px;max-width:420px;width:90%;text-align:center;font-family:'Outfit',sans-serif;box-shadow:0 24px 64px rgba(0,0,0,0.6);"><div style="font-size:36px;margin-bottom:16px;">${m.icon}</div><h2 style="color:#e8e6e0;font-size:20px;font-weight:600;margin:0 0 10px;">${m.title}</h2><p style="color:#9d9a94;font-size:14px;line-height:1.6;margin:0 0 28px;">${m.body}</p><div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;"><button onclick="document.getElementById('freePaywallOverlay').remove();showLicenceScreen();" style="display:block;width:100%;padding:14px;background:#c9a84c;color:#0a0b14;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;border:none;font-family:'Outfit',sans-serif;">Upgrade Now &rarr;</button><button onclick="document.getElementById('freePaywallOverlay').remove()" style="padding:12px;background:transparent;border:1px solid rgba(255,255,255,0.1);color:#9d9a94;border-radius:10px;font-size:14px;cursor:pointer;">Maybe later</button></div><p style="color:#6e6b65;font-size:12px;margin:0;">Annual &middot; 2 devices &nbsp;|&nbsp; Lifetime &middot; 5 devices</p></div>`;
+  overlay.innerHTML = `<div style="background:#0e0f1a;border:1px solid rgba(201,168,76,0.25);border-radius:16px;padding:40px 36px;max-width:420px;width:90%;text-align:center;font-family:'Outfit',sans-serif;box-shadow:0 24px 64px rgba(0,0,0,0.6);"><div style="font-size:36px;margin-bottom:16px;">${m.icon}</div><h2 style="color:#e8e6e0;font-size:20px;font-weight:600;margin:0 0 10px;">${m.title}</h2><p style="color:#9d9a94;font-size:14px;line-height:1.6;margin:0 0 28px;">${m.body}</p><div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;"><a href="https://getinvokitpro.com" target="_blank" style="display:block;padding:14px;background:#c9a84c;color:#0a0b14;border-radius:10px;font-weight:700;font-size:15px;text-decoration:none;">Upgrade Now &rarr;</a><button onclick="document.getElementById('freePaywallOverlay').remove()" style="padding:12px;background:transparent;border:1px solid rgba(255,255,255,0.1);color:#9d9a94;border-radius:10px;font-size:14px;cursor:pointer;">Maybe later</button></div><p style="color:#6e6b65;font-size:12px;margin:0;">Annual &middot; 2 devices &nbsp;|&nbsp; Lifetime &middot; 5 devices</p></div>`;
   document.body.appendChild(overlay);
 }
 
@@ -9048,7 +8938,7 @@ function showPdfPaywall() {
         You've seen how InvoKit Pro works. A licence pays for itself with your first invoice.
       </p>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
-        <a href="#" onclick="showUpgradeRow();return false;" style="
+        <a href="https://getinvokitpro.com/#pricing" target="_blank" style="
           display:block;padding:13px 20px;border-radius:10px;
           background:linear-gradient(135deg,#c9a84c,#e8c97a);
           color:#0c0d14;font-weight:700;font-size:14px;text-decoration:none;
