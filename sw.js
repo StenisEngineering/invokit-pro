@@ -1,20 +1,20 @@
-const CACHE = 'invokit-v9';
+const CACHE = 'invokit-v10';
 const SHELL = [
   '/',
   '/index.html',
   '/manifest.json'
 ];
 
-// Install: cache the app shell
+// Install: cache the app shell, do NOT skip waiting automatically
+// (let the update banner in the app handle it)
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE)
       .then(c => c.addAll(SHELL))
-      .then(() => self.skipWaiting())
   );
 });
 
-// Activate: delete old caches
+// Activate: delete old caches, claim clients
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
@@ -27,49 +27,56 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Fetch: cache-first for shell, network-first for everything else
+// Message: handle SKIP_WAITING from update banner
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+// Fetch strategy
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
   // Only handle same-origin requests
   if (url.origin !== self.location.origin) return;
 
-  // Cache-first for the HTML shell
-  if (e.request.mode === 'navigate' || url.pathname === '/' || url.pathname === '/index.html') {
-    e.respondWith(
-      caches.match(e.request)
-        .then(cached => {
-          if (cached) return cached;
-          return fetch(e.request).then(res => {
-            if (res && res.status === 200) {
-              const clone = res.clone();
-              caches.open(CACHE).then(c => c.put(e.request, clone));
-            }
-            return res;
-          });
-        })
-        .catch(() => caches.match('/index.html'))
-    );
-    return;
-  }
-
-  // Network-first for API calls (licence validation)
-  if (url.hostname.includes('workers.dev') || url.hostname.includes('anthropic')) {
+  // Network-first for API calls (licence validation Worker)
+  if (url.hostname.includes('workers.dev')) {
     e.respondWith(fetch(e.request));
     return;
   }
 
-  // Stale-while-revalidate for everything else (fonts, assets)
+  // Network-first for navigate (ensures fresh app on reload)
+  // Falls back to cache if offline
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          if (res && res.status === 200) {
+            const clone = res.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone));
+          }
+          return res;
+        })
+        .catch(() =>
+          caches.match(e.request).then(cached => cached || caches.match('/index.html'))
+        )
+    );
+    return;
+  }
+
+  // Cache-first for all other assets (fonts, icons, etc.)
   e.respondWith(
     caches.match(e.request).then(cached => {
-      const fetchPromise = fetch(e.request).then(res => {
+      if (cached) return cached;
+      return fetch(e.request).then(res => {
         if (res && res.status === 200) {
           const clone = res.clone();
           caches.open(CACHE).then(c => c.put(e.request, clone));
         }
         return res;
-      }).catch(() => cached);
-      return cached || fetchPromise;
+      });
     })
   );
 });
