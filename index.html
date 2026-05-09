@@ -4600,20 +4600,21 @@ function openPrintWindow(html, type){
     *{box-sizing:border-box;margin:0;padding:0;font-family:'Outfit',sans-serif;}
     html,body{background:#fff;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     body{font-size:13px;line-height:1.5;}
-    @page{size:A4;margin:12mm;}
+    @page{size:A4 portrait;margin:10mm 12mm;}
     @media print{
       html,body{margin:0 !important;padding:0 !important;background:#fff !important;}
       #backupReminderOverlay,#backupReminderCard{display:none !important;}
+      *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
     }
     /* SHARED */
-    .print-shell{width:100%;max-width:100%;margin:0 auto;background:#fff;}
-    .t-logo-img{max-height:48px;object-fit:contain;display:block;margin-bottom:8px;}
-    table{width:100%;border-collapse:collapse;page-break-inside:auto;}
+    .print-shell{width:100%;max-width:794px;margin:0 auto;background:#fff;}
+    .t-logo-img{max-height:44px;object-fit:contain;display:block;margin-bottom:8px;}
+    table{width:100%;border-collapse:collapse;table-layout:fixed;page-break-inside:auto;}
     thead{display:table-header-group;}
     tfoot{display:table-footer-group;}
     tr,td,th,.t-header,.t-addresses,.t-totals-wrap,.t-notes,.t-footer,.receipt-card,.receipt-top,.receipt-mid,.receipt-amount{page-break-inside:avoid;break-inside:avoid;}
     /* CLASSIC */
-    .tmpl-classic{padding:52px 56px;}
+    .tmpl-classic{padding:36px 40px;}
     .tmpl-classic .t-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:44px;}
     .tmpl-classic .t-biz-name{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;color:#111;}
     .tmpl-classic .t-biz-info{font-size:12px;color:#666;line-height:1.75;margin-top:6px;}
@@ -4626,8 +4627,12 @@ function openPrintWindow(html, type){
     .tmpl-classic .t-addr-name{font-size:14px;font-weight:600;color:#111;margin-bottom:4px;}
     .tmpl-classic .t-addr-info{font-size:12px;color:#666;line-height:1.7;}
     .tmpl-classic .t-table{width:100%;border-collapse:collapse;margin-bottom:28px;}
-    .tmpl-classic .t-table th{text-align:left;padding:9px 13px;background:#f8f8f8;font-size:12px;color:#999;letter-spacing:.12em;text-transform:uppercase;border-bottom:2px solid #eee;}
-    .tmpl-classic .t-table td{padding:12px 13px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#333;}
+    .tmpl-classic .t-table th{text-align:left;padding:8px 10px;background:#f8f8f8;font-size:11px;color:#999;letter-spacing:.1em;text-transform:uppercase;border-bottom:2px solid #eee;overflow:hidden;}
+    .tmpl-classic .t-table td{padding:10px;border-bottom:1px solid #f0f0f0;font-size:12px;color:#333;overflow:hidden;word-break:break-word;}
+    .tmpl-classic .t-table th:nth-child(1),.tmpl-classic .t-table td:nth-child(1){width:45%;}
+    .tmpl-classic .t-table th:nth-child(2),.tmpl-classic .t-table td:nth-child(2){width:10%;text-align:center;}
+    .tmpl-classic .t-table th:nth-child(3),.tmpl-classic .t-table td:nth-child(3){width:20%;text-align:right;}
+    .tmpl-classic .t-table th:nth-child(4),.tmpl-classic .t-table td:nth-child(4){width:25%;text-align:right;}
     .tmpl-classic .t-totals-wrap{display:flex;justify-content:flex-end;}
     .tmpl-classic .t-totals{width:240px;}
     .tmpl-classic .t-tot-row{display:flex;justify-content:space-between;padding:7px 0;font-size:12.5px;color:#666;border-bottom:1px solid #f0f0f0;}
@@ -4675,8 +4680,12 @@ function openPrintWindow(html, type){
     .tmpl-bold .t-bill-val{font-size:13.5px;font-weight:600;color:#111;line-height:1.4;}
     .tmpl-bold .t-bill-sub{font-size:12.5px;color:#888;margin-top:2px;}
     .tmpl-bold .t-table{width:100%;border-collapse:collapse;}
-    .tmpl-bold .t-table th{padding:11px 14px;text-align:left;font-size:12px;color:#999;letter-spacing:.12em;text-transform:uppercase;border-bottom:2px solid ${accent};-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    .tmpl-bold .t-table td{padding:13px 14px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#222;}
+    .tmpl-bold .t-table th{padding:9px 10px;text-align:left;font-size:11px;color:#999;letter-spacing:.1em;text-transform:uppercase;border-bottom:2px solid ${accent};-webkit-print-color-adjust:exact;print-color-adjust:exact;overflow:hidden;}
+    .tmpl-bold .t-table td{padding:10px;border-bottom:1px solid #f0f0f0;font-size:12px;color:#222;overflow:hidden;word-break:break-word;}
+    .tmpl-bold .t-table th:nth-child(1),.tmpl-bold .t-table td:nth-child(1){width:45%;}
+    .tmpl-bold .t-table th:nth-child(2),.tmpl-bold .t-table td:nth-child(2){width:10%;text-align:center;}
+    .tmpl-bold .t-table th:nth-child(3),.tmpl-bold .t-table td:nth-child(3){width:20%;text-align:right;}
+    .tmpl-bold .t-table th:nth-child(4),.tmpl-bold .t-table td:nth-child(4){width:25%;text-align:right;}
     .tmpl-bold .t-summary{display:flex;justify-content:flex-end;margin-top:16px;}
     .tmpl-bold .t-summary-inner{width:280px;}
     .tmpl-bold .t-s-row{display:flex;justify-content:space-between;padding:8px 0;font-size:13px;color:#666;border-bottom:1px solid #eee;}
@@ -7121,14 +7130,6 @@ function buildTemplate(inv,tmpl,sym){
   const rows=(inv.items||[]).map(it=>`<tr><td>${esc(it.desc||'—')}</td><td style="text-align:center">${it.qty}</td><td style="text-align:right">${sym}${parseFloat(it.price||0).toFixed(2)}</td><td style="text-align:right">${sym}${(it.qty*(it.price||0)).toFixed(2)}</td></tr>`).join('');
   const totRows=`<div class="t-tot-row"><span>Subtotal</span><span>${sym}${sub.toFixed(2)}</span></div>${disc>0?`<div class="t-tot-row"><span>Discount</span><span style="color:#27a060">-${sym}${disc.toFixed(2)}</span></div>`:''} ${tax>0?`<div class="t-tot-row"><span>VAT</span><span>${sym}${tax.toFixed(2)}</span></div>`:''}`;
 
-  if(tmpl==='modern') return `<div class="tmpl-modern">
-    <div class="t-top-bar">${logoHtml?`<div>${logoHtml}<div class="t-biz-name">${esc(inv.bizName)}</div></div>`:`<div class="t-biz-name">${esc(inv.bizName)}</div>`}<div><div class="t-biz-tagline">${esc(inv.bizEmail)}</div></div><div class="t-inv-chip">${esc(inv.id)}</div></div>
-    <div class="t-body"><div class="t-meta-row"><div><div class="t-meta-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:28px;object-fit:contain;margin-bottom:4px;display:block">`:''}  <div class="t-meta-val">${esc(inv.client)}</div><div class="t-meta-sub">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div><div><div class="t-meta-label">From</div><div class="t-meta-val">${esc(inv.bizName)}</div><div class="t-meta-sub">${esc(inv.bizAddress)}</div></div><div><div class="t-meta-label">Issued</div><div class="t-meta-val">${fmtDate(inv.issued)}</div></div><div><div class="t-meta-label">Due</div><div class="t-meta-val">${fmtDate(inv.due)}</div></div></div>
-    <div class="t-divider"></div>
-    <table class="t-table"><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Amount</th></tr></thead><tbody>${rows}</tbody></table>
-    <div class="t-totals-section"><div class="t-totals">${totRows}<div class="t-grand"><span class="lbl">Total Due</span><span class="val">${sym}${total.toFixed(2)}</span></div></div></div></div>
-    <div class="t-bottom"><div class="t-bottom-notes">${inv.notes?esc(inv.notes):''}</div><div class="t-bottom-badge">INVOKIT PRO</div></div></div>`;
-
   if(tmpl==='bold') return `<div class="tmpl-bold">
     <div class="t-hero">${logoHtml?`<div style="margin-bottom:10px">${logoHtml}</div>`:''}
       <div class="t-biz-name">${esc(inv.bizName)}</div><div class="t-biz-info">${esc(inv.bizAddress)}<br>${esc(inv.bizEmail)}${inv.bizVAT?' | VAT: '+esc(inv.bizVAT):''}${inv.bizRegNum?' | Reg: '+esc(inv.bizRegNum):''}</div>
@@ -7140,16 +7141,6 @@ function buildTemplate(inv,tmpl,sym){
     <table class="t-table"><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Amount</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="t-summary"><div class="t-summary-inner">${totRows}<div class="t-s-total"><span class="lbl">Total Due</span><span class="val">${sym}${total.toFixed(2)}</span></div></div></div></div>
     <div class="t-foot"><span>${inv.notes?esc(inv.notes).substring(0,80):''}</span><span>InvoKit Pro</span></div></div>`;
-
-  if(tmpl==='compact') return `<div class="tmpl-compact">
-    <div class="t-header"><div>${logoHtml}<div class="t-biz-name">${esc(inv.bizName)}</div><div class="t-biz-small">${esc(inv.bizAddress)}<br>${esc(inv.bizEmail)}</div></div>
-    <div class="t-inv-right"><div class="t-inv-title">INVOICE</div><div class="t-inv-details">${esc(inv.id)}<br>Issued: ${fmtDate(inv.issued)}<br>Due: ${fmtDate(inv.due)}</div></div></div>
-    <div class="t-to-section"><div><div class="t-to-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:22px;object-fit:contain;margin-bottom:3px;display:block">`:''}<div class="t-to-val">${esc(inv.client)}</div><div class="t-to-sub">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div></div>
-    <table class="t-table"><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Total</th></tr></thead><tbody>${rows}</tbody></table>
-    <div class="t-bottom-row"><div class="t-notes-sm">${inv.notes?esc(inv.notes):''}</div>
-    <div><div class="t-tr"><span>Subtotal</span><span>${sym}${sub.toFixed(2)}</span></div>${disc>0?`<div class="t-tr"><span>Discount</span><span style="color:#27a060">-${sym}${disc.toFixed(2)}</span></div>`:''}${tax>0?`<div class="t-tr"><span>VAT</span><span>${sym}${tax.toFixed(2)}</span></div>`:''}
-    <div class="t-tr-final"><span class="lbl">Total</span><span class="val">${sym}${total.toFixed(2)}</span></div></div></div>
-    <div class="t-footer">Generated with InvoKit Pro</div></div>`;
 
   // Classic (default)
   return `<div class="tmpl-classic">
@@ -7272,20 +7263,29 @@ function showIOSInstallOverlay() {
 function initPWA() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
-      .then(() => {
-        console.log('Service worker registered');
+      .then(reg => {
+        // Check for updates immediately and every 60 seconds
+        reg.update();
+        setInterval(() => reg.update(), 60000);
+
+        // When a new SW is waiting — show update banner
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              showUpdateBanner();
+            }
+          });
+        });
       })
       .catch(err => {
         console.log('SW registration failed:', err);
       });
-  }
 
-  // iOS: show install button if not already installed
-  if (isIOSDevice() && !isAppInstalled()) {
-    const installBtn = document.getElementById('sidebarInstallBtn');
-    if (installBtn) installBtn.style.display = 'flex';
-    const dismissed = localStorage.getItem('pwa_dismissed');
-    if (!dismissed) showPWABanner();
+    // Handle controller change — reload to activate new SW
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    });
   }
 
   // iOS: show install button if not already installed as standalone
@@ -7299,10 +7299,8 @@ function initPWA() {
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     _pwaInstallPrompt = e;
-
     const installBtn = document.getElementById('sidebarInstallBtn');
     if (installBtn) installBtn.style.display = 'flex';
-
     const dismissed = localStorage.getItem('pwa_dismissed');
     if (!dismissed) showPWABanner();
   });
@@ -7310,13 +7308,37 @@ function initPWA() {
   window.addEventListener('appinstalled', () => {
     hidePWABanner();
     localStorage.setItem('pwa_dismissed', '1');
-
     const installBtn = document.getElementById('sidebarInstallBtn');
     if (installBtn) installBtn.style.display = 'none';
-
     showToast('✓ InvoKit Pro installed on your device!');
     updateInstallStatus();
   });
+}
+
+function showUpdateBanner() {
+  const existing = document.getElementById('swUpdateBanner');
+  if (existing) return;
+  const banner = document.createElement('div');
+  banner.id = 'swUpdateBanner';
+  banner.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9998;background:linear-gradient(135deg,#1a1c2e,#111220);border:1px solid rgba(201,168,76,0.4);border-radius:14px;padding:14px 20px;display:flex;align-items:center;gap:14px;box-shadow:0 8px 32px rgba(0,0,0,0.5);font-family:Outfit,sans-serif;min-width:300px;max-width:90vw;';
+  banner.innerHTML = `
+    <div style="flex:1;">
+      <div style="font-size:13.5px;font-weight:600;color:#f0ede8;margin-bottom:3px;">Update available</div>
+      <div style="font-size:12px;color:#9d9a94;">A new version of InvoKit Pro is ready.</div>
+    </div>
+    <button onclick="applyUpdate()" style="background:linear-gradient(135deg,#f0cf7d,#c9a84c);color:#0c0c0e;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:Outfit,sans-serif;">Update now</button>
+    <button onclick="document.getElementById('swUpdateBanner').remove()" style="background:transparent;border:none;color:#6e6b65;font-size:18px;cursor:pointer;padding:2px 4px;line-height:1;">×</button>`;
+  document.body.appendChild(banner);
+}
+
+function applyUpdate() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration().then(reg => {
+      if (reg && reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+    });
+  }
 }
 // DEAD CODE BELOW — kept for reference only, no longer executed
 function _oldInitPWA_unused() {
@@ -8005,8 +8027,7 @@ function renderAppShell() {
             <div class="field-group"><label class="field-label">Default Notes</label><textarea class="field-input" id="s_notes" rows="3" placeholder="Thank you for your business!"></textarea></div>
             <div class="field-group"><label class="field-label">Default Template</label>
               <select class="field-input" id="s_template">
-                <option value="classic">Classic</option><option value="modern">Modern</option>
-                <option value="bold">Bold</option><option value="compact">Compact</option>
+                <option value="classic">Classic</option><option value="bold">Bold</option>
               </select>
             </div>
           </div>
@@ -8191,8 +8212,7 @@ function renderAppShell() {
       </div>
       <div class="field-group" style="margin:0"><label class="field-label">Template</label>
         <select class="field-input" id="invTemplate">
-          <option value="classic">Classic</option><option value="modern">Modern</option>
-          <option value="bold">Bold</option><option value="compact">Compact</option>
+          <option value="classic">Classic</option><option value="bold">Bold</option>
         </select>
       </div>
     </div>
@@ -8273,9 +8293,7 @@ function renderAppShell() {
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <div class="template-tabs">
         <div class="tmpl-tab active" onclick="switchTemplate('classic',this)">Classic</div>
-        <div class="tmpl-tab" onclick="switchTemplate('modern',this)">Modern</div>
         <div class="tmpl-tab" onclick="switchTemplate('bold',this)">Bold</div>
-        <div class="tmpl-tab" onclick="switchTemplate('compact',this)">Compact</div>
       </div>
       <button class="ptb primary" onclick="printInvoice()">🖨 Print / PDF</button>
       <button class="ptb ptb-share ptb-email" onclick="shareInvoiceEmail()">✉ Email</button>
