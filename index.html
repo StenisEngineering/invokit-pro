@@ -8499,7 +8499,7 @@ function initAppAfterShell() {
 // ================================================================
 // GOOGLE DRIVE BACKUP
 // ================================================================
-const GDRIVE_CLIENT_ID   = ''; // Set via Settings or env — populated by user
+const GDRIVE_CLIENT_ID   = '330477342954-g0qel6dlr2gtb5tcmn1ic3nkec4e89v6.apps.googleusercontent.com';
 const GDRIVE_SCOPE       = 'https://www.googleapis.com/auth/drive.file';
 const GDRIVE_FILE_NAME   = 'invokit-pro-backup.json';
 const GDRIVE_SETTINGS_KEY = 'invokit_gdrive_v1';
@@ -8521,7 +8521,7 @@ async function getGDriveAccessToken() {
 
 async function gdriveAuth() {
   return new Promise((resolve, reject) => {
-    const clientId = getGDriveSettings().clientId || '';
+    const clientId = GDRIVE_CLIENT_ID || getGDriveSettings().clientId || '';
     if (!clientId) {
       reject(new Error('NO_CLIENT_ID'));
       return;
@@ -8565,7 +8565,7 @@ async function backupToGoogleDrive() {
   const btn = document.getElementById('gdriveBackupBtn');
   const s = getGDriveSettings();
 
-  if (!s.clientId) {
+  if (!GDRIVE_CLIENT_ID && !s.clientId) {
     showGDriveSetup();
     return;
   }
@@ -8644,7 +8644,7 @@ async function restoreFromGoogleDrive() {
   const btn = document.getElementById('gdriveRestoreBtn');
   const s = getGDriveSettings();
 
-  if (!s.clientId) { showGDriveSetup(); return; }
+  if (!GDRIVE_CLIENT_ID && !s.clientId) { showGDriveSetup(); return; }
 
   try {
     btn.disabled = true;
