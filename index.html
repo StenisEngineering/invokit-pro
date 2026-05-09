@@ -8092,6 +8092,14 @@ function renderAppShell() {
                 <span style="font-size:11.5px;color:var(--text3)">Import a previously exported .json backup</span>
               </div>
               <div style="margin-top:4px;padding-top:12px;border-top:1px solid var(--border)">
+                <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px;">☁ Google Drive Backup</div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+                  <button class="btn btn-ghost" id="gdriveBackupBtn" onclick="backupToGoogleDrive()">↑ Save to Google Drive</button>
+                  <button class="btn btn-ghost" id="gdriveRestoreBtn" onclick="restoreFromGoogleDrive()">↓ Restore from Google Drive</button>
+                </div>
+                <div id="gdriveStatus" style="font-size:11.5px;color:var(--text3);min-height:16px;"></div>
+              </div>
+              <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
                 <button class="btn btn-danger" onclick="confirmReset()">⚠ Reset All Data</button>
               </div>
             </div>
@@ -8487,6 +8495,263 @@ function initAppAfterShell() {
   }
   startAutoTooltips();
 }
+
+// ================================================================
+// GOOGLE DRIVE BACKUP
+// ================================================================
+const GDRIVE_CLIENT_ID   = ''; // Set via Settings or env — populated by user
+const GDRIVE_SCOPE       = 'https://www.googleapis.com/auth/drive.file';
+const GDRIVE_FILE_NAME   = 'invokit-pro-backup.json';
+const GDRIVE_SETTINGS_KEY = 'invokit_gdrive_v1';
+
+function getGDriveSettings() {
+  try { return JSON.parse(localStorage.getItem(GDRIVE_SETTINGS_KEY) || '{}'); } catch { return {}; }
+}
+function saveGDriveSettings(obj) {
+  localStorage.setItem(GDRIVE_SETTINGS_KEY, JSON.stringify(obj));
+}
+
+async function getGDriveAccessToken() {
+  const s = getGDriveSettings();
+  if (s.accessToken && s.expiresAt && Date.now() < s.expiresAt - 60000) {
+    return s.accessToken;
+  }
+  return null; // Need to re-auth
+}
+
+async function gdriveAuth() {
+  return new Promise((resolve, reject) => {
+    const clientId = getGDriveSettings().clientId || '';
+    if (!clientId) {
+      reject(new Error('NO_CLIENT_ID'));
+      return;
+    }
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: 'https://app.getinvokitpro.com/gdrive-callback.html',
+      response_type: 'token',
+      scope: GDRIVE_SCOPE,
+      prompt: 'consent'
+    });
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+    const popup = window.open(authUrl, 'gdrive_auth', 'width=500,height=600,left=200,top=100');
+    const timer = setInterval(() => {
+      try {
+        if (popup.closed) { clearInterval(timer); reject(new Error('POPUP_CLOSED')); return; }
+        const hash = popup.location.hash;
+        if (hash && hash.includes('access_token')) {
+          clearInterval(timer);
+          popup.close();
+          const p = new URLSearchParams(hash.slice(1));
+          const token = p.get('access_token');
+          const expiresIn = parseInt(p.get('expires_in') || '3600', 10);
+          saveGDriveSettings({ ...getGDriveSettings(), accessToken: token, expiresAt: Date.now() + expiresIn * 1000 });
+          resolve(token);
+        }
+      } catch(e) { /* cross-origin - still loading */ }
+    }, 500);
+  });
+}
+
+async function ensureGDriveToken() {
+  let token = await getGDriveAccessToken();
+  if (!token) token = await gdriveAuth();
+  return token;
+}
+
+async function backupToGoogleDrive() {
+  if (isFreePlan()) { showFreeUpgradePaywall('export'); return; }
+  const status = document.getElementById('gdriveStatus');
+  const btn = document.getElementById('gdriveBackupBtn');
+  const s = getGDriveSettings();
+
+  if (!s.clientId) {
+    showGDriveSetup();
+    return;
+  }
+
+  try {
+    btn.disabled = true;
+    status.textContent = '⏳ Connecting to Google Drive…';
+    status.style.color = 'var(--text3)';
+
+    const token = await ensureGDriveToken();
+    const data = JSON.stringify(APP, null, 2);
+    const date = new Date().toISOString().split('T')[0];
+    const fileName = `invokit-pro-backup-${date}.json`;
+
+    // Check if a previous backup file exists
+    const searchRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='${GDRIVE_FILE_NAME}' and trashed=false&fields=files(id,name)`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const searchData = await searchRes.json();
+    const existingFile = searchData.files?.[0];
+
+    let result;
+    if (existingFile) {
+      // Update existing file
+      result = await fetch(
+        `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}?uploadType=media`,
+        {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: data
+        }
+      );
+    } else {
+      // Create new file
+      const meta = JSON.stringify({ name: GDRIVE_FILE_NAME, mimeType: 'application/json' });
+      const boundary = 'invokit_boundary_001';
+      const body = `--${boundary}\r\nContent-Type: application/json\r\n\r\n${meta}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${data}\r\n--${boundary}--`;
+      result = await fetch(
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': `multipart/related; boundary=${boundary}` },
+          body
+        }
+      );
+    }
+
+    if (result.ok) {
+      saveGDriveSettings({ ...getGDriveSettings(), lastBackup: new Date().toISOString() });
+      markBackupComplete('gdrive');
+      status.textContent = `✓ Backed up to Google Drive — ${new Date().toLocaleString('en-GB')}`;
+      status.style.color = 'var(--green)';
+      showToast('✓ Backup saved to Google Drive');
+    } else {
+      throw new Error('Upload failed');
+    }
+  } catch(err) {
+    if (err.message === 'NO_CLIENT_ID') {
+      showGDriveSetup();
+    } else if (err.message === 'POPUP_CLOSED') {
+      status.textContent = 'Sign-in cancelled.';
+      status.style.color = 'var(--text3)';
+    } else {
+      status.textContent = '⚠ Backup failed — try again or use JSON backup';
+      status.style.color = '#e05a5a';
+    }
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function restoreFromGoogleDrive() {
+  if (isFreePlan()) { showFreeUpgradePaywall('export'); return; }
+  const status = document.getElementById('gdriveStatus');
+  const btn = document.getElementById('gdriveRestoreBtn');
+  const s = getGDriveSettings();
+
+  if (!s.clientId) { showGDriveSetup(); return; }
+
+  try {
+    btn.disabled = true;
+    status.textContent = '⏳ Connecting to Google Drive…';
+    status.style.color = 'var(--text3)';
+
+    const token = await ensureGDriveToken();
+
+    // Find the backup file
+    const searchRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='${GDRIVE_FILE_NAME}' and trashed=false&fields=files(id,name,modifiedTime)`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const searchData = await searchRes.json();
+    const file = searchData.files?.[0];
+
+    if (!file) {
+      status.textContent = '⚠ No backup found in Google Drive';
+      status.style.color = '#e05a5a';
+      return;
+    }
+
+    const fileRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const data = await fileRes.json();
+
+    if (!data.invoices || !Array.isArray(data.invoices)) {
+      status.textContent = '⚠ Invalid backup file';
+      status.style.color = '#e05a5a';
+      return;
+    }
+
+    const modified = new Date(file.modifiedTime).toLocaleString('en-GB');
+    document.getElementById('confirmTitle').textContent = 'Restore from Google Drive?';
+    document.getElementById('confirmMsg').textContent = `Restore backup from ${modified}? (${data.invoices.length} invoices, ${(data.clients||[]).length} clients). This will replace all current data.`;
+    document.getElementById('confirmOkBtn').onclick = () => {
+      APP = data;
+      if (!APP.catalogue) APP.catalogue = [];
+      if (!APP.recurring) APP.recurring = [];
+      persist();
+      applyTheme(APP.theme || 'hybrid');
+      applyAccentColour(APP.settings?.accentColour || '#c9a84c');
+      buildDashboard();
+      loadSettingsForm();
+      checkOverdue();
+      closeConfirm();
+      status.textContent = `✓ Restored from ${modified}`;
+      status.style.color = 'var(--green)';
+      showToast(`✓ Restored — ${data.invoices.length} invoices loaded`);
+    };
+    document.getElementById('confirmOverlay').classList.add('open');
+  } catch(err) {
+    if (err.message === 'NO_CLIENT_ID') {
+      showGDriveSetup();
+    } else if (err.message === 'POPUP_CLOSED') {
+      status.textContent = 'Sign-in cancelled.';
+      status.style.color = 'var(--text3)';
+    } else {
+      status.textContent = '⚠ Restore failed — try again';
+      status.style.color = '#e05a5a';
+    }
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function showGDriveSetup() {
+  const existing = document.getElementById('gdriveSetupOverlay');
+  if (existing) { existing.remove(); return; }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'gdriveSetupOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:10002;background:rgba(4,5,10,0.88);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML = `
+    <div style="background:#111220;border:1px solid rgba(201,168,76,0.25);border-radius:20px;padding:32px;max-width:460px;width:100%;font-family:'Outfit',sans-serif;box-shadow:0 8px 40px rgba(0,0,0,0.5);position:relative;">
+      <button onclick="document.getElementById('gdriveSetupOverlay').remove()" style="position:absolute;top:14px;right:14px;background:transparent;border:none;color:#9d9a94;font-size:22px;cursor:pointer;">×</button>
+      <div style="font-size:24px;margin-bottom:12px;">☁</div>
+      <div style="font-size:18px;font-weight:700;color:#f0ede8;margin-bottom:8px;">Connect Google Drive</div>
+      <div style="font-size:13px;color:#9d9a94;line-height:1.65;margin-bottom:20px;">To enable Google Drive backup, you need to enter your Google OAuth Client ID. This is a one-time setup.</div>
+      <div style="background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.2);border-radius:10px;padding:14px;margin-bottom:20px;font-size:12px;color:#c4bdb1;line-height:1.7;">
+        <strong style="color:#f0ede8;">How to get your Client ID:</strong><br>
+        1. Go to <a href="https://console.cloud.google.com" target="_blank" style="color:#c9a84c;">console.cloud.google.com</a><br>
+        2. Create a project → Enable <strong style="color:#f0ede8;">Google Drive API</strong><br>
+        3. Create OAuth credentials → Web application<br>
+        4. Add <strong style="color:#f0ede8;">https://app.getinvokitpro.com</strong> as authorised origin<br>
+        5. Copy the <strong style="color:#f0ede8;">Client ID</strong> and paste it below
+      </div>
+      <input id="gdriveClientIdInput" type="text" placeholder="Paste your Google Client ID here…" style="width:100%;background:#0c0d14;border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:12px 14px;font-size:13px;color:#f0ede8;font-family:'Outfit',sans-serif;margin-bottom:14px;box-sizing:border-box;">
+      <button onclick="saveGDriveClientId()" style="width:100%;background:linear-gradient(135deg,#f0cf7d,#c9a84c);color:#0c0c0e;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;">Save & Connect</button>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+function saveGDriveClientId() {
+  const input = document.getElementById('gdriveClientIdInput');
+  const clientId = input?.value?.trim();
+  if (!clientId) { showToast('⚠ Please enter your Client ID'); return; }
+  saveGDriveSettings({ ...getGDriveSettings(), clientId });
+  document.getElementById('gdriveSetupOverlay')?.remove();
+  showToast('✓ Google Drive connected');
+  const status = document.getElementById('gdriveStatus');
+  if (status) { status.textContent = '✓ Google Drive connected — tap Backup to save'; status.style.color = 'var(--green)'; }
+}
+
 // ================================================================
 // INIT
 // ================================================================

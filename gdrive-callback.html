@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>InvoKit Pro — Google Drive</title>
+<style>
+  body { font-family: 'Outfit', sans-serif; background: #0c0d14; color: #f0ede8;
+    display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+  .msg { text-align: center; }
+  .icon { font-size: 48px; margin-bottom: 16px; }
+  .title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+  .sub { font-size: 13px; color: #9d9a94; }
+</style>
+</head>
+<body>
+<div class="msg">
+  <div class="icon">✓</div>
+  <div class="title">Google Drive connected</div>
+  <div class="sub">You can close this window.</div>
+</div>
+<script>
+  // Pass token back to opener via location hash
+  if (window.opener) {
+    // The opener reads window.location.hash — just keep this window open briefly
+    setTimeout(() => window.close(), 3000);
+  }
+</script>
+</body>
+</html>
