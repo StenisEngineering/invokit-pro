@@ -8077,27 +8077,25 @@ function renderAppShell() {
         <div class="settings-section" id="settings-data">
           <div class="settings-card">
             <div class="settings-title">Data & Export</div>
-            <div class="settings-desc">All data stored locally on your device. Export regularly as a backup.</div>
+            <div class="settings-desc">Your data lives on this device. Back it up regularly — save the file to Google Drive, iCloud, email or USB.</div>
+            <div style="background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.18);border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:12.5px;color:var(--text2);line-height:1.7;">
+              <strong style="color:var(--text);">How to back up:</strong><br>
+              1. Tap <strong style="color:var(--text);">Download Backup</strong> below — saves a <code style="font-size:11px;background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:4px;">.json</code> file<br>
+              2. Save that file to <strong style="color:var(--text);">Google Drive, iCloud, or email it to yourself</strong><br>
+              3. To restore on any device — tap <strong style="color:var(--text);">Restore from Backup</strong> and select the file
+            </div>
             <div style="display:flex;flex-direction:column;gap:10px;">
-              <div>
-                <button class="btn btn-ghost" onclick="exportCSV()">↓ Export Invoices as CSV</button>
-              </div>
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                <button class="btn btn-primary" onclick="exportJSON()">↓ Backup All Data (JSON)</button>
-                <span style="font-size:11.5px;color:var(--text3)">Saves all invoices, clients, catalogue & settings</span>
+                <button class="btn btn-primary" onclick="exportJSON()">↓ Download Backup</button>
+                <span style="font-size:11.5px;color:var(--text3)">All invoices, clients, catalogue & settings</span>
               </div>
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                 <button class="btn btn-ghost" onclick="document.getElementById('importJSONInput').click()">↑ Restore from Backup</button>
                 <input type="file" id="importJSONInput" accept=".json" style="display:none" onchange="importJSON(event)">
-                <span style="font-size:11.5px;color:var(--text3)">Import a previously exported .json backup</span>
+                <span style="font-size:11.5px;color:var(--text3)">Select a .json backup file to restore</span>
               </div>
-              <div style="margin-top:4px;padding-top:12px;border-top:1px solid var(--border)">
-                <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px;">☁ Google Drive Backup</div>
-                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
-                  <button class="btn btn-ghost" id="gdriveBackupBtn" onclick="backupToGoogleDrive()">↑ Save to Google Drive</button>
-                  <button class="btn btn-ghost" id="gdriveRestoreBtn" onclick="restoreFromGoogleDrive()">↓ Restore from Google Drive</button>
-                </div>
-                <div id="gdriveStatus" style="font-size:11.5px;color:var(--text3);min-height:16px;"></div>
+              <div>
+                <button class="btn btn-ghost" onclick="exportCSV()">↓ Export Invoices as CSV</button>
               </div>
               <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
                 <button class="btn btn-danger" onclick="confirmReset()">⚠ Reset All Data</button>
@@ -8467,6 +8465,19 @@ function renderAppShell() {
 
 <!-- TOAST -->
 <div class="toast" id="toast"><span id="toastMsg">Done</span></div>
+
+<!-- BACKUP REMINDER OVERLAY -->
+<div id="backupReminderOverlay">
+  <div id="backupReminderCard">
+    <button id="backupReminderClose" onclick="closeBackupReminder('dismiss')" aria-label="Close">×</button>
+    <h3>💾 Back up your data</h3>
+    <p>Your invoices and clients are saved on this device. Export a backup now so you never lose your work.</p>
+    <div class="backup-reminder-actions" style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="downloadBackupFromReminder('json')">↓ Download Backup</button>
+      <button class="btn btn-ghost" onclick="closeBackupReminder('later')">Remind me later</button>
+    </div>
+  </div>
+</div>
 `;
 }
 
