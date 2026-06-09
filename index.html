@@ -3537,7 +3537,7 @@ body .demo-mode-banner a{
 
 <script>
 // ================================================================
-// DATA & STORE — IndexedDB (PWA-grade, survives browser clears)
+// DATA & STORE — IndexedDB + localStorage with data-safety guard
 // ================================================================
 const STORE = 'invokit_paid_local_owner_v1';
 const DB_NAME = 'InvoKitPro';
@@ -3577,41 +3577,177 @@ async function idbSet(key, val) {
   });
 }
 
-// persist() — async write to IndexedDB, with localStorage mirror as fallback
-function persist() {
-  const data = JSON.stringify(APP);
-  idbSet(STORE, data).catch(() => {});
-  try { localStorage.setItem(STORE, data); } catch(e) {}
+
+// ================================================================
+// DATA SAFETY LAYER — prevents empty-state overwrites
+// ================================================================
+const DATA_SAFETY_VERSION = '2026-06-09-data-safety-v2';
+
+function parseStoredJSON(raw) {
+  if (!raw) return null;
+  try { return typeof raw === 'string' ? JSON.parse(raw) : raw; } catch(e) { return null; }
 }
 
-// load() — called once at boot, returns synchronous data from localStorage
-// then upgrades from IndexedDB async if available (idbLoad called after init)
+function normaliseAppState(data) {
+  const empty = (typeof createEmptyAppState === 'function') ? createEmptyAppState() : { invoices: [], clients: [], catalogue: [], recurring: [], settings: {} };
+  const out = data && typeof data === 'object' ? { ...empty, ...data } : empty;
+  out.invoices = Array.isArray(out.invoices) ? out.invoices : [];
+  out.clients = Array.isArray(out.clients) ? out.clients : [];
+  out.catalogue = Array.isArray(out.catalogue) ? out.catalogue : [];
+  out.recurring = Array.isArray(out.recurring) ? out.recurring : [];
+  out.settings = { ...(empty.settings || {}), ...(out.settings || {}) };
+  if (!out.theme) out.theme = out.settings.theme || 'hybrid';
+  if (!out.settings.theme) out.settings.theme = out.theme;
+  if (!Number.isFinite(Number(out.nextNum)) || Number(out.nextNum) < 1) out.nextNum = 1;
+  return out;
+}
+
+function appBusinessScore(data) {
+  if (!data || typeof data !== 'object') return 0;
+  return (Array.isArray(data.invoices) ? data.invoices.length * 100 : 0) +
+         (Array.isArray(data.clients) ? data.clients.length * 30 : 0) +
+         (Array.isArray(data.catalogue) ? data.catalogue.length * 10 : 0) +
+         (Array.isArray(data.recurring) ? data.recurring.length * 20 : 0) +
+         (Array.isArray(data.receipts) ? data.receipts.length * 40 : 0);
+}
+
+function appRecordCount(data) {
+  if (!data || typeof data !== 'object') return 0;
+  return (Array.isArray(data.invoices) ? data.invoices.length : 0) +
+         (Array.isArray(data.clients) ? data.clients.length : 0) +
+         (Array.isArray(data.catalogue) ? data.catalogue.length : 0) +
+         (Array.isArray(data.recurring) ? data.recurring.length : 0) +
+         (Array.isArray(data.receipts) ? data.receipts.length : 0);
+}
+
+function applyAppDefaults(data) {
+  APP = normaliseAppState(data);
+  return APP;
+}
+
+async function getIndexedAppState() {
+  try { return parseStoredJSON(await idbGet(STORE)); } catch(e) { return null; }
+}
+
+function getLocalAppState() {
+  try { return parseStoredJSON(localStorage.getItem(STORE)); } catch(e) { return null; }
+}
+
+function chooseSafestAppState(localData, indexedData) {
+  const local = localData ? normaliseAppState(localData) : null;
+  const indexed = indexedData ? normaliseAppState(indexedData) : null;
+  if (!local && !indexed) return null;
+  if (!local) return indexed;
+  if (!indexed) return local;
+
+  const localScore = appBusinessScore(local);
+  const indexedScore = appBusinessScore(indexed);
+  if (indexedScore > localScore) return indexed;
+  if (localScore > indexedScore) return local;
+
+  const localUpdated = Number(local._dataSafety?.updatedAt || 0);
+  const indexedUpdated = Number(indexed._dataSafety?.updatedAt || 0);
+  return indexedUpdated > localUpdated ? indexed : local;
+}
+
+async function hydrateAppFromBestStorage(options = {}) {
+  try {
+    const localData = getLocalAppState();
+    const indexedData = await getIndexedAppState();
+    const safest = chooseSafestAppState(localData, indexedData);
+    if (!safest) return false;
+
+    const currentLicence = {
+      demo: APP?.demo,
+      licenceKey: APP?.licenceKey,
+      licenceStatus: APP?.licenceStatus,
+      plan: APP?.plan,
+      planFeatures: APP?.planFeatures
+    };
+    applyAppDefaults(safest);
+    Object.keys(currentLicence).forEach(k => {
+      if (currentLicence[k] !== undefined && currentLicence[k] !== '' && currentLicence[k] !== null) APP[k] = currentLicence[k];
+    });
+
+    // Mirror the safest state back to localStorage only when it contains real business records.
+    if (appBusinessScore(APP) > 0) {
+      const mirrored = JSON.stringify(APP);
+      try { localStorage.setItem(STORE, mirrored); } catch(e) {}
+    }
+
+    if (options.render && document.getElementById('appMount')?.children?.length) {
+      applyTheme(APP.theme || 'hybrid');
+      applyAccentColour(APP.settings?.accentColour || '#c9a84c');
+      buildDashboard();
+      loadSettingsForm();
+      checkOverdue();
+      updateInstallStatus();
+    }
+    return true;
+  } catch(e) {
+    console.warn('InvoKit data safety hydrate failed:', e);
+    return false;
+  }
+}
+
+async function guardedWriteToStores(serialised, score) {
+  const existingLocal = getLocalAppState();
+  const existingIndexed = await getIndexedAppState();
+  const existingBest = chooseSafestAppState(existingLocal, existingIndexed);
+  const existingScore = appBusinessScore(existingBest);
+
+  // Block the exact failure mode: empty new state trying to overwrite old invoice/client data.
+  if (score === 0 && existingScore > 0 && !window.__INVOKIT_ALLOW_EMPTY_PERSIST) {
+    console.warn('InvoKitPro data safety blocked an empty-state overwrite. Existing records were preserved.');
+    if (typeof showToast === 'function') showToast('⚠ Existing records protected — export a backup now');
+    return false;
+  }
+
+  await idbSet(STORE, serialised);
+  try { localStorage.setItem(STORE, serialised); } catch(e) {}
+  return true;
+}
+
+// persist() — safe async write to IndexedDB + localStorage mirror.
+// It refuses to overwrite existing business data with an empty state unless reset explicitly allows it.
+function persist() {
+  const snapshot = normaliseAppState(APP);
+  const score = appBusinessScore(snapshot);
+  snapshot._dataSafety = {
+    version: DATA_SAFETY_VERSION,
+    updatedAt: Date.now(),
+    businessScore: score,
+    recordCount: appRecordCount(snapshot)
+  };
+  delete snapshot.__allowEmptyPersist;
+  const data = JSON.stringify(snapshot);
+  APP = snapshot;
+
+  if (score > 0) {
+    idbSet(STORE, data).catch(() => {});
+    try { localStorage.setItem(STORE, data); } catch(e) {}
+    return;
+  }
+
+  guardedWriteToStores(data, score).catch(e => console.warn('Safe persist failed:', e));
+}
+
+// load() — synchronous fallback. The async boot process will then choose the safest IndexedDB/localStorage copy.
 function load() {
   try {
     const r = localStorage.getItem(STORE);
-    if (r) return JSON.parse(r);
+    if (r) return normaliseAppState(JSON.parse(r));
   } catch(e) {}
   return createEmptyAppState();
 }
 
-// On boot: load from IndexedDB (more reliable) and re-render if it has newer data
+// On boot or after shell render: only replace current APP when IndexedDB/localStorage is safer.
 async function idbLoad() {
   try {
-    const raw = await idbGet(STORE);
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    if (!data) return;
-    APP = data;
-    if (!APP.catalogue) APP.catalogue = [];
-    if (!APP.recurring) APP.recurring = [];
-    applyTheme(APP.theme || 'hybrid');
-    applyAccentColour(APP.settings?.accentColour || '#c9a84c');
-    buildDashboard();
-    loadSettingsForm();
-    checkOverdue();
-    updateInstallStatus();
+    await hydrateAppFromBestStorage({ render: true, reason: 'post-shell' });
   } catch(e) {}
 }
+
 
 function getMonthlyAnalyticsData() {
   const months = [];
@@ -7183,7 +7319,7 @@ function confirmDelete(id){
 function confirmReset(){
   document.getElementById('confirmTitle').textContent='Reset All Data';
   document.getElementById('confirmMsg').textContent='Delete all invoices, clients, and reset settings? Cannot be undone.';
-  document.getElementById('confirmOkBtn').onclick=()=>{APP=createEmptyAppState(); APP.theme = APP.settings.theme = (document.documentElement.getAttribute('data-theme') || 'hybrid');persist();refreshAll();loadSettingsForm();checkOverdue();closeConfirm();showToast('↺ Reset complete');};
+  document.getElementById('confirmOkBtn').onclick=()=>{window.__INVOKIT_ALLOW_EMPTY_PERSIST=true;APP=createEmptyAppState(); APP.theme = APP.settings.theme = (document.documentElement.getAttribute('data-theme') || 'hybrid');persist();setTimeout(()=>{window.__INVOKIT_ALLOW_EMPTY_PERSIST=false;},0);refreshAll();loadSettingsForm();checkOverdue();closeConfirm();showToast('↺ Reset complete');};
   document.getElementById('confirmOverlay').classList.add('open');
 }
 function closeConfirm(){document.getElementById('confirmOverlay').classList.remove('open');}
@@ -7365,7 +7501,7 @@ function _oldInitPWA_unused() {
   // 2. Register service worker as inline blob
   if ('serviceWorker' in navigator) {
     const swCode = `
-const CACHE = 'invokit-v6';
+const CACHE = 'invokit-v12-backup-force';
 const URLS = ['/'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll([])).then(() => self.skipWaiting()));
@@ -7486,13 +7622,20 @@ function updateInstallStatus() {
 // ================================================================
 function exportJSON(markBackupDone = true) {
   if(isFreePlan()){showFreeUpgradePaywall('export');return;}
-  const data = JSON.stringify(APP, null, 2);
+  const exportState = normaliseAppState(APP);
+  exportState._dataSafety = {
+    version: DATA_SAFETY_VERSION,
+    exportedAt: new Date().toISOString(),
+    businessScore: appBusinessScore(exportState),
+    recordCount: appRecordCount(exportState)
+  };
+  const data = JSON.stringify(exportState, null, 2);
   const blob = new Blob([data], {type: 'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const date = new Date().toISOString().split('T')[0];
+  const date = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
   a.href = url;
-  a.download = `invokit-backup-${date}.json`;
+  a.download = `invokitpro-backup-${date}.json`;
   a.click();
   URL.revokeObjectURL(url);
   if (markBackupDone) markBackupComplete('json');
@@ -7514,10 +7657,9 @@ function importJSON(e) {
       document.getElementById('confirmTitle').textContent = 'Restore from Backup?';
       document.getElementById('confirmMsg').textContent = `This will replace all current data with the backup (${data.invoices.length} invoices, ${(data.clients||[]).length} clients). Cannot be undone.`;
       document.getElementById('confirmOkBtn').onclick = () => {
-        APP = data;
-        if (!APP.catalogue) APP.catalogue = [];
-        if (!APP.recurring) APP.recurring = [];
+        APP = normaliseAppState(data);
         persist();
+        markBackupComplete('restore-json');
         applyTheme(APP.theme || 'hybrid');
         applyAccentColour(APP.settings?.accentColour || '#c9a84c');
         buildDashboard();
@@ -7536,9 +7678,11 @@ function importJSON(e) {
   e.target.value = '';
 }
 
-const BACKUP_REMINDER_KEY = 'invokit_backup_reminder_v1';
-const BACKUP_REMINDER_INTERVAL = 7 * 24 * 60 * 60 * 1000;
-const BACKUP_REMINDER_SNOOZE = 2 * 24 * 60 * 60 * 1000;
+const BACKUP_REMINDER_KEY = 'invokit_backup_reminder_v2';
+const BACKUP_REMINDER_INTERVAL = 3 * 24 * 60 * 60 * 1000;   // remind every 3 days
+const BACKUP_REMINDER_SNOOZE   = 1 * 24 * 60 * 60 * 1000;   // snooze 1 day
+const BACKUP_FORCE_AFTER_DAYS  = 7;                           // force (non-dismissable) after 7 days without backup
+const BACKUP_FORCE_DISMISSALS  = 3;                           // force after 3 dismissals without backing up
 
 function getBackupReminderState() {
   try {
@@ -7558,17 +7702,28 @@ function markBackupComplete(type = 'json') {
   saveBackupReminderState({
     lastBackupAt: Date.now(),
     lastShownAt: Date.now(),
-    lastBackupType: type
+    lastBackupType: type,
+    dismissCount: 0,
+    snoozeUntil: null
   });
   const overlay = document.getElementById('backupReminderOverlay');
   if (overlay) overlay.classList.remove('open');
+  showToast('✓ Backup saved — your data is safe');
 }
 
 function closeBackupReminder(mode = 'later') {
+  // If forced, only allow closing via actual backup
+  if (isBackupForced() && mode !== 'backed-up') return;
   const state = getBackupReminderState();
   const now = Date.now();
   state.lastShownAt = now;
-  if (mode === 'later') state.snoozeUntil = now + BACKUP_REMINDER_SNOOZE;
+  if (mode === 'later') {
+    state.snoozeUntil = now + BACKUP_REMINDER_SNOOZE;
+    state.dismissCount = (state.dismissCount || 0) + 1;
+  }
+  if (mode === 'dismiss') {
+    state.dismissCount = (state.dismissCount || 0) + 1;
+  }
   saveBackupReminderState(state);
   document.getElementById('backupReminderOverlay')?.classList.remove('open');
 }
@@ -7582,21 +7737,81 @@ function downloadBackupFromReminder(kind) {
   exportJSON(true);
 }
 
-function shouldShowBackupReminder() {
+function hasBusinessData() {
+  return APP && (
+    (APP.invoices && APP.invoices.length > 0) ||
+    (APP.clients && APP.clients.length > 0) ||
+    (APP.catalogue && APP.catalogue.length > 0)
+  );
+}
+
+function daysSinceBackup() {
+  const state = getBackupReminderState();
+  if (!state.lastBackupAt) return null;
+  return Math.floor((Date.now() - state.lastBackupAt) / (24 * 60 * 60 * 1000));
+}
+
+function isBackupForced() {
+  if (!hasBusinessData()) return false;
   const state = getBackupReminderState();
   const now = Date.now();
-  if (state.snoozeUntil && now < state.snoozeUntil) return false;
-  if (!state.lastBackupAt) return APP && ((APP.invoices && APP.invoices.length) || (APP.clients && APP.clients.length) || (APP.catalogue && APP.catalogue.length));
+  // Force if never backed up and has data
+  if (!state.lastBackupAt) {
+    return (state.dismissCount || 0) >= BACKUP_FORCE_DISMISSALS;
+  }
+  // Force if overdue by BACKUP_FORCE_AFTER_DAYS
+  return (now - state.lastBackupAt) >= (BACKUP_FORCE_AFTER_DAYS * 24 * 60 * 60 * 1000);
+}
+
+function shouldShowBackupReminder() {
+  if (!hasBusinessData()) return false;
+  const state = getBackupReminderState();
+  const now = Date.now();
+  // Snoozed?
+  if (state.snoozeUntil && now < state.snoozeUntil && !isBackupForced()) return false;
+  // Never backed up → show immediately
+  if (!state.lastBackupAt) return true;
+  // Overdue by interval
   return (now - state.lastBackupAt) >= BACKUP_REMINDER_INTERVAL;
 }
 
 function showBackupReminder() {
   const overlay = document.getElementById('backupReminderOverlay');
   if (!overlay) return;
+
+  const forced = isBackupForced();
+  const days = daysSinceBackup();
   const state = getBackupReminderState();
   state.lastShownAt = Date.now();
-  delete state.snoozeUntil;
+  if (!forced) delete state.snoozeUntil;
   saveBackupReminderState(state);
+
+  // Update card content dynamically
+  const card = document.getElementById('backupReminderCard');
+  const closeBtn = document.getElementById('backupReminderClose');
+  const title = document.getElementById('backupReminderTitle');
+  const msg = document.getElementById('backupReminderMsg');
+  const remindBtn = document.getElementById('backupReminderSnoozeBtn');
+
+  if (forced) {
+    // Non-dismissable forced mode
+    if (closeBtn) closeBtn.style.display = 'none';
+    if (remindBtn) remindBtn.style.display = 'none';
+    if (card) card.style.borderColor = 'rgba(224,90,90,0.4)';
+    if (title) title.textContent = '⚠ Backup required before you continue';
+    if (msg) msg.innerHTML = days === null
+      ? 'You have <strong>never backed up</strong> your data. Your invoices and clients are only on this device. One browser clear and everything is gone forever. Download a backup now to continue.'
+      : `Your last backup was <strong>${days} days ago</strong>. This is overdue. Download a backup now to keep your data safe — then continue using the app.`;
+  } else {
+    if (closeBtn) closeBtn.style.display = '';
+    if (remindBtn) remindBtn.style.display = '';
+    if (card) card.style.borderColor = '';
+    if (title) title.textContent = '💾 Time to back up your data';
+    if (msg) msg.innerHTML = days === null
+      ? 'You have <strong>never backed up</strong> your data. Download a backup file and save it to Google Drive, email, or iCloud — just in case.'
+      : `Your last backup was <strong>${days} day${days !== 1 ? 's' : ''} ago</strong>. Download a fresh backup and keep it somewhere safe.`;
+  }
+
   overlay.classList.add('open');
 }
 
@@ -8470,11 +8685,17 @@ function renderAppShell() {
 <div id="backupReminderOverlay">
   <div id="backupReminderCard">
     <button id="backupReminderClose" onclick="closeBackupReminder('dismiss')" aria-label="Close">×</button>
-    <h3>💾 Back up your data</h3>
-    <p>Your invoices and clients are saved on this device. Export a backup now so you never lose your work.</p>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <div style="width:38px;height:38px;border-radius:10px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.25);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">💾</div>
+      <h3 id="backupReminderTitle" style="margin:0;font-size:16px;line-height:1.3;">Time to back up your data</h3>
+    </div>
+    <p id="backupReminderMsg" style="margin:0 0 14px;font-size:13.5px;line-height:1.65;color:var(--text2);">Your invoices and clients are saved on this device only. Download a backup and save it to Google Drive, email, or iCloud.</p>
+    <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--text3);line-height:1.6;">
+      <strong style="color:var(--text2);">How to keep it safe:</strong> Download → Save to Google Drive, iCloud, or email it to yourself → Use Restore if you ever need it back.
+    </div>
     <div class="backup-reminder-actions" style="display:flex;gap:10px;flex-wrap:wrap;">
-      <button class="btn btn-primary" onclick="downloadBackupFromReminder('json')">↓ Download Backup</button>
-      <button class="btn btn-ghost" onclick="closeBackupReminder('later')">Remind me later</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="downloadBackupFromReminder('json')">↓ Download Backup Now</button>
+      <button id="backupReminderSnoozeBtn" class="btn btn-ghost" onclick="closeBackupReminder('later')">Remind me tomorrow</button>
     </div>
   </div>
 </div>
@@ -8779,12 +9000,27 @@ const LICENCE_STORE = 'invokit_licence_v1';
 function getLicenceData() {
   try { const r = localStorage.getItem(LICENCE_STORE); return r ? JSON.parse(r) : null; } catch(e){ return null; }
 }
+async function getLicenceDataAsync() {
+  const local = getLicenceData();
+  if (local && local.status) return local;
+  try {
+    const raw = await idbGet(LICENCE_STORE);
+    const data = parseStoredJSON(raw);
+    if (data && data.status) {
+      try { localStorage.setItem(LICENCE_STORE, JSON.stringify(data)); } catch(e) {}
+      return data;
+    }
+  } catch(e) {}
+  return null;
+}
 function saveLicenceData(data) {
   try { localStorage.setItem(LICENCE_STORE, JSON.stringify(data)); } catch(e){}
+  try { idbSet(LICENCE_STORE, JSON.stringify(data)).catch(() => {}); } catch(e) {}
 }
 
-function bootSplash() {
-  const ld = getLicenceData();
+async function bootSplash() {
+  await hydrateAppFromBestStorage({ reason: 'pre-boot' });
+  const ld = await getLicenceDataAsync();
 
   // Already activated — inject app shell then go straight to app
   if (ld && ld.status === 'active') {
@@ -8822,7 +9058,7 @@ function showSplash() {
   document.getElementById('splashScreen').style.display = 'flex';
 }
 
-function dismissSplash(animate=true) {
+function dismissSplash(animate=true, isNewActivation=false) {
   renderAppShell();
   initAppAfterShell();
   const splash = document.getElementById('splashScreen');
@@ -8836,6 +9072,12 @@ function dismissSplash(animate=true) {
   }
   licence.style.display = 'none';
   document.body.style.overflow = '';
+  // Show backup reminder shortly after new activation if user has data
+  if (isNewActivation) {
+    setTimeout(() => {
+      if (hasBusinessData() && shouldShowBackupReminder()) showBackupReminder();
+    }, 2000);
+  }
 }
 
 function showLicenceMsg(msg, type='error') {
@@ -8900,7 +9142,7 @@ async function activateLicence() {
         key,
         installId,
         deviceName: navigator.userAgent || 'Unknown device',
-        appVersion: '8.0'
+        appVersion: '8.1-data-safety'
       }),
       signal: controller.signal
     });
@@ -8922,6 +9164,9 @@ async function activateLicence() {
     const licenceMeta = data.activation?.licence || {};
     const activatedPlan = String(licenceMeta.plan || 'lifetime').toLowerCase();
     const planFeatures = licenceMeta.features || {};
+
+    // Critical: reload the safest saved records before licence activation writes anything.
+    await hydrateAppFromBestStorage({ reason: 'pre-licence-persist' });
 
     saveLicenceData({
   status: 'active',
@@ -8954,7 +9199,7 @@ const welcomeMsg = activatedPlan === 'free'
   ? '✓ Free licence activated! You can create up to 5 invoices on this device.'
   : '✓ Licence activated! Welcome to InvoKit Pro.';
 showLicenceMsg(welcomeMsg, 'success');
-setTimeout(() => dismissSplash(true), 1200);
+setTimeout(() => dismissSplash(true, true), 1200);
   } catch (e) {
     const msg = e?.name === 'AbortError'
       ? 'Activation timed out. Please check internet and try again.'
