@@ -346,9 +346,6 @@ select.field-input{appearance:none;background-image:url("data:image/svg+xml,%3Cs
 .section-divider::after{content:'';flex:1;height:1px;background:var(--border);}
 .items-table{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;}
 .items-head{display:grid;grid-template-columns:3fr 0.75fr 1fr 1fr 30px;gap:8px;padding:9px 13px;background:var(--surface2);border-bottom:1px solid var(--border);}
-.item-heading-row{display:grid;grid-template-columns:1fr 30px;gap:8px;padding:8px 13px;align-items:center;border-bottom:1px solid var(--border);background:rgba(201,168,76,0.06);}
-[data-theme="light"] .item-heading-row{background:rgba(201,168,76,0.08);}
-[data-theme="hybrid"] .item-heading-row{background:rgba(201,168,76,0.07);}
 .items-head span{font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);letter-spacing:0.14em;text-transform:uppercase;}
 .item-row{display:grid;grid-template-columns:3fr 0.75fr 1fr 1fr 30px;gap:8px;padding:8px 13px;align-items:center;border-bottom:1px solid var(--border);transition:background var(--tr);}
 .item-row:last-child{border-bottom:none;}
@@ -844,10 +841,6 @@ input[type=color]::-webkit-color-swatch{border:3px solid var(--border2);border-r
     grid-template-columns: 1.8fr 0.8fr 1fr 1fr 28px !important;
     gap: 6px !important;
     min-width: 720px !important;
-  }
-
-  .item-heading-row {
-    min-width: 780px !important;
   }
 
   .table-wrap {
@@ -3374,6 +3367,57 @@ body .demo-mode-banner a{
 }
 </style>
 
+
+<style id="invokit-v13-data-safety-trust-css">
+/* ============================================================
+   InvoKitPro v13 — Data Safety & Trust Update
+============================================================ */
+.invokit-v13-card{border:1px solid color-mix(in srgb,var(--border) 72%, var(--accent) 28%);border-radius:18px;background:radial-gradient(circle at top right,rgba(201,168,76,.12),transparent 24%),linear-gradient(180deg,rgba(255,255,255,.78),rgba(255,255,255,.96));box-shadow:0 18px 44px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.76);padding:18px;margin-bottom:18px;position:relative;overflow:hidden}
+[data-theme="dark"] .invokit-v13-card{background:radial-gradient(circle at top right,rgba(201,168,76,.14),transparent 24%),linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.015)),var(--surface);box-shadow:0 24px 60px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.06)}
+.v13-safety-grid{display:grid;grid-template-columns:1.25fr repeat(3,1fr);gap:12px;align-items:stretch}
+.v13-safety-main{display:flex;gap:12px;align-items:flex-start}.v13-safety-icon{width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:var(--accent-dim);border:1px solid var(--accent-border);font-size:21px;flex-shrink:0}.v13-safety-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;letter-spacing:-.02em}.v13-safety-sub{font-size:12.5px;color:var(--text2);line-height:1.55;margin-top:3px}.v13-safety-metric{border:1px solid var(--border);border-radius:14px;padding:12px;background:color-mix(in srgb,var(--surface2) 84%, transparent);min-height:78px}.v13-safety-label{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:7px}.v13-safety-value{font-size:14px;font-weight:600;color:var(--text)}.v13-safety-note{font-size:11.5px;color:var(--text3);margin-top:4px;line-height:1.4}.v13-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.v13-status-ok{color:var(--green)!important}.v13-status-warn{color:var(--amber)!important}.v13-status-bad{color:var(--red)!important}.v13-badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:4px 9px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase}.v13-badge.ok{background:var(--green-dim);color:var(--green)}.v13-badge.warn{background:var(--amber-dim);color:var(--amber)}.v13-badge.bad{background:var(--red-dim);color:var(--red)}
+.v13-overlay{position:fixed;inset:0;z-index:10060;background:rgba(4,5,10,.62);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:18px}.v13-overlay.open{display:flex}.v13-modal{width:min(760px,100%);max-height:92vh;overflow:auto;background:var(--surface);border:1px solid color-mix(in srgb,var(--border2) 72%, var(--accent) 28%);border-radius:22px;box-shadow:0 42px 120px rgba(0,0,0,.44);padding:24px;animation:slideUp .25s ease}.v13-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}.v13-modal-title{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:600;letter-spacing:-.03em}.v13-modal-sub{font-size:13.5px;color:var(--text2);line-height:1.65;margin-top:5px}.v13-close{border:none;background:transparent;color:var(--text3);font-size:24px;cursor:pointer;width:38px;height:38px;border-radius:12px}.v13-close:hover{background:var(--surface2);color:var(--accent)}.v13-step-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0 18px}.v13-step{border:1px solid var(--border);background:var(--surface2);border-radius:12px;padding:10px;font-size:12px;color:var(--text2)}.v13-step strong{display:block;color:var(--text);margin-bottom:3px}.v13-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.v13-cloud-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}.v13-cloud-card{border:1px solid var(--border);border-radius:16px;background:var(--surface2);padding:14px}.v13-cloud-title{font-weight:700;margin-bottom:5px}.v13-cloud-sub{font-size:12.5px;color:var(--text2);line-height:1.55}.v13-disabled{opacity:.62;filter:grayscale(.25)}
+@media(max-width:768px){.v13-safety-grid,.v13-form-grid,.v13-cloud-grid{grid-template-columns:1fr}.v13-overlay{align-items:flex-end;padding:0}.v13-modal{border-radius:22px 22px 0 0;padding:18px;max-height:94vh}.v13-step-grid{grid-template-columns:1fr 1fr}.v13-modal-title{font-size:24px}.v13-actions .btn{width:100%;justify-content:center}.v13-safety-main{align-items:flex-start}}
+</style>
+
+
+
+<style id="invokit-v14-roadmap-coming-soon">
+/* ===== V14 PRODUCT ROADMAP / UPCOMING FEATURES ===== */
+.roadmap-hero{
+  position:relative;overflow:hidden;border:1px solid color-mix(in srgb,var(--border) 76%, var(--accent) 24%);
+  border-radius:22px;padding:26px;margin-bottom:18px;background:
+  radial-gradient(circle at top right, rgba(201,168,76,.15), transparent 28%),
+  linear-gradient(180deg, rgba(255,255,255,.82), rgba(255,255,255,.96));box-shadow:var(--panel-shadow);
+}
+[data-theme="dark"] .roadmap-hero{background:radial-gradient(circle at top right, rgba(201,168,76,.14), transparent 28%),linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015)),var(--surface);}
+.roadmap-kicker{font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:7px;}
+.roadmap-title{font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:600;letter-spacing:-.035em;line-height:1.05;margin-bottom:8px;}
+.roadmap-copy{font-size:14px;line-height:1.75;color:var(--text2);max-width:780px;}
+.roadmap-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-bottom:18px;}
+.roadmap-card{position:relative;overflow:hidden;background:var(--surface);border:1px solid color-mix(in srgb,var(--border) 78%, var(--accent) 22%);border-radius:18px;padding:18px;box-shadow:var(--panel-shadow);}
+.roadmap-card::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at top right, rgba(201,168,76,.09), transparent 28%);}
+.roadmap-card-title{position:relative;font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;letter-spacing:-.02em;margin-bottom:7px;}
+.roadmap-card-desc{position:relative;font-size:12.8px;color:var(--text2);line-height:1.65;margin-bottom:12px;}
+.roadmap-status{position:relative;display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;}
+.roadmap-status.available{background:var(--green-dim);color:var(--green);}
+.roadmap-status.progress{background:var(--accent-dim);color:var(--accent);}
+.roadmap-status.planned{background:var(--blue-dim);color:var(--blue);}
+.roadmap-status.locked{background:var(--surface3);color:var(--text3);}
+.roadmap-list{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
+.roadmap-panel{background:var(--surface);border:1px solid color-mix(in srgb,var(--border) 78%, var(--accent) 22%);border-radius:18px;padding:20px;box-shadow:var(--panel-shadow);}
+.roadmap-panel h3{font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:600;letter-spacing:-.02em;margin-bottom:10px;}
+.roadmap-feature-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;border-top:1px solid var(--border);padding:12px 0;}
+.roadmap-feature-row:first-of-type{border-top:none;}
+.roadmap-feature-name{font-weight:600;font-size:13.5px;color:var(--text);}
+.roadmap-feature-note{font-size:12px;color:var(--text3);line-height:1.5;margin-top:2px;}
+.cloud-protect-box{background:linear-gradient(180deg,rgba(201,168,76,.11),rgba(201,168,76,.035));border:1px solid rgba(201,168,76,.25);border-radius:18px;padding:18px;margin-top:14px;}
+.cloud-protect-box strong{color:var(--accent);}
+.coming-soon-disabled{opacity:.58;cursor:not-allowed;filter:grayscale(.2);}
+@media(max-width:900px){.roadmap-grid{grid-template-columns:1fr 1fr}.roadmap-list{grid-template-columns:1fr}}
+@media(max-width:640px){.roadmap-grid{grid-template-columns:1fr}.roadmap-title{font-size:28px}.roadmap-hero{padding:20px}}
+</style>
+
 </head>
 <body>
 
@@ -3588,7 +3632,7 @@ async function idbSet(key, val) {
 // ================================================================
 // DATA SAFETY LAYER — prevents empty-state overwrites
 // ================================================================
-const DATA_SAFETY_VERSION = '2026-06-09-data-safety-v2';
+const DATA_SAFETY_VERSION = '2026-06-09-v13-data-safety-trust';
 
 function parseStoredJSON(raw) {
   if (!raw) return null;
@@ -3914,8 +3958,18 @@ function navTo(page, el) {
   else if (page==='catalogue') renderCatalogue();
   else if (page==='receipts') renderReceiptsTable();
   else if (page==='analytics') renderAnalytics();
+  else if (page==='roadmap') renderRoadmap();
   else if (page==='settings') { loadSettingsForm(); buildPalette(); }
   else if (page==='recurring') renderRecurring();
+}
+
+
+function renderRoadmap(){
+  const subtitle = document.querySelector('#page-roadmap .page-subtitle');
+  if(subtitle){
+    const records = (APP.invoices?.length||0) + (APP.clients?.length||0) + (APP.catalogue?.length||0) + (APP.recurring?.length||0);
+    subtitle.textContent = `Offline-first today · ${records} local records protected by manual backup`;
+  }
 }
 
 // ================================================================
@@ -4579,7 +4633,7 @@ function openEditorForInvoice(id){
   setValue('bizVAT',inv.bizVAT||APP.settings.vat||'');
   setValue('clientName',inv.client); setValue('clientEmail',inv.email);
   setValue('clientPhone',inv.phone||''); setValue('clientAddress',inv.address||'');
-  setValue('issueDate',inv.issued); setValue('dueDate',inv.due); setValue('docTitle',inv.docTitle||'');
+  setValue('issueDate',inv.issued); setValue('dueDate',inv.due);
   setValue('notes',inv.notes||'');
   setValue('currency',inv.currency||APP.settings.currency||'£');
   if(inv.paymentTerms||APP.settings.terms) setValue('paymentTerms',inv.paymentTerms||APP.settings.terms||'');
@@ -4609,7 +4663,7 @@ function clearEditor(){
   document.getElementById('discFixed')?.classList.remove('active');
   const today=new Date().toISOString().split('T')[0];
   const due30=new Date(Date.now()+30*864e5).toISOString().split('T')[0];
-  setValue('issueDate',today); setValue('dueDate',due30); setValue('docTitle','');
+  setValue('issueDate',today); setValue('dueDate',due30);
   recalc();
 }
 function duplicateCurrentInvoice(){if(editingId) duplicateInvoice(editingId); else showToast('⚠ Save invoice first to duplicate');}
@@ -4626,24 +4680,16 @@ function duplicateInvoice(id){
 // ================================================================
 // LINE ITEMS
 // ================================================================
-function addHeading(){items.push({id:Date.now()+Math.random(),type:'heading',desc:''});renderItems();}
-
 function addItem(){items.push({id:Date.now()+Math.random(),desc:'',qty:1,price:0});renderItems();}
 function renderItems(){
   const sym=getCurrency();
-  document.getElementById('itemsContainer').innerHTML=items.map(it=>{
-    if(it.type==='heading') return `<div class="item-heading-row">
-      <input class="item-input" type="text" placeholder="Section heading — e.g. Design Services, Phase 1…" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)" style="font-weight:600;color:var(--accent);font-size:13px;letter-spacing:0.05em;text-transform:uppercase;">
-      <button class="del-btn" onclick="removeItem(${it.id})" title="Remove heading">×</button>
-    </div>`;
-    return `<div class="item-row">
+  document.getElementById('itemsContainer').innerHTML=items.map(it=>`<div class="item-row">
     <input class="item-input" type="text" placeholder="Description…" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)">
     <input class="item-input" type="number" min="1" placeholder="1" value="${it.qty||''}" oninput="updateItem(${it.id},'qty',this.value)" style="text-align:center">
     <input class="item-input" type="number" min="0" step="0.01" placeholder="0.00" value="${it.price>0?it.price:''}" oninput="updateItem(${it.id},'price',this.value)">
     <span class="item-amount" id="amt-${it.id}">${sym}${(it.qty*it.price).toFixed(2)}</span>
     <button class="del-btn" onclick="removeItem(${it.id})">×</button>
-  </div>`;
-  }).join('');
+  </div>`).join('');
 }
 function updateItem(id,field,val){
   const it=items.find(i=>i.id===id);if(!it) return;
@@ -4654,7 +4700,7 @@ function updateItem(id,field,val){
 function removeItem(id){items=items.filter(i=>i.id!==id);renderItems();recalc();}
 function recalc(){
   const sym=getCurrency();
-  const sub=items.reduce((s,i)=>i.type==='heading'?s:s+(i.qty*i.price),0);
+  const sub=items.reduce((s,i)=>s+(i.qty*i.price),0);
   const dval=parseFloat(document.getElementById('discountVal')?.value)||0;
   const disc=discountType==='pct'?sub*(dval/100):Math.min(dval,sub);
   const afterDisc=sub-disc;
@@ -4677,14 +4723,14 @@ function setDiscountType(t){discountType=t;document.getElementById('discPct').cl
 // ================================================================
 function buildInvObj(status){
   const sym=getCurrency();
-  const sub=items.reduce((s,i)=>i.type==='heading'?s:s+(i.qty*i.price),0);
+  const sub=items.reduce((s,i)=>s+(i.qty*i.price),0);
   const dval=parseFloat(document.getElementById('discountVal')?.value)||0;
   const disc=discountType==='pct'?sub*(dval/100):Math.min(dval,sub);
   const afterDisc=sub-disc;
   const rate=parseFloat(document.getElementById('taxRate')?.value)||0;
   const tax=taxEnabled?afterDisc*(rate/100):0;
   const prefix=APP.settings.prefix||'INV-2026-';
-  return {id:editingId||(prefix+String(APP.nextNum||1).padStart(3,'0')),bizName:gv('bizName'),bizAddress:gv('bizAddress'),bizEmail:gv('bizEmail'),bizPhone:gv('bizPhone'),bizVAT:gv('bizVAT'),bizRegNum:APP.settings.regNum||'',client:gv('clientName'),email:gv('clientEmail'),phone:gv('clientPhone'),address:gv('clientAddress'),issued:gv('issueDate'),due:gv('dueDate'),subtotal:sub,discount:disc,tax,amount:afterDisc+tax,currency:sym,paymentTerms:gv('paymentTerms'),docTitle:gv('docTitle'),items:items.map(i=>i.type==='heading'?{type:'heading',desc:i.desc}:{desc:i.desc,qty:i.qty,price:i.price}),status,notes:gv('notes'),template:gv('invTemplate')||APP.settings.template||'classic'};
+  return {id:editingId||(prefix+String(APP.nextNum||1).padStart(3,'0')),bizName:gv('bizName'),bizAddress:gv('bizAddress'),bizEmail:gv('bizEmail'),bizPhone:gv('bizPhone'),bizVAT:gv('bizVAT'),bizRegNum:APP.settings.regNum||'',client:gv('clientName'),email:gv('clientEmail'),phone:gv('clientPhone'),address:gv('clientAddress'),issued:gv('issueDate'),due:gv('dueDate'),subtotal:sub,discount:disc,tax,amount:afterDisc+tax,currency:sym,paymentTerms:gv('paymentTerms'),items:items.map(i=>({desc:i.desc,qty:i.qty,price:i.price})),status,notes:gv('notes'),template:gv('invTemplate')||APP.settings.template||'classic'};
 }
 function saveToList(inv){
   APP.settings.currency=inv.currency||APP.settings.currency||'£';
@@ -7258,6 +7304,19 @@ body .demo-mode-banner a{
 }
 </style>
 
+
+<style id="invokit-v13-data-safety-trust-css">
+/* ============================================================
+   InvoKitPro v13 — Data Safety & Trust Update
+============================================================ */
+.invokit-v13-card{border:1px solid color-mix(in srgb,var(--border) 72%, var(--accent) 28%);border-radius:18px;background:radial-gradient(circle at top right,rgba(201,168,76,.12),transparent 24%),linear-gradient(180deg,rgba(255,255,255,.78),rgba(255,255,255,.96));box-shadow:0 18px 44px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.76);padding:18px;margin-bottom:18px;position:relative;overflow:hidden}
+[data-theme="dark"] .invokit-v13-card{background:radial-gradient(circle at top right,rgba(201,168,76,.14),transparent 24%),linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.015)),var(--surface);box-shadow:0 24px 60px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.06)}
+.v13-safety-grid{display:grid;grid-template-columns:1.25fr repeat(3,1fr);gap:12px;align-items:stretch}
+.v13-safety-main{display:flex;gap:12px;align-items:flex-start}.v13-safety-icon{width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:var(--accent-dim);border:1px solid var(--accent-border);font-size:21px;flex-shrink:0}.v13-safety-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;letter-spacing:-.02em}.v13-safety-sub{font-size:12.5px;color:var(--text2);line-height:1.55;margin-top:3px}.v13-safety-metric{border:1px solid var(--border);border-radius:14px;padding:12px;background:color-mix(in srgb,var(--surface2) 84%, transparent);min-height:78px}.v13-safety-label{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:7px}.v13-safety-value{font-size:14px;font-weight:600;color:var(--text)}.v13-safety-note{font-size:11.5px;color:var(--text3);margin-top:4px;line-height:1.4}.v13-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.v13-status-ok{color:var(--green)!important}.v13-status-warn{color:var(--amber)!important}.v13-status-bad{color:var(--red)!important}.v13-badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:4px 9px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase}.v13-badge.ok{background:var(--green-dim);color:var(--green)}.v13-badge.warn{background:var(--amber-dim);color:var(--amber)}.v13-badge.bad{background:var(--red-dim);color:var(--red)}
+.v13-overlay{position:fixed;inset:0;z-index:10060;background:rgba(4,5,10,.62);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:18px}.v13-overlay.open{display:flex}.v13-modal{width:min(760px,100%);max-height:92vh;overflow:auto;background:var(--surface);border:1px solid color-mix(in srgb,var(--border2) 72%, var(--accent) 28%);border-radius:22px;box-shadow:0 42px 120px rgba(0,0,0,.44);padding:24px;animation:slideUp .25s ease}.v13-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}.v13-modal-title{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:600;letter-spacing:-.03em}.v13-modal-sub{font-size:13.5px;color:var(--text2);line-height:1.65;margin-top:5px}.v13-close{border:none;background:transparent;color:var(--text3);font-size:24px;cursor:pointer;width:38px;height:38px;border-radius:12px}.v13-close:hover{background:var(--surface2);color:var(--accent)}.v13-step-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0 18px}.v13-step{border:1px solid var(--border);background:var(--surface2);border-radius:12px;padding:10px;font-size:12px;color:var(--text2)}.v13-step strong{display:block;color:var(--text);margin-bottom:3px}.v13-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.v13-cloud-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}.v13-cloud-card{border:1px solid var(--border);border-radius:16px;background:var(--surface2);padding:14px}.v13-cloud-title{font-weight:700;margin-bottom:5px}.v13-cloud-sub{font-size:12.5px;color:var(--text2);line-height:1.55}.v13-disabled{opacity:.62;filter:grayscale(.25)}
+@media(max-width:768px){.v13-safety-grid,.v13-form-grid,.v13-cloud-grid{grid-template-columns:1fr}.v13-overlay{align-items:flex-end;padding:0}.v13-modal{border-radius:22px 22px 0 0;padding:18px;max-height:94vh}.v13-step-grid{grid-template-columns:1fr 1fr}.v13-modal-title{font-size:24px}.v13-actions .btn{width:100%;justify-content:center}.v13-safety-main{align-items:flex-start}}
+</style>
+
 </head><body><div class="print-shell">${html}</div>
 </body></html>`);
   win.document.close();
@@ -7278,19 +7337,13 @@ function buildTemplate(inv,tmpl,sym){
   // Always read bizLogo from settings first — this is the source of truth
   const bizLogo=APP.settings.bizLogo||inv.bizLogo||'';
   const logoHtml=bizLogo?`<img src="${bizLogo}" class="t-logo-img" style="max-height:44px;object-fit:contain">`:'' ;
-  const rows=(inv.items||[]).map(it=>{
-    if(it.type==='heading' && !String(it.desc||'').trim()) return '';
-    return it.type==='heading'
-      ?`<tr><td colspan="4" style="padding:10px 13px 4px;font-weight:700;color:#c9a84c;font-size:11.5px;letter-spacing:0.12em;text-transform:uppercase;border-bottom:2px solid rgba(201,168,76,0.3);background:rgba(201,168,76,0.04);">${esc(it.desc||'')}</td></tr>`
-      :`<tr><td>${esc(it.desc||'—')}</td><td style="text-align:center">${it.qty}</td><td style="text-align:right">${sym}${parseFloat(it.price||0).toFixed(2)}</td><td style="text-align:right">${sym}${(it.qty*(it.price||0)).toFixed(2)}</td></tr>`;
-  }).join('');
+  const rows=(inv.items||[]).map(it=>`<tr><td>${esc(it.desc||'—')}</td><td style="text-align:center">${it.qty}</td><td style="text-align:right">${sym}${parseFloat(it.price||0).toFixed(2)}</td><td style="text-align:right">${sym}${(it.qty*(it.price||0)).toFixed(2)}</td></tr>`).join('');
   const totRows=`<div class="t-tot-row"><span>Subtotal</span><span>${sym}${sub.toFixed(2)}</span></div>${disc>0?`<div class="t-tot-row"><span>Discount</span><span style="color:#27a060">-${sym}${disc.toFixed(2)}</span></div>`:''} ${tax>0?`<div class="t-tot-row"><span>VAT</span><span>${sym}${tax.toFixed(2)}</span></div>`:''}`;
 
   if(tmpl==='bold') return `<div class="tmpl-bold">
     <div class="t-hero">${logoHtml?`<div style="margin-bottom:10px">${logoHtml}</div>`:''}
       <div class="t-biz-name">${esc(inv.bizName)}</div><div class="t-biz-info">${esc(inv.bizAddress)}<br>${esc(inv.bizEmail)}${inv.bizVAT?' | VAT: '+esc(inv.bizVAT):''}${inv.bizRegNum?' | Reg: '+esc(inv.bizRegNum):''}</div>
-      <div class="t-inv-row"><div class="t-inv-big">${inv.docTitle?esc(inv.docTitle):(esc(inv.id)+' · '+fmtDate(inv.issued))}</div><div class="t-status-big">Due ${fmtDate(inv.due)}</div></div>
-      ${inv.docTitle?`<div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:2px;font-family:'DM Mono',monospace;">${esc(inv.id)} · Issued ${fmtDate(inv.issued)}</div>`:''}</div>
+      <div class="t-inv-row"><div class="t-inv-big">${esc(inv.id)} · ${fmtDate(inv.issued)}</div><div class="t-status-big">Due ${fmtDate(inv.due)}</div></div></div>
     <div class="t-body"><div class="t-bill-row">
       <div class="t-bill-item"><div class="t-bill-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:26px;object-fit:contain;margin-bottom:4px;display:block">`:''}<div class="t-bill-val">${esc(inv.client)}</div><div class="t-bill-sub">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div>
       <div class="t-bill-item"><div class="t-bill-label">From</div><div class="t-bill-val">${esc(inv.bizName)}</div><div class="t-bill-sub">${esc(inv.bizAddress)}</div></div>
@@ -7302,7 +7355,7 @@ function buildTemplate(inv,tmpl,sym){
   // Classic (default)
   return `<div class="tmpl-classic">
     <div class="t-header"><div>${logoHtml}<div class="t-biz-name">${esc(inv.bizName)}</div><div class="t-biz-info">${esc(inv.bizAddress)}<br>${esc(inv.bizEmail)}${inv.bizPhone?' · '+esc(inv.bizPhone):''}</div></div>
-    <div class="t-inv-meta"><div class="t-inv-label">${inv.docTitle?esc(inv.docTitle):'Invoice'}</div><div class="t-inv-num">${esc(inv.id)}</div><div class="t-dates">Issued: ${fmtDate(inv.issued)}<br>Due: ${fmtDate(inv.due)}</div></div></div>
+    <div class="t-inv-meta"><div class="t-inv-label">Invoice</div><div class="t-inv-num">${esc(inv.id)}</div><div class="t-dates">Issued: ${fmtDate(inv.issued)}<br>Due: ${fmtDate(inv.due)}</div></div></div>
     <div class="t-addresses">
       <div><div class="t-addr-label">From</div><div class="t-addr-name">${esc(inv.bizName)}</div><div class="t-addr-info">${esc(inv.bizAddress)}</div></div>
       <div><div class="t-addr-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:28px;object-fit:contain;margin-bottom:5px;display:block">`:''}<div class="t-addr-name">${esc(inv.client)}</div><div class="t-addr-info">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div>
@@ -7974,6 +8027,8 @@ function renderAppShell() {
     <div class="nav-item" data-page="recurring" onclick="navTo('recurring',this)"><span class="nav-icon">↻</span>Recurring</div>
     <div class="nav-lbl">Reports</div>
     <div class="nav-item" data-page="analytics" onclick="navTo('analytics',this)"><span class="nav-icon">◧</span>Analytics</div>
+    <div class="nav-lbl">Growth</div>
+    <div class="nav-item" data-page="roadmap" onclick="navTo('roadmap',this)"><span class="nav-icon">✦</span>Roadmap<span class="coming-soon-badge">Soon</span></div>
     <div class="nav-lbl">System</div>
     <div class="nav-item" data-page="settings" onclick="navTo('settings',this)"><span class="nav-icon">⚙</span>Settings</div>
     <div class="nav-item" id="sidebarInstallBtn" onclick="installPWA()" style="display:none;color:var(--accent);border:1px solid var(--accent-border);margin-top:6px;border-radius:var(--radius-sm);"><span class="nav-icon">⬇</span>Install on this device</div>
@@ -8189,6 +8244,59 @@ function renderAppShell() {
   </div>
 </div>
 
+
+
+<!-- ===== PRODUCT ROADMAP / UPCOMING FEATURES ===== -->
+<div class="page" id="page-roadmap">
+  <header class="topbar">
+    <button class="mob-menu-btn" onclick="toggleMobSidebar()">☰</button>
+    <div><div class="page-title">Product Roadmap</div><div class="page-subtitle">Offline-first today · cloud-ready next</div></div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" onclick="navTo('settings',document.querySelector('[data-page=settings]'));switchSettingsTab('roadmap',document.querySelector('[data-settings-tab=roadmap]'))">Cloud Protect</button>
+      <button class="btn btn-primary" onclick="exportJSON()">⬇ Backup Now</button>
+    </div>
+  </header>
+  <div class="content fade-in">
+    <div class="roadmap-hero">
+      <div class="roadmap-kicker">InvoKitPro v14 Roadmap</div>
+      <div class="roadmap-title">Upcoming features are now visible inside the app.</div>
+      <div class="roadmap-copy">
+        InvoKitPro remains offline-first for invoices, quotes, receipts, clients and backups. Cloud Protect, payment links, client portal and team access are shown as planned upgrades and will only be enabled when the secure backend is ready.
+      </div>
+      <div class="cloud-protect-box">
+        <strong>Important:</strong> these roadmap features are product-ready placeholders, not fake cloud sync. Users can see what is coming while the current app continues to work safely offline.
+      </div>
+    </div>
+
+    <div class="roadmap-grid">
+      <div class="roadmap-card"><div class="roadmap-card-title">Quote Builder</div><div class="roadmap-card-desc">Quotation table with S/N, description, quantity, unit, unit price, install rate and amount.</div><span class="roadmap-status progress">In progress</span></div>
+      <div class="roadmap-card"><div class="roadmap-card-title">Cloud Protect</div><div class="roadmap-card-desc">Automatic encrypted cloud backup, restore and transfer between devices.</div><span class="roadmap-status planned">Coming soon</span></div>
+      <div class="roadmap-card"><div class="roadmap-card-title">Payment Links</div><div class="roadmap-card-desc">Attach Stripe, Paystack or bank payment links to invoices and quotes.</div><span class="roadmap-status planned">Planned</span></div>
+      <div class="roadmap-card"><div class="roadmap-card-title">Client Portal</div><div class="roadmap-card-desc">Clients can view, approve, download and track documents online.</div><span class="roadmap-status planned">Planned</span></div>
+      <div class="roadmap-card"><div class="roadmap-card-title">Team Access</div><div class="roadmap-card-desc">Allow staff or business partners to help manage invoices and clients.</div><span class="roadmap-status planned">Planned</span></div>
+      <div class="roadmap-card"><div class="roadmap-card-title">Expense Tracking</div><div class="roadmap-card-desc">Record expenses, supplier costs and profit estimates against jobs.</div><span class="roadmap-status planned">Planned</span></div>
+    </div>
+
+    <div class="roadmap-list">
+      <div class="roadmap-panel">
+        <h3>Available Now</h3>
+        <div class="roadmap-feature-row"><div><div class="roadmap-feature-name">Invoices & receipts</div><div class="roadmap-feature-note">Create, save, print and export business documents offline.</div></div><span class="roadmap-status available">Live</span></div>
+        <div class="roadmap-feature-row"><div><div class="roadmap-feature-name">Clients & catalogue</div><div class="roadmap-feature-note">Store client details and reusable products or services.</div></div><span class="roadmap-status available">Live</span></div>
+        <div class="roadmap-feature-row"><div><div class="roadmap-feature-name">Manual backup & restore</div><div class="roadmap-feature-note">Export and import JSON backup files for data protection.</div></div><span class="roadmap-status available">Live</span></div>
+        <div class="roadmap-feature-row"><div><div class="roadmap-feature-name">Offline-first PWA</div><div class="roadmap-feature-note">Designed to work on the same device even without internet.</div></div><span class="roadmap-status available">Live</span></div>
+      </div>
+      <div class="roadmap-panel">
+        <h3>Coming Soon</h3>
+        <div class="roadmap-feature-row"><div><div class="roadmap-feature-name">Email invoice to client</div><div class="roadmap-feature-note">Send invoices directly from InvoKitPro using a secure mail service.</div></div><span class="roadmap-status planned">Planned</span></div>
+        <div class="roadmap-feature-row"><div><div class="roadmap-feature-name">Multi-device sync</div><div class="roadmap-feature-note">Use the same business data across laptop, phone and tablet.</div></div><span class="roadmap-status planned">Planned</span></div>
+        <div class="roadmap-feature-row"><div><div class="roadmap-feature-name">Approval workflow</div><div class="roadmap-feature-note">Let clients approve quotes before invoice conversion.</div></div><span class="roadmap-status planned">Planned</span></div>
+        <div class="roadmap-feature-row"><div><div class="roadmap-feature-name">Advanced reports</div><div class="roadmap-feature-note">Profit, quote conversion, sales trend and client performance insights.</div></div><span class="roadmap-status planned">Planned</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <!-- ===== SETTINGS ===== -->
 <div class="page" id="page-settings">
   <header class="topbar">
@@ -8204,6 +8312,7 @@ function renderAppShell() {
         <div class="settings-nav-item" onclick="switchSettingsTab('branding',this)">Brand & Colours</div>
         <div class="settings-nav-item" onclick="switchSettingsTab('appearance',this)">Appearance</div>
         <div class="settings-nav-item" onclick="switchSettingsTab('data',this)">Data & Export</div>
+        <div class="settings-nav-item" data-settings-tab="roadmap" onclick="switchSettingsTab('roadmap',this)">Cloud Protect & Roadmap</div>
         <div class="settings-nav-item" onclick="switchSettingsTab('about',this)">About</div>
       </div>
       <div>
@@ -8340,7 +8449,29 @@ function renderAppShell() {
           </div>
         </div>
 
-        <div class="settings-section" id="settings-about">
+
+        <!-- Cloud Protect / Roadmap -->
+        <div class="settings-section" id="settings-roadmap">
+          <div class="settings-card">
+            <div class="settings-title">Cloud Protect & Upcoming Features</div>
+            <div class="settings-desc">InvoKitPro is offline-first today. These cloud and growth tools are shown now so users understand what is coming next.</div>
+            <div class="roadmap-grid" style="margin-bottom:0;">
+              <div class="roadmap-card"><div class="roadmap-card-title">Cloud Protect Backup</div><div class="roadmap-card-desc">Automatic secure backup and restore when the cloud backend is connected.</div><span class="roadmap-status planned">Coming soon</span></div>
+              <div class="roadmap-card"><div class="roadmap-card-title">Payment Links</div><div class="roadmap-card-desc">Stripe, Paystack or bank links attached to invoice documents.</div><span class="roadmap-status planned">Planned</span></div>
+              <div class="roadmap-card"><div class="roadmap-card-title">Client Portal</div><div class="roadmap-card-desc">Online quote approvals, invoice viewing and document history.</div><span class="roadmap-status planned">Planned</span></div>
+            </div>
+            <div class="cloud-protect-box">
+              <strong>Current mode:</strong> your business data is stored on this device and can work offline. Use manual backup now. Cloud Protect will be enabled only after secure accounts, backend storage and access rules are ready.
+            </div>
+            <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:14px;">
+              <button class="btn btn-primary" onclick="exportJSON()">⬇ Download Backup</button>
+              <button class="btn btn-ghost" onclick="navTo('roadmap',document.querySelector('[data-page=roadmap]'))">View Roadmap</button>
+              <button class="btn btn-ghost coming-soon-disabled" disabled>Enable Cloud Protect — Coming Soon</button>
+            </div>
+          </div>
+        </div>
+
+                <div class="settings-section" id="settings-about">
           <div class="settings-card">
             <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
               <img src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAC0ALQDASIAAhEBAxEB/8QAHAABAAICAwEAAAAAAAAAAAAAAAYHAwgBAgQF/8QAWBAAAAQDAQcKEQkDDAMAAAAAAAECAwQFEQYHEhMhMVOhCBQYN0FRUpSy0hUWIiMzVVZxc3R1gZGVsdHwMjhXYZKis7TTFydCJDQ1Q1RiZnKDpMHiREXC/8QAGgEBAAMBAQEAAAAAAAAAAAAAAAMEBQECBv/EADYRAAIBAgEICAUFAAMAAAAAAAABAgMEEQUSITFRcZGxExQVM1JhctEyQYGhwQYiIzQ1QuHw/9oADAMBAAIRAxEAPwDTIcpI1GRERmZ5CIEkajIiKpnkIfSYaKGTQqG6fylb31EAMLUESSrEKMj4CcvnGdJNI7GygvrMqmPsWIkarTWvlMgKJ1t0Qi0Q5v3l/g746X1KlXvVF6r1Nkvh1Xi7oDDbhZcJAJIy8xuitcXtC3ajUlg35Mlp0Z1FjFGvCDfUXUpxd4iIc1d3XGy85DYFWpwl6jqq6TDH34NP6o42Nst+keF4kj9UQdr2fj+z9j31Srs5Gv8A1/cUhXeMh0U48k6Kxd8hsHsbZb9I8LxJH6o7p1OUvSVP2kQplvHBIMvxQ7Xs/H9n7DqlXZyNeMM5vl6Awzm+XoGwy9TdKjxpuiwyfq1min4o67G6W/SPC8SR+qHa9n4/s/YdUq7ORr3hnN8vQGGc3y9A2E2N0t+keF4kj9UNjdLfpHheJI/VHO17Px/Z+w6pV2cjXvDOb5egMM5vl6BsJsbpb9I8LxJH6obG6W/SPC8SR+qHa9n4/s/YdUq7ORr3hnN8vQGGc3y9A2E2N0t+keF4kj9UNjbLfpHheJJ/VDtez8f2fsOqVdnI17wzm+XoDDOb5egWndDuPps4S2ZPaLo3GMlfPMFB4GhbyTvzvlbtNNcQqkyMjMjIyMsRkYu0a9OvHOg8URThKDwkdjcNXy0oUX1pIYlsQ7n8JtK304y9A7AJTweKIh3GcZ0Ug8iiyDCPqpVQjIyI0nlSeQx4oyHJoyWiptqyfUe8APOAAOA9subvUqiDLGXUo7++M+MdiTeMNN7yan3zHA6CYXF1VuuWRSkr1JTZjFvnfCaap5CFXXYs1ISZ6xhspf3TEKuK7b1kvKzHKE31Tu25F+JQ3JMZ0/78fS+aLC7h7yr8G3m0fZIMG3m0fZIfUsvK+jdo5dJ8PgNexKGMLe315fHStMVRb37Av8Vf7D/uJrnKFvayUassG/J/g8U6FSosYoo3Bt5tH2SDBt5tH2SF4/sC/wAVf7D/ALisLoVmzslamIkZxZxZsttrwptYOt+klZKnvjltlG2uZ5lKWL16n+UdqW9SmsZIjuDbzaPskGDbzaPskLoszcThZxZ2XTZVoolk4yGQ+bZQiVEi+KtK32MfR/YFBd1EVxJPOFeWWrKMnFz0ryfse1Z1msUihsG3m0fZIMG3m0fZIXydwGFNNU2niu+cCmnKHxJ1cJnkO0pyUziBjzLI26hTCj7x406SHYZaspvBT+zX4Ds6y/4lQ4NvNo+yQYNvNo+yQ987lMykswcl82gnoOKb+U26mh03DI8hl9ZYh4hpxkpLFPQVmsNDOuDbzaPskM0C23r6H62jsyP4S4RDGM0D/PofwyOUQPUFrLYupWuOTXYplL49RnL1tQ5krdZUbZVP607+9lEct9ZBE2aVOpKlKos037rSKUiC4Sf73K7+Xw6pPbemfgIf8Ih8q5/bBcncTL5gtSpeo+pVlNg9/wDy75bmUhj2tGUbanVpa81YrboLdWadSUZbWQ4yMjMjIyMsRkYUFq2+si3NmlTqSpSqLNN+60jJEFwk/wB7ld/LVZkZGZGRkZYjIxp0a0ascUV5wcXgzig7JIlkbS/krxd49wxwAmPB8xxJoWpCioaToYD2TBlS3ycQXy0kZ9/IA8g9cR2U+8XsGMZIguun5vYOlB6BLriu29ZLysxyhN9U7tuRfiUNyTEIuLF+96yXlZjlCb6p3bci/EobkmM2f9+PpfNFhdw95W0JEPwkS3FQrzjD7SiW242q9UhRZDIyyGL+1Ns1mk1gp4uaTKMjlNvMJbOIeU5eEaVmdKniGvgvfUs/0daDw7HJWIcuxi7KcsNOjmj3ZN9MkTG7fNo6TXOo2Jl0Q5DxDjrTBOtnRSCWrqjI9w6EZV+satxD70S6b0Q8684rKtxZqUfnPGNldUVtYv8AjsPyjGswg/TsUrVyw04vkj3ft9Jh5Fk3EJ7O4i6FJZY9OJg5ApS4koZUQo2iSlpV6V7WlCoQ2TcXeNLcpW9Saqb9CqNW7hG2pJ/9b8JY2iiv5o94JXJMZH6hjGN1FJfJc2WrBt0njt9jT6PtTaKNmTswencxJ9xZrqiJWkk1PIREdCIt4hdNwK3kynzkTIJ5EKiophrDQ0Qv5a0EZEpKj3TKpGR5aVqNfSFl6m5lxy6PhUEd41APGs/qO9ItJj6DKtrRlaTxitC0fQo2tSaqrTrLiuvWVhrT2PiiwSTmEE0p+Ddp1RKSVTRXgqIjKm/QxqkR1IjLIeMbsxrrbMFEPPKJLTbS1rM8hJJJmegaTVI8ZZDxkKH6bqzlTnB6k1h9cSfKEUpJ7QM0D/PofwyOUQwjlClIWlaTMlJMjIy3DLIPpGZyJZqkzIrr0zqZF1iH/CIVxUt8vSJlHWkmsfEqio9cNFxC6X7z8Mha1d8zKowdGIn+zy7iTXuFS2p1aNGNNpPBJa9n0Jakozm5Y6zNc/tiqTuJl8wcNUvUfUqrU2DP/wCd8tzKQkt0OyDcxlMbauVISRQjSX400djWhSiSSyMsV8ZqL/N5hFOjET/Z5dxJr3C55S+uK1Itpn3EMpWa3EdbbJBUS+0RYi3hVuXOjUhUSwxaT07foS00pxcW9SxNbwHJljCg1SqehpJG0mpbn/IDsyXWk/G6AAwxHZT83sHQd4jsp+b2DoOgl1xbbdsl5WY5Qm2qd23IvxKG5JiE3Ftt2yXlZjlCbap3bci/EobkmM2f+hH0vmWF3D3/AIKxF8alZC1y60N6hSqPsZCr/CsUONk9Rh/RdqMf/kw3IcHjLSxsprdzR6s++R6dUY24m5g+am1pLXsPjNJl/EY1jG32qtP9z0Rj/wDYQvKMagiHIEc21a83yR7v3jV+hObg5Gq6rJiSRmfXsRFX+qWNpn4d9bDiCaXVSFEXUnlMjGsupr26ZD/r/gLG5cU4pqEedQfVIaWoq75JMyGT+oIZ11F+S5stWD/je803YuJ2/ceJtcBBsprjcVFEZF6CM9Aua5Vc8bsVLnqqXGTKKprh9LRkkklkQkst6WM6nlMVOWqCulGkv5ZKiqWUpcn3iNWpun28tLDqhpraSLOFXiVDw9GG1FvGSCKvnqNK4s8oXcejqzio/PDErU6tvSedFNsse7pdGgylsRZWRRKYh9/rcdENqqhtG62kyyqPIdMhVLKeKhwAadlZ07Ol0cPq9pWrVpVZZzAAAuEQAAAAXnZ35n1pfDPfmGhRgvOzvzPrS+Ge/MNDNyl8NP1xLFtrluZrseUAPKA0SuepnsSfjdAGexJ+N0B0GGILrp+b2DpQZIjsp+b2DGAJdcWL97tkvKzHKE11Tu25F+JQ3JMQq4ttu2S8rMcoTXVO7bkX4lDckxmz/wBCPpfMsLuHv/BW8Ew9FRTcNDwzsS+6okNtNpNS1qPIREWMz+obEXCLn10GAs9GRsPPn7Ia8fT/ACZ+WoeceShNCWZLOqC6oyIt3LvChrITldnbUyufNw6YhUvikRBNKWaSWaTrSpZO+Lt2Tcf3GwfrBfMHMoxuqkcyjFNPXjhyZ23dKLzpv/30JBdhsPdJj7EuQyrUxFqyOJZPoczKmmVKoZ9XfEdaJ3t2o1vn8omMgmbksnMsfgI1tKVLYeOikkoqkZ03yxi8Nk3H9xkH6wXzBUN0u1bltrYRNonYFuBVENttmyhw1km8QSa1Miy0rkHjJsLul+yrBKPlhr0bPY9XDpS0wen6/kmlwmwlspjaqGnMtTF2eYYYW61NXoS/Qd8m9IkJXQl3xKPGWIix7wveKsndLOFeL9qRudbV1BSNmqsR4su7kFQ2Y1Q8dI7NyySpspCxCYCFbhidVHLSayQkirS8xVpkH0dk3H9xsH6wXzBSu6N/Wq5yprD5fC+ZNSnQhHDOf3KjtBYa1tnZYUynll5hLoO/S3hXyIkkpWROI8uIxHL5vN/eFqXU7tEVbuyhyB6zsNL0nEtv4ZuKU4fUVxUNJZaiqBt2060oY1o4PyKVRQUv2PFHKzSdL1N75xwACwRn2LFQEomlqZfAT6a9Cpa86SX4q8vrwvYVToVTxFWpi17YQliLmlzyYWegn5baifzxakLiTJK0wzKFneniM71STLERHU1VPIRCkB75bJJtMJdHTCXy2JiYSXoSuLdabqllJnQjVT4IseQU7ih0k4ylPCKw0bX8tO8lpzzU0lpPAAALhEBednfmfWl8M9+YaFGC9LO/M+tL4Z78w0M3KXw0/XEsW2uW5muxljCg5PKOBolc9TJdaT8boAz2JPxugOgwxHZT83sGMZYguun5vYMdABLbi227ZLysxyhNdU7tuRfiUNyTELuLl+9yyXlZjlCaap3bci/EobkmM2f+hH0vmWF3D3/grJKlJM706VHbCucLQOqUqUZ3pVoO2Cc4OkaRXGFc4WgMK5wtAYJzg6QwTnB0gBhXOFoDCucLQGCc4OkME5wdIAYVzhaAwrnC0BgnODpDBOcHSAOqlKUZXx1oOBypKkmV8VKjgAfYsVHyiV2pgJhPZV0VlzDpKfhL+9whf80y3p4jpQxY90G6RZuHsadjbmcFEyyWxbrjkwecSaHHCNXyCxmd6ZUxmfySJO+Kkh2XomIbh4dpbzzqiQ22hJqUtR5CIixmf1CXSC51OprYacWvW7DS+Xy0upOLM0a5UR0WhB75ZMeVXU5RSuaVBzjUqvVhox0Y/LQTU5TwcYIhoAAukIF6Wd+Z9aXwz35hoUWL0s58z+0vhnvzDQzcpfDT9cSxba5bma7nlHA7GWMcUGiVz0s9iT8boDsyXWk/G6A6DDEdlPzewYxkiOyn5vYMYAl1xfbcsl5WY5Qmeqd23IvxKG5JiGXF9tyyXlZjlCZ6p3bci/EobkmM2f8AoR9L5lhdw95WIDlJJOt8q98w7Xrec+6NIrnQB3vW8590L1vOfdAHQB3vW8590L1vOfdAHQB3vW8590L1vOfdAHQB3vW8590L1vOfdAH0rJz+Y2XtDCT2UuIbjIRd82a0EpJ1KhkZHuGRmWLHjxGJRdPupT63cLDQMXDwsugGHFO62haklxZmZkpVcpkR+mp5TEFvW8590L1vOfdEMrelOoqko/uWpntVJKLinoM0PAR0Q3hYeBi3kVpfNsKUVe+RDpEwkXC3uuYWIYvq3uFaUitN6pYxtZqVEsncyo4aFEUa9e32L+LHlEM1YhNlHWfJs0kkkP0JOT+rqMynlVzvOrZvzaxx2Y+xZlaqNHpMSgBelnPmf2l8M9+YaFFi9LOfM/tL4Z78w0J8pfDT9cSO21y3M14PKAHlAaJXPUz2JPxugDPYk/G6A6DFEdlPzewYxkiOyn5vYMYAl1xjbbsn5WY5QmWqd23IvxKG5JiG3GNtuyflZjlCZap3bci/EobkmM2f9+PpfNFhdw95WIAA0iuAAAAAAAAAAAAAAAAAAH05daCfS6FKFl86mMIwSjUTTMSpCSM8p0I6VMYprOJtNcH0TmcZG4KuD1w8py8rlpU8VaF6B4QHhU4KWdgsTuc8MMQL0s58z+0nhnvzDQosXpZz5n9pPDPfmGhQyl8NP1xJ7bXLczXo8o4HJ5RwNErnrZ7En43QBnsSfjdAdBgiOyn5vYOgyxHZT83sGMASy4xtt2T8rMcoTLVO7bkX4lDckxDrjO23ZPysxyhMdU7tuRfiUNyTGbP+/H0vmiwu4e/8FYgADSK4AAAAAAAAAAAAAAAAAAAAAAF6Wb+Z/aTwz347QosXpZv5oFpPDPfjtDNyl8NP1xLFtrluZr0eUByeUBolc9LPYk/G6A5Z7En43QHQedxV/erLIpBHoHUYoBeFgU8Jo70+9uDNQcBLLjO23ZPysxyhYuqLs5aGZXUoqLlshmkbDqg4dJOw8ItxBmSTqVSKlSFO2cm0XIJ/ATuBJo4qAiExDJOpvkXyTqVSxVIWjsiroOYkHEVc8Z1zSr9YjWpJPBYaX5lmnOn0bhPaQvpNth3KT31e77g6TbYdyk99Xu+4TXZF3QcxIOIq54bIu6DmJBxFXPDpL/wR4s5m0Nr4EK6TbYdyk99Xu+4Ok22HcpPfV7vuE12Rd0HMSDiKueGyLug5iQcRVzw6S/8ABHixm0Nr4EK6TbYdyk99Xu+4Ok22HcpPfV7vuE12Rd0HMSDiKueGyLug5iQcRVzw6S/8EeLGbQ2vgQrpNth3KT31e77g6TbYdyk99Xu+4TXZF3QcxIOIq54bIu6DmJBxFXPDpL/wR4sZtDa+BCuk22HcpPfV7vuDpNth3KT31e77hNdkXdBzEg4irnhsi7oOYkHEVc8Okv8AwR4sZtDa+BCuk22HcpPfV7vuDpNth3KT31e77hNdkXdBzEg4irnhsi7oOYkHEVc8Okv/AAR4sZtDa+BCuk22HcpPfV7vuDpNth3KT31e77hNdkXdBzEg4irnhsi7oOYkHEVc8Okv/BHixm0Nr4EK6TbYdyk99Xu+4XDLZfHyzUlWkhZlAxMFEE46s2oho210N9qh0PHQxE9kXdBzEg4irnj5Vrrtls7UWbjpBMmZOmDjWybdNmEUhdCUSsR350xpLcENWneV3BTiklJPQ9h7hKjDFpvSsCsjygOaDlCDUoklujXKh1fiih8GgzxmiukwHypi8T0YtSfkl1Ke8QDgM0jdZbmTKYp5TMK4skPuJRfmhBnjUSalUyy0rjGwJ6nScRTEPGyO0sum0viWUvMRTbd4lxKsZGRGveGuAtm4ddnmtgVFKJgTsfZ5xZqNkj65DKPKpoz3DymjIeXEeWle9ZUM63elfLaTUejxwqE02N1ru2EFo5wbG613bCC0c4XtZ23UntDLUzGSzJmNh1FjNCuqQe8pJ40n9Rj6PR9Oc0j5mWXLuLwloe401ZUWsUa8bG613bCC0c4Njda7thBaOcNh+j6c5pDo+nOaR57eutq4DqNI142N1ru2EFo5wbG613bCC0c4bD9H05zSHR9Oc0h29dbVwHUaRrxsbrXdsILRzg2N1ru2EFo5w2H6PpzmkOj6c5pDt662rgOo0jXjY3Wu7YQWjnBsbrXdsILRzhsP0fTnNIdH05zSHb11tXAdRpGvGxutd2wgtHODY3Wu7YQWjnDYfo+nOaQ6PpzmkO3rrauA6jSNeNjda7thBaOcGxutd2wgtHOGw/R9Oc0h0fTnNIdvXW1cB1Gka8bG613bCC0c4Njda7thBaOcNh+j6c5pDo+nOaQ7eutq4DqNI142N1ru2EFo5wbG613bCC0c4bD9H05zSBT4jPEuvnHe3rrauA6jSNeNjda7thBaOcIRdlsE1c3g4GFirSQ0bOo5u/XAssGSoZrhKVfGWM8RYsdDPcx3ddXu+Sqy8O9L5C6zNp3Q0kSVXzEOe+sy+UZcEvOZDUmfzeZT6cRM3m8Y7GR0Us3HnnDqpR/8FuERYiIqENzJ1W8r/wAlXRHdr/6KVxGjT/bDSzwgADYKYAAAHtk80mUojExcrjoiDiE5HGXDSfeOmUvqFo2IusWtjI5uBj3IOLTTG44zerPzpMi0AAzMp0oSpOTSxLNtKSlgmXLCTCIehkOqMiNRYyKtMoy67f4QAPjmlia6Y12/wg12/wAIAHMEMRrt/hBrt/hAAYIYjXb/AAg12/wgAMEMRrt/hBrt/hAAYIYjXb/CDXb/AAgAMEMRrt/hBrt/hAAYIYkTt9bGa2fg1uwTcK4pJYsKlR7hbyiFIWnui2vtC0tiNmzjUMrEcPDFgmzLeOmNXnMwAfRZGpU5aXFYmfeTktCZEgAB9GZ4AAAH/9k=" width="56" height="56" style="border-radius:14px;flex-shrink:0;" alt="InvoKit Pro">
@@ -8350,7 +8481,7 @@ function renderAppShell() {
               </div>
             </div>
             <div style="font-size:13.5px;color:var(--text2);line-height:1.8;margin-bottom:18px;">
-              InvoKit Pro is a professional business management tool for freelancers, consultants, and small businesses. Manage invoices, clients, receipts, catalogues and more — all on your device. No internet required, no subscription, no data ever leaves your device.
+              InvoKit Pro is a professional business management tool for freelancers, consultants, and small businesses. Manage invoices, clients, receipts, catalogues and more — all on your device. Offline-first with manual backup today; Cloud Protect and secure sync are planned upgrades.
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
               <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;">
@@ -8458,10 +8589,6 @@ function renderAppShell() {
         </select>
       </div>
     </div>
-    <div class="field-group" style="margin-bottom:14px;">
-      <label class="field-label" style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);">Document Title <span style="font-size:10px;color:var(--text3);font-weight:400;">(optional)</span></label>
-      <input class="field-input" type="text" id="docTitle" placeholder="e.g. Quotation for Website Redesign, Service Agreement, Proforma Invoice…" style="font-size:13px;font-weight:600;letter-spacing:0.01em;color:var(--accent);">
-    </div>
     <div class="section-divider">Line Items
       <div class="cat-picker-wrap" style="margin:0;flex:1;max-width:260px;" id="catPickerWrap">
         <button class="cat-picker-btn" onclick="toggleCatPicker()" id="catPickerBtn">▦ Add from Catalogue</button>
@@ -8476,7 +8603,6 @@ function renderAppShell() {
       <div id="itemsContainer"></div>
     </div>
     <button class="add-item-btn" onclick="addItem()">＋ Add Line Item</button>
-    <button class="add-item-btn" onclick="addHeading()" style="background:rgba(201,168,76,0.08);border-color:rgba(201,168,76,0.25);color:var(--accent);font-size:12px;margin-top:6px;">＋ Add Section Heading</button>
     <div class="totals-section">
       <div class="totals-box">
         <div class="discount-row">
@@ -9225,7 +9351,7 @@ const welcomeMsg = activatedPlan === 'free'
   ? '✓ Free licence activated! You can create up to 5 invoices on this device.'
   : '✓ Licence activated! Welcome to InvoKit Pro.';
 showLicenceMsg(welcomeMsg, 'success');
-setTimeout(() => dismissSplash(true), 1200);
+setTimeout(() => dismissSplash(true, true), 1200);
   } catch (e) {
     const msg = e?.name === 'AbortError'
       ? 'Activation timed out. Please check internet and try again.'
