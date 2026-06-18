@@ -347,6 +347,20 @@ select.field-input{appearance:none;background-image:url("data:image/svg+xml,%3Cs
 .items-table{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;}
 .items-head{display:grid;grid-template-columns:3fr 0.75fr 1fr 1fr 30px;gap:8px;padding:9px 13px;background:var(--surface2);border-bottom:1px solid var(--border);}
 .items-head span{font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);letter-spacing:0.14em;text-transform:uppercase;}
+
+/* Quote Builder table mode */
+.items-head.quote-items-head,
+.item-row.quote-item-row{grid-template-columns:44px 2.2fr .7fr .9fr 1fr 1fr 1fr 30px;}
+.quote-unit-select{min-width:86px;}
+.quote-mode-note{font-size:12px;color:var(--text3);margin:6px 0 12px;line-height:1.5;}
+.item-subheading-row{display:grid;grid-template-columns:1fr 30px;gap:8px;padding:8px 13px 8px 30px;align-items:center;border-bottom:1px solid var(--border);background:rgba(201,168,76,0.035);}
+.item-subheading-row .item-input{font-size:12.5px;font-style:italic;color:var(--text2);}
+@media (max-width:768px){
+  .items-head.quote-items-head,
+  .item-row.quote-item-row{min-width:980px !important;grid-template-columns:44px 2.2fr .7fr .9fr 1fr 1fr 1fr 30px !important;}
+  .item-heading-row,.item-subheading-row{min-width:980px !important;}
+}
+
 .item-row{display:grid;grid-template-columns:3fr 0.75fr 1fr 1fr 30px;gap:8px;padding:8px 13px;align-items:center;border-bottom:1px solid var(--border);transition:background var(--tr);}
 .item-row:last-child{border-bottom:none;}
 .item-row:hover{background:rgba(255,255,255,0.02);}
@@ -3401,6 +3415,7 @@ body .demo-mode-banner a{
 .roadmap-card-desc{position:relative;font-size:12.8px;color:var(--text2);line-height:1.65;margin-bottom:12px;}
 .roadmap-status{position:relative;display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;}
 .roadmap-status.available{background:var(--green-dim);color:var(--green);}
+.roadmap-status.live{background:var(--green-dim);color:var(--green);}
 .roadmap-status.progress{background:var(--accent-dim);color:var(--accent);}
 .roadmap-status.planned{background:var(--blue-dim);color:var(--blue);}
 .roadmap-status.locked{background:var(--surface3);color:var(--text3);}
@@ -4044,9 +4059,9 @@ function renderInvTable() {
 function renderTableInto(id, data) {
   const sym=APP.settings.currency||'£', tbody=document.getElementById(id);
   const today=new Date().toISOString().split('T')[0];
-  if (!data.length) { tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">◻</div>No invoices found</div></td></tr>`; return; }
+  if (!data.length) { tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">◻</div>No documents found</div></td></tr>`; return; }
   tbody.innerHTML = data.map(inv=>`<tr onclick="openEditorForInvoice('${inv.id}')">
-    <td><span class="inv-num">${inv.id}</span></td>
+    <td><span class="inv-num">${inv.id}</span><div style="font-size:10.5px;color:var(--text3);margin-top:2px">${inv.documentType==='quote'?'Quote':'Invoice'}</div></td>
     <td><div class="client-name">${esc(inv.client)}</div><div class="client-email">${esc(inv.email)}</div></td>
     <td style="font-size:12px;color:var(--text2)">${fmtDate(inv.issued)}</td>
     <td style="font-size:12px;color:var(--text2)">${inv.status==='overdue'?'<span class="overdue-dot"></span>':''}${fmtDate(inv.due)}</td>
@@ -4356,14 +4371,14 @@ function addCatItemToInvoice(id) {
   const item = (APP.catalogue || []).find(i => i.id === id); if (!item) return;
   // If editor is open, add directly
   if (document.getElementById('editorOverlay').classList.contains('open')) {
-    items.push({ id: Date.now() + Math.random(), desc: item.desc || item.name, qty: 1, price: item.price || 0 });
+    items.push(isQuoteMode()?{ id: Date.now() + Math.random(), type:'item', desc: item.desc || item.name, qty: 1, unit:item.unit||'unit', unitPrice: item.price || 0, installRate: 0 }:{ id: Date.now() + Math.random(), type:'item', desc: item.desc || item.name, qty: 1, price: item.price || 0 });
     renderItems(); recalc();
     showToast(`+ ${item.name} added to invoice`);
   } else {
     // Open editor with this item pre-added
     openEditor();
     setTimeout(() => {
-      items = [{ id: Date.now() + Math.random(), desc: item.desc || item.name, qty: 1, price: item.price || 0 }];
+      items = [isQuoteMode()?{ id: Date.now() + Math.random(), type:'item', desc: item.desc || item.name, qty: 1, unit:item.unit||'unit', unitPrice: item.price || 0, installRate: 0 }:{ id: Date.now() + Math.random(), type:'item', desc: item.desc || item.name, qty: 1, price: item.price || 0 }];
       renderItems(); recalc();
     }, 100);
   }
@@ -4388,7 +4403,7 @@ function renderCatPicker() {
 }
 function pickCatItem(id) {
   const item = (APP.catalogue || []).find(i => i.id === id); if (!item) return;
-  items.push({ id: Date.now() + Math.random(), desc: item.desc || item.name, qty: 1, price: item.price || 0 });
+  items.push(isQuoteMode()?{ id: Date.now() + Math.random(), type:'item', desc: item.desc || item.name, qty: 1, unit:item.unit||'unit', unitPrice: item.price || 0, installRate: 0 }:{ id: Date.now() + Math.random(), type:'item', desc: item.desc || item.name, qty: 1, price: item.price || 0 });
   renderItems(); recalc();
   document.getElementById('catPickerDropdown').classList.remove('open');
   document.getElementById('catPickerSearch').value = '';
@@ -4597,13 +4612,28 @@ function syncCurrencySettingUI(){
 // ================================================================
 // EDITOR
 // ================================================================
-let editingId=null, taxEnabled=false, discountType='pct', items=[];
+let editingId=null, taxEnabled=false, discountType='pct', items=[], currentDocType='invoice';
 
-function openEditor(){
-  editingId=null; clearEditor(); prefillFromSettings(); populateClientQuickSelect();
+function openEditor(type='invoice'){
+  editingId=null; currentDocType=(type==='quote')?'quote':'invoice'; clearEditor(); setEditorDocumentMode(currentDocType); prefillFromSettings(); populateClientQuickSelect();
   if(!items.length) addItem();
   document.getElementById('editorOverlay').classList.add('open');
   document.body.style.overflow='hidden';
+}
+function openQuoteEditor(){openEditor('quote');}
+function setEditorDocumentMode(type){
+  currentDocType=(type==='quote')?'quote':'invoice';
+  const title=document.getElementById('editorTitle');
+  const badge=document.getElementById('docTypeBadge');
+  const section=document.getElementById('lineItemsTitle');
+  const saveBtn=document.getElementById('saveCloseBtn');
+  const totalLabel=document.getElementById('totalDueLabel');
+  if(title) title.textContent=currentDocType==='quote'?'New Quote':'New Invoice';
+  if(badge) { badge.textContent=currentDocType==='quote'?'Quote':'Invoice'; badge.className='badge '+(currentDocType==='quote'?'badge-blue':'badge-accent'); }
+  if(section) section.textContent=currentDocType==='quote'?'Quotation Items':'Line Items';
+  if(saveBtn) saveBtn.textContent=currentDocType==='quote'?'Save Quote →':'Save & Close →';
+  if(totalLabel) totalLabel.textContent=currentDocType==='quote'?'Quote Total':'Total Due';
+  renderItemHeader();
 }
 function prefillFromSettings(){
   const s=APP.settings;
@@ -4622,8 +4652,8 @@ function prefillFromSettings(){
 }
 function openEditorForInvoice(id){
   const inv=APP.invoices.find(i=>i.id===id); if(!inv) return;
-  editingId=id; clearEditor(); prefillFromSettings(); populateClientQuickSelect();
-  document.getElementById('editorTitle').textContent='Edit Invoice';
+  editingId=id; currentDocType=(inv.documentType==='quote'||inv.type==='quote')?'quote':'invoice'; clearEditor(); setEditorDocumentMode(currentDocType); prefillFromSettings(); populateClientQuickSelect();
+  document.getElementById('editorTitle').textContent=currentDocType==='quote'?'Edit Quote':'Edit Invoice';
   document.getElementById('invNumDisplay').textContent=id;
   document.getElementById('statusBadge').textContent=cap(inv.status);
   setValue('bizName',inv.bizName||APP.settings.bizName||'');
@@ -4638,7 +4668,16 @@ function openEditorForInvoice(id){
   setValue('currency',inv.currency||APP.settings.currency||'£');
   if(inv.paymentTerms||APP.settings.terms) setValue('paymentTerms',inv.paymentTerms||APP.settings.terms||'');
   if(inv.template) setValue('invTemplate',inv.template);
-  items=(inv.items||[]).map(it=>({id:Date.now()+Math.random(),desc:it.desc,qty:it.qty,price:it.price}));
+  items=(inv.items||[]).map(it=>({
+    id:Date.now()+Math.random(),
+    type:it.type||'item',
+    desc:it.desc||'',
+    qty:parseFloat(it.qty)||1,
+    unit:it.unit||'unit',
+    price:parseFloat(it.price!==undefined?it.price:it.unitPrice)||0,
+    unitPrice:parseFloat(it.unitPrice!==undefined?it.unitPrice:it.price)||0,
+    installRate:parseFloat(it.installRate)||0
+  }));
   if(!items.length) addItem();
   renderItems(); recalc();
   document.getElementById('editorOverlay').classList.add('open');
@@ -4648,11 +4687,12 @@ function closeEditor(){document.getElementById('editorOverlay').classList.remove
 function handleOvClick(e,id){if(e.target===document.getElementById(id)){if(id==='editorOverlay') closeEditor();else if(id==='previewOverlay') closePreview();else if(id==='receiptOverlay') closeReceipt();else if(id==='clientModalOverlay') closeClientModal();else if(id==='catModalOverlay') closeCatModal();else if(id==='recurringModal') closeRecurringModal();}}
 function clearEditor(){
   ['bizName','bizAddress','bizEmail','bizPhone','bizVAT','clientName','clientAddress','clientEmail','clientPhone','notes'].forEach(id=>setValue(id,''));
-  document.getElementById('editorTitle').textContent='New Invoice';
-  const prefix=APP.settings.prefix||'INV-2026-';
-  document.getElementById('invNumDisplay').textContent=prefix+String(APP.nextNum||1).padStart(3,'0');
+  document.getElementById('editorTitle').textContent=currentDocType==='quote'?'New Quote':'New Invoice';
+  const prefix=currentDocType==='quote'?(APP.settings.quotePrefix||'QUO-2026-'):(APP.settings.prefix||'INV-2026-');
+  const next=currentDocType==='quote'?(APP.nextQuoteNum||1):(APP.nextNum||1);
+  document.getElementById('invNumDisplay').textContent=prefix+String(next).padStart(3,'0');
   document.getElementById('statusBadge').textContent='Draft';
-  items=[]; document.getElementById('itemsContainer').innerHTML='';
+  items=[]; document.getElementById('itemsContainer').innerHTML=''; renderItemHeader();
   taxEnabled=false; discountType='pct';
   const tg=document.getElementById('taxToggle');if(tg) tg.classList.remove('on');
   const tr=document.getElementById('taxRate');if(tr){tr.disabled=true;tr.value=APP.settings.taxRate||20;}
@@ -4680,27 +4720,81 @@ function duplicateInvoice(id){
 // ================================================================
 // LINE ITEMS
 // ================================================================
-function addItem(){items.push({id:Date.now()+Math.random(),desc:'',qty:1,price:0});renderItems();}
+const QUOTE_UNITS=['unit','pcs','lot','kg','g','meter','m','cm','m²','m³','box','bag','pack','set','roll','yard','hour','day','custom'];
+function isQuoteMode(){return currentDocType==='quote';}
+function makeLineItem(){return isQuoteMode()?{id:Date.now()+Math.random(),type:'item',desc:'',qty:1,unit:'unit',unitPrice:0,installRate:0}:{id:Date.now()+Math.random(),type:'item',desc:'',qty:1,price:0};}
+function normaliseEditorItem(it){
+  if(!it) return makeLineItem();
+  if(it.type==='heading') return {id:it.id||Date.now()+Math.random(),type:'heading',desc:it.desc||''};
+  if(it.type==='subheading') return {id:it.id||Date.now()+Math.random(),type:'subheading',desc:it.desc||''};
+  return {
+    id:it.id||Date.now()+Math.random(),type:'item',desc:it.desc||'',qty:parseFloat(it.qty)||0,unit:it.unit||'unit',
+    price:parseFloat(it.price!==undefined?it.price:it.unitPrice)||0,
+    unitPrice:parseFloat(it.unitPrice!==undefined?it.unitPrice:it.price)||0,
+    installRate:parseFloat(it.installRate)||0
+  };
+}
+function lineAmount(it){
+  if(!it || it.type==='heading' || it.type==='subheading') return 0;
+  const qty=parseFloat(it.qty)||0;
+  if(isQuoteMode() || currentDocType==='quote') return qty*((parseFloat(it.unitPrice)||0)+(parseFloat(it.installRate)||0));
+  return qty*(parseFloat(it.price)||0);
+}
+function renderItemHeader(){
+  const head=document.getElementById('itemsHead'); if(!head) return;
+  if(isQuoteMode()){
+    head.className='items-head quote-items-head';
+    head.innerHTML='<span>S/N</span><span>Description</span><span>Qty</span><span>Unit</span><span>Unit Price</span><span>Install Rate</span><span>Amount</span><span></span>';
+  } else {
+    head.className='items-head';
+    head.innerHTML='<span>Description</span><span>Qty</span><span>Unit Price</span><span>Amount</span><span></span>';
+  }
+}
+function addItem(){items.push(makeLineItem());renderItems();}
+function addHeading(){items.push({id:Date.now()+Math.random(),type:'heading',desc:''});renderItems();}
+function addSubHeading(){items.push({id:Date.now()+Math.random(),type:'subheading',desc:''});renderItems();}
 function renderItems(){
   const sym=getCurrency();
-  document.getElementById('itemsContainer').innerHTML=items.map(it=>`<div class="item-row">
-    <input class="item-input" type="text" placeholder="Description…" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)">
-    <input class="item-input" type="number" min="1" placeholder="1" value="${it.qty||''}" oninput="updateItem(${it.id},'qty',this.value)" style="text-align:center">
-    <input class="item-input" type="number" min="0" step="0.01" placeholder="0.00" value="${it.price>0?it.price:''}" oninput="updateItem(${it.id},'price',this.value)">
-    <span class="item-amount" id="amt-${it.id}">${sym}${(it.qty*it.price).toFixed(2)}</span>
-    <button class="del-btn" onclick="removeItem(${it.id})">×</button>
-  </div>`).join('');
+  renderItemHeader();
+  let serial=0;
+  document.getElementById('itemsContainer').innerHTML=items.map(raw=>{
+    const it=normaliseEditorItem(raw);
+    if(it.type==='heading') return `<div class="item-heading-row"><input class="item-input" type="text" placeholder="Section heading e.g. A. Materials / B. Installation" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)"><button class="del-btn" onclick="removeItem(${it.id})">×</button></div>`;
+    if(it.type==='subheading') return `<div class="item-subheading-row"><input class="item-input" type="text" placeholder="Sub-header / note e.g. Supply only / Labour only" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)"><button class="del-btn" onclick="removeItem(${it.id})">×</button></div>`;
+    serial++;
+    if(isQuoteMode()){
+      const unitOptions=QUOTE_UNITS.map(u=>`<option value="${u}"${(it.unit||'unit')===u?' selected':''}>${u}</option>`).join('');
+      return `<div class="item-row quote-item-row">
+        <span class="item-amount" style="text-align:center;color:var(--text3)">${serial}</span>
+        <input class="item-input" type="text" placeholder="Description…" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)">
+        <input class="item-input" type="number" min="0" step="0.01" placeholder="1" value="${it.qty||''}" oninput="updateItem(${it.id},'qty',this.value)" style="text-align:center">
+        <select class="item-input quote-unit-select" onchange="updateItem(${it.id},'unit',this.value)">${unitOptions}</select>
+        <input class="item-input" type="number" min="0" step="0.01" placeholder="0.00" value="${it.unitPrice>0?it.unitPrice:''}" oninput="updateItem(${it.id},'unitPrice',this.value)">
+        <input class="item-input" type="number" min="0" step="0.01" placeholder="0.00" value="${it.installRate>0?it.installRate:''}" oninput="updateItem(${it.id},'installRate',this.value)">
+        <span class="item-amount" id="amt-${it.id}">${sym}${lineAmount(it).toFixed(2)}</span>
+        <button class="del-btn" onclick="removeItem(${it.id})">×</button>
+      </div>`;
+    }
+    return `<div class="item-row">
+      <input class="item-input" type="text" placeholder="Description…" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)">
+      <input class="item-input" type="number" min="1" placeholder="1" value="${it.qty||''}" oninput="updateItem(${it.id},'qty',this.value)" style="text-align:center">
+      <input class="item-input" type="number" min="0" step="0.01" placeholder="0.00" value="${it.price>0?it.price:''}" oninput="updateItem(${it.id},'price',this.value)">
+      <span class="item-amount" id="amt-${it.id}">${sym}${lineAmount(it).toFixed(2)}</span>
+      <button class="del-btn" onclick="removeItem(${it.id})">×</button>
+    </div>`;
+  }).join('');
 }
 function updateItem(id,field,val){
   const it=items.find(i=>i.id===id);if(!it) return;
-  it[field]=(field==='qty'||field==='price')?(parseFloat(val)||0):val;
-  const el=document.getElementById('amt-'+id);if(el) el.textContent=getCurrency()+(it.qty*it.price).toFixed(2);
+  it[field]=(['qty','price','unitPrice','installRate'].includes(field))?(parseFloat(val)||0):val;
+  const el=document.getElementById('amt-'+id);if(el) el.textContent=getCurrency()+lineAmount(it).toFixed(2);
   recalc();
 }
 function removeItem(id){items=items.filter(i=>i.id!==id);renderItems();recalc();}
+function calcSubtotal(){return items.reduce((s,i)=>s+lineAmount(i),0);}
 function recalc(){
   const sym=getCurrency();
-  const sub=items.reduce((s,i)=>s+(i.qty*i.price),0);
+  const sub=calcSubtotal();
   const dval=parseFloat(document.getElementById('discountVal')?.value)||0;
   const disc=discountType==='pct'?sub*(dval/100):Math.min(dval,sub);
   const afterDisc=sub-disc;
@@ -4723,23 +4817,32 @@ function setDiscountType(t){discountType=t;document.getElementById('discPct').cl
 // ================================================================
 function buildInvObj(status){
   const sym=getCurrency();
-  const sub=items.reduce((s,i)=>s+(i.qty*i.price),0);
+  const docType=currentDocType==='quote'?'quote':'invoice';
+  const sub=calcSubtotal();
   const dval=parseFloat(document.getElementById('discountVal')?.value)||0;
   const disc=discountType==='pct'?sub*(dval/100):Math.min(dval,sub);
   const afterDisc=sub-disc;
   const rate=parseFloat(document.getElementById('taxRate')?.value)||0;
   const tax=taxEnabled?afterDisc*(rate/100):0;
-  const prefix=APP.settings.prefix||'INV-2026-';
-  return {id:editingId||(prefix+String(APP.nextNum||1).padStart(3,'0')),bizName:gv('bizName'),bizAddress:gv('bizAddress'),bizEmail:gv('bizEmail'),bizPhone:gv('bizPhone'),bizVAT:gv('bizVAT'),bizRegNum:APP.settings.regNum||'',client:gv('clientName'),email:gv('clientEmail'),phone:gv('clientPhone'),address:gv('clientAddress'),issued:gv('issueDate'),due:gv('dueDate'),subtotal:sub,discount:disc,tax,amount:afterDisc+tax,currency:sym,paymentTerms:gv('paymentTerms'),items:items.map(i=>({desc:i.desc,qty:i.qty,price:i.price})),status,notes:gv('notes'),template:gv('invTemplate')||APP.settings.template||'classic'};
+  const prefix=docType==='quote'?(APP.settings.quotePrefix||'QUO-2026-'):(APP.settings.prefix||'INV-2026-');
+  const next=docType==='quote'?(APP.nextQuoteNum||1):(APP.nextNum||1);
+  const cleanItems=items.map(normaliseEditorItem).filter(i=>(i.type!=='heading'&&i.type!=='subheading')||String(i.desc||'').trim()).map(i=>{
+    if(i.type==='heading') return {type:'heading',desc:i.desc};
+    if(i.type==='subheading') return {type:'subheading',desc:i.desc};
+    return docType==='quote'
+      ? {type:'item',desc:i.desc,qty:i.qty,unit:i.unit||'unit',unitPrice:i.unitPrice||0,installRate:i.installRate||0,amount:lineAmount(i)}
+      : {type:'item',desc:i.desc,qty:i.qty,price:i.price||0,amount:lineAmount(i)};
+  });
+  return {id:editingId||(prefix+String(next).padStart(3,'0')),documentType:docType,bizName:gv('bizName'),bizAddress:gv('bizAddress'),bizEmail:gv('bizEmail'),bizPhone:gv('bizPhone'),bizVAT:gv('bizVAT'),bizRegNum:APP.settings.regNum||'',client:gv('clientName'),email:gv('clientEmail'),phone:gv('clientPhone'),address:gv('clientAddress'),issued:gv('issueDate'),due:gv('dueDate'),subtotal:sub,discount:disc,tax,amount:afterDisc+tax,currency:sym,paymentTerms:gv('paymentTerms'),items:cleanItems,status,notes:gv('notes'),template:gv('invTemplate')||APP.settings.template||'classic'};
 }
 function saveToList(inv){
   APP.settings.currency=inv.currency||APP.settings.currency||'£';
   syncCurrencySettingUI();
-  if(editingId){const idx=APP.invoices.findIndex(i=>i.id===editingId);if(idx>-1) APP.invoices[idx]=inv;} else {APP.invoices.unshift(inv);APP.nextNum=(APP.nextNum||1)+1;}
+  if(editingId){const idx=APP.invoices.findIndex(i=>i.id===editingId);if(idx>-1) APP.invoices[idx]=inv;} else {APP.invoices.unshift(inv); if(inv.documentType==='quote') APP.nextQuoteNum=(APP.nextQuoteNum||1)+1; else APP.nextNum=(APP.nextNum||1)+1;}
   persist(); refreshAll();
 }
-function saveDraft(){if(!checkFreePlanInvoiceCap())return;saveToList(buildInvObj('draft'));showToast('💾 Draft saved');}
-function sendInvoice(){if(!gv('clientName').trim()){showToast('⚠ Client name required');return;}if(!checkFreePlanInvoiceCap())return;saveToList(buildInvObj('pending'));closeEditor();showToast('✓ Invoice saved');}
+function saveDraft(){if(!checkFreePlanInvoiceCap())return;const inv=buildInvObj('draft');saveToList(inv);showToast(inv.documentType==='quote'?'💾 Quote draft saved':'💾 Draft saved');}
+function sendInvoice(){if(!gv('clientName').trim()){showToast('⚠ Client name required');return;}if(!checkFreePlanInvoiceCap())return;const inv=buildInvObj('pending');saveToList(inv);closeEditor();showToast(inv.documentType==='quote'?'✓ Quote saved':'✓ Invoice saved');}
 
 // ================================================================
 // PREVIEW & PRINT (FIXED: all styles inlined)
@@ -4772,7 +4875,7 @@ function previewById(id){
 }
 function openPreviewWith(inv,tmpl){
   const sym=getInvoiceCurrency(inv);
-  document.getElementById('previewTitle').textContent='Invoice '+inv.id;
+  document.getElementById('previewTitle').textContent=(inv.documentType==='quote'?'Quote ':'Invoice ')+inv.id;
   document.getElementById('previewDoc').innerHTML=buildTemplate(inv,tmpl,sym);
   document.querySelectorAll('.tmpl-tab').forEach(t=>t.classList.toggle('active',t.textContent.toLowerCase()===tmpl));
   document.getElementById('previewOverlay').classList.add('open');
@@ -4787,7 +4890,7 @@ function downloadById(id){previewById(id);setTimeout(printInvoice,350);}
 function printInvoice(){
   if(!currentPreviewData) return;
   if(APP.licenceStatus === 'demo' || isFreePlan()) { showFreeUpgradePaywall('pdf'); return; }
-  openPrintWindow(buildTemplate(currentPreviewData,currentPreviewTemplate,getInvoiceCurrency(currentPreviewData)),'invoice');
+  openPrintWindow(buildTemplate(currentPreviewData,currentPreviewTemplate,getInvoiceCurrency(currentPreviewData)),currentPreviewData.documentType==='quote'?'quote':'invoice');
 }
 
 // Single print function — inlines all required styles so print matches preview exactly
@@ -7337,7 +7440,22 @@ function buildTemplate(inv,tmpl,sym){
   // Always read bizLogo from settings first — this is the source of truth
   const bizLogo=APP.settings.bizLogo||inv.bizLogo||'';
   const logoHtml=bizLogo?`<img src="${bizLogo}" class="t-logo-img" style="max-height:44px;object-fit:contain">`:'' ;
-  const rows=(inv.items||[]).map(it=>`<tr><td>${esc(it.desc||'—')}</td><td style="text-align:center">${it.qty}</td><td style="text-align:right">${sym}${parseFloat(it.price||0).toFixed(2)}</td><td style="text-align:right">${sym}${(it.qty*(it.price||0)).toFixed(2)}</td></tr>`).join('');
+  const isQuote=inv.documentType==='quote';
+  const docLabel=isQuote?'Quotation':'Invoice';
+  const totalLabel=isQuote?'Quote Total':'Total Due';
+  let rowNo=0;
+  const rows=(inv.items||[]).map(it=>{
+    if(it.type==='heading') return `<tr><td colspan="${isQuote?7:4}" style="background:#f8f4e8;color:#7a5c1e;font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:11px">${esc(it.desc||'')}</td></tr>`;
+    if(it.type==='subheading') return `<tr><td colspan="${isQuote?7:4}" style="background:#fcfaf4;color:#746b5c;font-weight:600;font-style:italic;font-size:11px;padding-left:22px">${esc(it.desc||'')}</td></tr>`;
+    rowNo++;
+    if(isQuote){
+      const qty=parseFloat(it.qty)||0, unitPrice=parseFloat(it.unitPrice!==undefined?it.unitPrice:it.price)||0, install=parseFloat(it.installRate)||0;
+      return `<tr><td style="text-align:center">${rowNo}</td><td>${esc(it.desc||'—')}</td><td style="text-align:center">${qty}</td><td style="text-align:center">${esc(it.unit||'unit')}</td><td style="text-align:right">${sym}${unitPrice.toFixed(2)}</td><td style="text-align:right">${sym}${install.toFixed(2)}</td><td style="text-align:right">${sym}${(qty*(unitPrice+install)).toFixed(2)}</td></tr>`;
+    }
+    const qty=parseFloat(it.qty)||0, price=parseFloat(it.price||it.unitPrice||0);
+    return `<tr><td>${esc(it.desc||'—')}</td><td style="text-align:center">${qty}</td><td style="text-align:right">${sym}${price.toFixed(2)}</td><td style="text-align:right">${sym}${(qty*price).toFixed(2)}</td></tr>`;
+  }).join('');
+  const tableHead=isQuote?`<tr><th style="text-align:center">S/N</th><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:center">Unit</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Install Rate</th><th style="text-align:right">Amount</th></tr>`:`<tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Amount</th></tr>`;
   const totRows=`<div class="t-tot-row"><span>Subtotal</span><span>${sym}${sub.toFixed(2)}</span></div>${disc>0?`<div class="t-tot-row"><span>Discount</span><span style="color:#27a060">-${sym}${disc.toFixed(2)}</span></div>`:''} ${tax>0?`<div class="t-tot-row"><span>VAT</span><span>${sym}${tax.toFixed(2)}</span></div>`:''}`;
 
   if(tmpl==='bold') return `<div class="tmpl-bold">
@@ -7348,20 +7466,20 @@ function buildTemplate(inv,tmpl,sym){
       <div class="t-bill-item"><div class="t-bill-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:26px;object-fit:contain;margin-bottom:4px;display:block">`:''}<div class="t-bill-val">${esc(inv.client)}</div><div class="t-bill-sub">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div>
       <div class="t-bill-item"><div class="t-bill-label">From</div><div class="t-bill-val">${esc(inv.bizName)}</div><div class="t-bill-sub">${esc(inv.bizAddress)}</div></div>
       <div class="t-bill-item"><div class="t-bill-label">Terms</div><div class="t-bill-val">${esc(inv.terms||'Net 30')}</div><div class="t-bill-sub">Due ${fmtDate(inv.due)}</div></div></div>
-    <table class="t-table"><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Amount</th></tr></thead><tbody>${rows}</tbody></table>
-    <div class="t-summary"><div class="t-summary-inner">${totRows}<div class="t-s-total"><span class="lbl">Total Due</span><span class="val">${sym}${total.toFixed(2)}</span></div></div></div></div>
+    <table class="t-table"><thead>${tableHead}</thead><tbody>${rows}</tbody></table>
+    <div class="t-summary"><div class="t-summary-inner">${totRows}<div class="t-s-total"><span class="lbl">${totalLabel}</span><span class="val">${sym}${total.toFixed(2)}</span></div></div></div></div>
     <div class="t-foot"><span>${inv.notes?esc(inv.notes).substring(0,80):''}</span><span>InvoKit Pro</span></div></div>`;
 
   // Classic (default)
   return `<div class="tmpl-classic">
     <div class="t-header"><div>${logoHtml}<div class="t-biz-name">${esc(inv.bizName)}</div><div class="t-biz-info">${esc(inv.bizAddress)}<br>${esc(inv.bizEmail)}${inv.bizPhone?' · '+esc(inv.bizPhone):''}</div></div>
-    <div class="t-inv-meta"><div class="t-inv-label">Invoice</div><div class="t-inv-num">${esc(inv.id)}</div><div class="t-dates">Issued: ${fmtDate(inv.issued)}<br>Due: ${fmtDate(inv.due)}</div></div></div>
+    <div class="t-inv-meta"><div class="t-inv-label">${docLabel}</div><div class="t-inv-num">${esc(inv.id)}</div><div class="t-dates">Issued: ${fmtDate(inv.issued)}<br>Due: ${fmtDate(inv.due)}</div></div></div>
     <div class="t-addresses">
       <div><div class="t-addr-label">From</div><div class="t-addr-name">${esc(inv.bizName)}</div><div class="t-addr-info">${esc(inv.bizAddress)}</div></div>
       <div><div class="t-addr-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:28px;object-fit:contain;margin-bottom:5px;display:block">`:''}<div class="t-addr-name">${esc(inv.client)}</div><div class="t-addr-info">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div>
     </div>
-    <table class="t-table"><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Amount</th></tr></thead><tbody>${rows}</tbody></table>
-    <div class="t-totals-wrap"><div class="t-totals">${totRows}<div class="t-tot-final"><span class="lbl">Total Due</span><span class="val">${sym}${total.toFixed(2)}</span></div></div></div>
+    <table class="t-table"><thead>${tableHead}</thead><tbody>${rows}</tbody></table>
+    <div class="t-totals-wrap"><div class="t-totals">${totRows}<div class="t-tot-final"><span class="lbl">${totalLabel}</span><span class="val">${sym}${total.toFixed(2)}</span></div></div></div>
     ${inv.notes?`<div class="t-notes">${esc(inv.notes)}</div>`:''}
     <div class="t-footer">Generated with InvoKit Pro · Thank you for your business</div></div>`;
 }
@@ -7371,8 +7489,8 @@ function buildTemplate(inv,tmpl,sym){
 // ================================================================
 function exportCSV(){
   if(isFreePlan()){showFreeUpgradePaywall('export');return;}
-  const h=['Invoice #','Client','Email','Issued','Due','Subtotal','Discount','Tax','Total','Status'];
-  const r=APP.invoices.map(i=>[i.id,i.client,i.email,i.issued,i.due,(i.subtotal||i.amount).toFixed(2),(i.discount||0).toFixed(2),(i.tax||0).toFixed(2),i.amount.toFixed(2),i.status]);
+  const h=['Document #','Type','Client','Email','Issued','Due','Subtotal','Discount','Tax','Total','Status'];
+  const r=APP.invoices.map(i=>[i.id,(i.documentType==='quote'?'Quote':'Invoice'),i.client,i.email,i.issued,i.due,(i.subtotal||i.amount).toFixed(2),(i.discount||0).toFixed(2),(i.tax||0).toFixed(2),i.amount.toFixed(2),i.status]);
   const csv=[h,...r].map(row=>row.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob=new Blob([csv],{type:'text/csv'});
   const url=URL.createObjectURL(blob);
@@ -7385,9 +7503,9 @@ function exportCSV(){
 // ================================================================
 function confirmDelete(id){
   const inv=APP.invoices.find(i=>i.id===id);
-  document.getElementById('confirmTitle').textContent='Delete Invoice';
+  document.getElementById('confirmTitle').textContent=(inv?.documentType==='quote'?'Delete Quote':'Delete Invoice');
   document.getElementById('confirmMsg').textContent=`Delete ${id} for ${inv?.client}? Cannot be undone.`;
-  document.getElementById('confirmOkBtn').onclick=()=>{APP.invoices=APP.invoices.filter(i=>i.id!==id);persist();refreshAll();closeConfirm();showToast('🗑 Invoice deleted');};
+  document.getElementById('confirmOkBtn').onclick=()=>{APP.invoices=APP.invoices.filter(i=>i.id!==id);persist();refreshAll();closeConfirm();showToast(inv?.documentType==='quote'?'🗑 Quote deleted':'🗑 Invoice deleted');};
   document.getElementById('confirmOverlay').classList.add('open');
 }
 function confirmReset(){
@@ -8019,6 +8137,7 @@ function renderAppShell() {
     <div class="nav-lbl">Overview</div>
     <div class="nav-item active" data-page="dashboard" onclick="navTo('dashboard',this)"><span class="nav-icon">◈</span>Dashboard</div>
     <div class="nav-item" onclick="openEditor()"><span class="nav-icon">⊕</span>New Invoice</div>
+    <div class="nav-item" onclick="openQuoteEditor()"><span class="nav-icon">◩</span>New Quote</div>
     <div class="nav-lbl">Manage</div>
     <div class="nav-item" data-page="invoices" onclick="navTo('invoices',this)"><span class="nav-icon">◻</span>Invoices<span class="nav-badge" id="overdueBadge" style="display:none">0</span></div>
     <div class="nav-item" data-page="clients" onclick="navTo('clients',this)"><span class="nav-icon">◉</span>Clients</div>
@@ -8087,7 +8206,7 @@ function renderAppShell() {
     <div><div class="page-title">Dashboard</div><div class="page-subtitle" id="dashSubtitle">—</div></div>
     <div class="topbar-actions">
       <button class="btn btn-ghost" onclick="exportCSV()">↓ Export CSV</button>
-      <button class="btn btn-primary" onclick="openEditor()">+ New Invoice</button>
+      <button class="btn btn-ghost" onclick="openQuoteEditor()">+ New Quote</button><button class="btn btn-primary" onclick="openEditor()">+ New Invoice</button>
     </div>
   </header>
   <div class="content fade-in">
@@ -8119,7 +8238,7 @@ function renderAppShell() {
           </div>
         </div>
       </div>
-      <table><thead><tr><th>Invoice #</th><th>Client</th><th>Issued</th><th>Due</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+      <table><thead><tr><th>Document #</th><th>Client</th><th>Issued</th><th>Due</th><th>Amount</th><th>Status</th><th></th></tr></thead>
       <tbody id="dashTableBody"></tbody></table>
     </div>
   </div>
@@ -8132,7 +8251,7 @@ function renderAppShell() {
     <div><div class="page-title">Invoices</div><div class="page-subtitle">Full management</div></div>
     <div class="topbar-actions">
       <button class="btn btn-ghost" onclick="exportCSV()">↓ Export CSV</button>
-      <button class="btn btn-primary" onclick="openEditor()">+ New Invoice</button>
+      <button class="btn btn-ghost" onclick="openQuoteEditor()">+ New Quote</button><button class="btn btn-primary" onclick="openEditor()">+ New Invoice</button>
     </div>
   </header>
   <div class="content fade-in">
@@ -8147,7 +8266,7 @@ function renderAppShell() {
           <button class="filter-btn" onclick="setFilter('draft',this,'inv')">Draft</button>
         </div>
       </div>
-      <table><thead><tr><th>Invoice #</th><th>Client</th><th>Issued</th><th>Due</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+      <table><thead><tr><th>Document #</th><th>Client</th><th>Issued</th><th>Due</th><th>Amount</th><th>Status</th><th></th></tr></thead>
       <tbody id="invTableBody"></tbody></table>
     </div>
   </div>
@@ -8269,7 +8388,7 @@ function renderAppShell() {
     </div>
 
     <div class="roadmap-grid">
-      <div class="roadmap-card"><div class="roadmap-card-title">Quote Builder</div><div class="roadmap-card-desc">Quotation table with S/N, description, quantity, unit, unit price, install rate and amount.</div><span class="roadmap-status progress">In progress</span></div>
+      <div class="roadmap-card"><div class="roadmap-card-title">Quote Builder</div><div class="roadmap-card-desc">Quotation table with S/N, description, quantity, unit, unit price, install rate and amount.</div><span class="roadmap-status live">Live in v15.1</span></div>
       <div class="roadmap-card"><div class="roadmap-card-title">Cloud Protect</div><div class="roadmap-card-desc">Automatic encrypted cloud backup, restore and transfer between devices.</div><span class="roadmap-status planned">Coming soon</span></div>
       <div class="roadmap-card"><div class="roadmap-card-title">Payment Links</div><div class="roadmap-card-desc">Attach Stripe, Paystack or bank payment links to invoices and quotes.</div><span class="roadmap-status planned">Planned</span></div>
       <div class="roadmap-card"><div class="roadmap-card-title">Client Portal</div><div class="roadmap-card-desc">Clients can view, approve, download and track documents online.</div><span class="roadmap-status planned">Planned</span></div>
@@ -8281,6 +8400,7 @@ function renderAppShell() {
       <div class="roadmap-panel">
         <h3>Available Now</h3>
         <div class="roadmap-feature-row"><div><div class="roadmap-feature-name">Invoices & receipts</div><div class="roadmap-feature-note">Create, save, print and export business documents offline.</div></div><span class="roadmap-status available">Live</span></div>
+        <div class="roadmap-feature-row"><div><div class="roadmap-feature-name">Quote Builder</div><div class="roadmap-feature-note">Create quotations with S/N, quantity units, unit price, install rate and calculated totals.</div></div><span class="roadmap-status live">Live</span></div>
         <div class="roadmap-feature-row"><div><div class="roadmap-feature-name">Clients & catalogue</div><div class="roadmap-feature-note">Store client details and reusable products or services.</div></div><span class="roadmap-status available">Live</span></div>
         <div class="roadmap-feature-row"><div><div class="roadmap-feature-name">Manual backup & restore</div><div class="roadmap-feature-note">Export and import JSON backup files for data protection.</div></div><span class="roadmap-status available">Live</span></div>
         <div class="roadmap-feature-row"><div><div class="roadmap-feature-name">Offline-first PWA</div><div class="roadmap-feature-note">Designed to work on the same device even without internet.</div></div><span class="roadmap-status available">Live</span></div>
@@ -8522,7 +8642,7 @@ function renderAppShell() {
       <div style="font-size:11.5px;color:var(--text3);margin-top:2px;font-family:'DM Mono',monospace;" id="invNumDisplay" title="Number is assigned when you save the invoice">—</div>
     </div>
     <div class="editor-header-right">
-      <span class="badge badge-accent" id="statusBadge">Draft</span>
+      <span class="badge badge-accent" id="docTypeBadge">Invoice</span><span class="badge badge-accent" id="statusBadge">Draft</span>
       <button class="btn btn-ghost btn-sm" type="button" title="Duplicate" aria-label="Duplicate" data-full-text="Duplicate" onclick="duplicateCurrentInvoice()">⊕ Dup</button>
       <button class="btn btn-ghost btn-sm" onclick="closeEditor()">✕</button>
     </div>
@@ -8589,7 +8709,7 @@ function renderAppShell() {
         </select>
       </div>
     </div>
-    <div class="section-divider">Line Items
+    <div class="section-divider"><span id="lineItemsTitle">Line Items</span>
       <div class="cat-picker-wrap" style="margin:0;flex:1;max-width:260px;" id="catPickerWrap">
         <button class="cat-picker-btn" onclick="toggleCatPicker()" id="catPickerBtn">▦ Add from Catalogue</button>
         <div class="cat-picker-dropdown" id="catPickerDropdown">
@@ -8599,10 +8719,10 @@ function renderAppShell() {
       </div>
     </div>
     <div class="items-table">
-      <div class="items-head"><span>Description</span><span>Qty</span><span>Unit Price</span><span>Amount</span><span></span></div>
+      <div class="items-head" id="itemsHead"><span>Description</span><span>Qty</span><span>Unit Price</span><span>Amount</span><span></span></div>
       <div id="itemsContainer"></div>
     </div>
-    <button class="add-item-btn" onclick="addItem()">＋ Add Line Item</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px"><button class="add-item-btn" style="flex:1;margin-bottom:0" onclick="addItem()">＋ Add Line Item</button><button class="add-item-btn" style="flex:0 0 auto;margin-bottom:0" onclick="addHeading()">＋ Add Header</button><button class="add-item-btn" style="flex:0 0 auto;margin-bottom:0" onclick="addSubHeading()">＋ Add Sub-header</button></div>
     <div class="totals-section">
       <div class="totals-box">
         <div class="discount-row">
@@ -8628,7 +8748,7 @@ function renderAppShell() {
         <div class="totals-row" id="discountDisplayRow" style="display:none"><span class="totals-label">Discount</span><span class="totals-value" style="color:var(--green)" id="discountDisplay">-£0.00</span></div>
         <div class="totals-row" id="taxDisplayRow" style="display:none"><span class="totals-label">VAT (<span id="taxRateLabel">20</span>%)</span><span class="totals-value" id="taxAmountDisplay">£0.00</span></div>
         <div class="totals-divider"></div>
-        <div class="totals-total"><span class="tt-label">Total Due</span><span class="tt-value" id="totalDisplay">£0.00</span></div>
+        <div class="totals-total"><span class="tt-label" id="totalDueLabel">Total Due</span><span class="tt-value" id="totalDisplay">£0.00</span></div>
       </div>
     </div>
     <div class="section-divider">Notes & Payment Instructions</div>
@@ -8652,7 +8772,7 @@ function renderAppShell() {
     </div>
     <div class="footer-right">
       <button class="btn btn-ghost btn-sm" onclick="previewInvoice()">👁 Preview</button>
-      <button class="btn btn-primary btn-sm" onclick="sendInvoice()">Save & Close →</button>
+      <button class="btn btn-primary btn-sm" id="saveCloseBtn" onclick="sendInvoice()">Save & Close →</button>
     </div>
   </div>
 </div>
