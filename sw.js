@@ -1,4 +1,4 @@
-const CACHE = 'invokit-v15-1-quote-headers';
+const CACHE = 'invokit-v16-doc-title';
 const SHELL = [
   '/',
   '/index.html',

@@ -4062,7 +4062,7 @@ function renderTableInto(id, data) {
   if (!data.length) { tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">◻</div>No documents found</div></td></tr>`; return; }
   tbody.innerHTML = data.map(inv=>`<tr onclick="openEditorForInvoice('${inv.id}')">
     <td><span class="inv-num">${inv.id}</span><div style="font-size:10.5px;color:var(--text3);margin-top:2px">${inv.documentType==='quote'?'Quote':'Invoice'}</div></td>
-    <td><div class="client-name">${esc(inv.client)}</div><div class="client-email">${esc(inv.email)}</div></td>
+    <td><div class="client-name">${esc(inv.client)}</div>${inv.title?`<div style="font-size:11.5px;color:var(--text2);margin-top:1px">${esc(inv.title)}</div>`:''}<div class="client-email">${esc(inv.email)}</div></td>
     <td style="font-size:12px;color:var(--text2)">${fmtDate(inv.issued)}</td>
     <td style="font-size:12px;color:var(--text2)">${inv.status==='overdue'?'<span class="overdue-dot"></span>':''}${fmtDate(inv.due)}</td>
     <td><span class="amount">${getInvoiceCurrency(inv)}${inv.amount.toLocaleString()}</span></td>
@@ -4427,7 +4427,7 @@ function renderReceiptsTable(){
     const recNum='REC-'+inv.id.replace('INV-','');
     return `<tr onclick="openReceiptById('${inv.id}')">
       <td><span class="inv-num" style="color:var(--green)">${recNum}</span></td>
-      <td><div class="client-name">${esc(inv.client)}</div><div class="client-email">${esc(inv.email)}</div></td>
+      <td><div class="client-name">${esc(inv.client)}</div>${inv.title?`<div style="font-size:11.5px;color:var(--text2);margin-top:1px">${esc(inv.title)}</div>`:''}<div class="client-email">${esc(inv.email)}</div></td>
       <td style="font-size:12px;color:var(--text3)">${inv.id}</td>
       <td style="font-size:12px;color:var(--text2)">${fmtDate(inv.issued)}</td>
       <td><span class="amount" style="color:var(--green)">${getInvoiceCurrency(inv)}${inv.amount.toLocaleString()}</span></td>
@@ -4633,7 +4633,25 @@ function setEditorDocumentMode(type){
   if(section) section.textContent=currentDocType==='quote'?'Quotation Items':'Line Items';
   if(saveBtn) saveBtn.textContent=currentDocType==='quote'?'Save Quote →':'Save & Close →';
   if(totalLabel) totalLabel.textContent=currentDocType==='quote'?'Quote Total':'Total Due';
+  const titleLabel=document.getElementById('docTitleLabel');
+  if(titleLabel) titleLabel.textContent=(currentDocType==='quote'?'Quote':'Invoice')+' Title / Subject';
+  const addTitleBtn=document.getElementById('addTitleBtn');
+  if(addTitleBtn) addTitleBtn.textContent='＋ Add '+(currentDocType==='quote'?'Quote':'Invoice')+' Title / Subject';
   renderItemHeader();
+}
+function toggleDocTitle(force){
+  const field=document.getElementById('docTitleField');
+  const btn=document.getElementById('addTitleBtn');
+  if(!field||!btn) return;
+  const show=(force===undefined)?(field.style.display==='none'):!!force;
+  field.style.display=show?'block':'none';
+  btn.style.display=show?'none':'block';
+  if(show){const inp=document.getElementById('docTitle');if(inp) inp.focus();}
+}
+function removeDocTitle(){
+  const inp=document.getElementById('docTitle');
+  if(inp) inp.value='';
+  toggleDocTitle(false);
 }
 function prefillFromSettings(){
   const s=APP.settings;
@@ -4663,6 +4681,7 @@ function openEditorForInvoice(id){
   setValue('bizVAT',inv.bizVAT||APP.settings.vat||'');
   setValue('clientName',inv.client); setValue('clientEmail',inv.email);
   setValue('clientPhone',inv.phone||''); setValue('clientAddress',inv.address||'');
+  if(inv.title){setValue('docTitle',inv.title);toggleDocTitle(true);}else{toggleDocTitle(false);}
   setValue('issueDate',inv.issued); setValue('dueDate',inv.due);
   setValue('notes',inv.notes||'');
   setValue('currency',inv.currency||APP.settings.currency||'£');
@@ -4686,7 +4705,8 @@ function openEditorForInvoice(id){
 function closeEditor(){document.getElementById('editorOverlay').classList.remove('open');document.body.style.overflow='';}
 function handleOvClick(e,id){if(e.target===document.getElementById(id)){if(id==='editorOverlay') closeEditor();else if(id==='previewOverlay') closePreview();else if(id==='receiptOverlay') closeReceipt();else if(id==='clientModalOverlay') closeClientModal();else if(id==='catModalOverlay') closeCatModal();else if(id==='recurringModal') closeRecurringModal();}}
 function clearEditor(){
-  ['bizName','bizAddress','bizEmail','bizPhone','bizVAT','clientName','clientAddress','clientEmail','clientPhone','notes'].forEach(id=>setValue(id,''));
+  ['bizName','bizAddress','bizEmail','bizPhone','bizVAT','clientName','clientAddress','clientEmail','clientPhone','notes','docTitle'].forEach(id=>setValue(id,''));
+  toggleDocTitle(false);
   document.getElementById('editorTitle').textContent=currentDocType==='quote'?'New Quote':'New Invoice';
   const prefix=currentDocType==='quote'?(APP.settings.quotePrefix||'QUO-2026-'):(APP.settings.prefix||'INV-2026-');
   const next=currentDocType==='quote'?(APP.nextQuoteNum||1):(APP.nextNum||1);
@@ -4833,7 +4853,7 @@ function buildInvObj(status){
       ? {type:'item',desc:i.desc,qty:i.qty,unit:i.unit||'unit',unitPrice:i.unitPrice||0,installRate:i.installRate||0,amount:lineAmount(i)}
       : {type:'item',desc:i.desc,qty:i.qty,price:i.price||0,amount:lineAmount(i)};
   });
-  return {id:editingId||(prefix+String(next).padStart(3,'0')),documentType:docType,bizName:gv('bizName'),bizAddress:gv('bizAddress'),bizEmail:gv('bizEmail'),bizPhone:gv('bizPhone'),bizVAT:gv('bizVAT'),bizRegNum:APP.settings.regNum||'',client:gv('clientName'),email:gv('clientEmail'),phone:gv('clientPhone'),address:gv('clientAddress'),issued:gv('issueDate'),due:gv('dueDate'),subtotal:sub,discount:disc,tax,amount:afterDisc+tax,currency:sym,paymentTerms:gv('paymentTerms'),items:cleanItems,status,notes:gv('notes'),template:gv('invTemplate')||APP.settings.template||'classic'};
+  return {id:editingId||(prefix+String(next).padStart(3,'0')),documentType:docType,title:gv('docTitle').trim(),bizName:gv('bizName'),bizAddress:gv('bizAddress'),bizEmail:gv('bizEmail'),bizPhone:gv('bizPhone'),bizVAT:gv('bizVAT'),bizRegNum:APP.settings.regNum||'',client:gv('clientName'),email:gv('clientEmail'),phone:gv('clientPhone'),address:gv('clientAddress'),issued:gv('issueDate'),due:gv('dueDate'),subtotal:sub,discount:disc,tax,amount:afterDisc+tax,currency:sym,paymentTerms:gv('paymentTerms'),items:cleanItems,status,notes:gv('notes'),template:gv('invTemplate')||APP.settings.template||'classic'};
 }
 function saveToList(inv){
   APP.settings.currency=inv.currency||APP.settings.currency||'£';
@@ -7443,6 +7463,7 @@ function buildTemplate(inv,tmpl,sym){
   const isQuote=inv.documentType==='quote';
   const docLabel=isQuote?'Quotation':'Invoice';
   const totalLabel=isQuote?'Quote Total':'Total Due';
+  const docTitle=(inv.title||'').trim();
   let rowNo=0;
   const rows=(inv.items||[]).map(it=>{
     if(it.type==='heading') return `<tr><td colspan="${isQuote?7:4}" style="background:#f8f4e8;color:#7a5c1e;font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:11px">${esc(it.desc||'')}</td></tr>`;
@@ -7462,7 +7483,7 @@ function buildTemplate(inv,tmpl,sym){
     <div class="t-hero">${logoHtml?`<div style="margin-bottom:10px">${logoHtml}</div>`:''}
       <div class="t-biz-name">${esc(inv.bizName)}</div><div class="t-biz-info">${esc(inv.bizAddress)}<br>${esc(inv.bizEmail)}${inv.bizVAT?' | VAT: '+esc(inv.bizVAT):''}${inv.bizRegNum?' | Reg: '+esc(inv.bizRegNum):''}</div>
       <div class="t-inv-row"><div class="t-inv-big">${esc(inv.id)} · ${fmtDate(inv.issued)}</div><div class="t-status-big">Due ${fmtDate(inv.due)}</div></div></div>
-    <div class="t-body"><div class="t-bill-row">
+    <div class="t-body">${docTitle?`<div style="font-size:19px;font-weight:700;color:#111;margin-bottom:20px;line-height:1.3">${esc(docTitle)}</div>`:''}<div class="t-bill-row">
       <div class="t-bill-item"><div class="t-bill-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:26px;object-fit:contain;margin-bottom:4px;display:block">`:''}<div class="t-bill-val">${esc(inv.client)}</div><div class="t-bill-sub">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div>
       <div class="t-bill-item"><div class="t-bill-label">From</div><div class="t-bill-val">${esc(inv.bizName)}</div><div class="t-bill-sub">${esc(inv.bizAddress)}</div></div>
       <div class="t-bill-item"><div class="t-bill-label">Terms</div><div class="t-bill-val">${esc(inv.terms||'Net 30')}</div><div class="t-bill-sub">Due ${fmtDate(inv.due)}</div></div></div>
@@ -7474,6 +7495,7 @@ function buildTemplate(inv,tmpl,sym){
   return `<div class="tmpl-classic">
     <div class="t-header"><div>${logoHtml}<div class="t-biz-name">${esc(inv.bizName)}</div><div class="t-biz-info">${esc(inv.bizAddress)}<br>${esc(inv.bizEmail)}${inv.bizPhone?' · '+esc(inv.bizPhone):''}</div></div>
     <div class="t-inv-meta"><div class="t-inv-label">${docLabel}</div><div class="t-inv-num">${esc(inv.id)}</div><div class="t-dates">Issued: ${fmtDate(inv.issued)}<br>Due: ${fmtDate(inv.due)}</div></div></div>
+    ${docTitle?`<div style="font-size:20px;font-weight:600;color:#111;margin:-20px 0 30px;font-family:'Cormorant Garamond',serif;line-height:1.3">${esc(docTitle)}</div>`:''}
     <div class="t-addresses">
       <div><div class="t-addr-label">From</div><div class="t-addr-name">${esc(inv.bizName)}</div><div class="t-addr-info">${esc(inv.bizAddress)}</div></div>
       <div><div class="t-addr-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:28px;object-fit:contain;margin-bottom:5px;display:block">`:''}<div class="t-addr-name">${esc(inv.client)}</div><div class="t-addr-info">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div>
@@ -7693,7 +7715,7 @@ function _oldInitPWA_unused() {
   // 2. Register service worker as inline blob
   if ('serviceWorker' in navigator) {
     const swCode = `
-const CACHE = 'invokit-v12-backup-force';
+const CACHE = 'invokit-v16-doc-title';
 const URLS = ['/'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll([])).then(() => self.skipWaiting()));
@@ -8648,6 +8670,16 @@ function renderAppShell() {
     </div>
   </div>
   <div class="editor-body">
+    <div class="doc-title-wrap" style="margin-bottom:18px">
+      <button class="add-item-btn" type="button" id="addTitleBtn" style="margin-bottom:0" onclick="toggleDocTitle()">＋ Add Title / Subject</button>
+      <div class="field-group" id="docTitleField" style="display:none;margin:0">
+        <label class="field-label" style="display:flex;justify-content:space-between;align-items:center">
+          <span id="docTitleLabel">Invoice Title / Subject</span>
+          <button type="button" onclick="removeDocTitle()" style="background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;padding:0">✕ remove</button>
+        </label>
+        <input class="field-input" type="text" id="docTitle" maxlength="120" placeholder="e.g. Kitchen Renovation — Phase 1">
+      </div>
+    </div>
     <div class="editor-grid">
       <div>
         <div class="section-divider">Business</div>
