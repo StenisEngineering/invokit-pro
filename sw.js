@@ -1,4 +1,4 @@
-const CACHE = 'invokit-v18-svg-icons';
+const CACHE = 'invokit-v19-contrast-aa';
 const SHELL = [
   '/',
   '/index.html',
