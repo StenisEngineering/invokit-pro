@@ -3108,8 +3108,8 @@ body .demo-mode-banner a{
     align-items:flex-start !important;
   }
   .page-title{
-    font-size:30px !important;
-    line-height:1.05 !important;
+    font-size:22px !important;
+    line-height:1.1 !important;
   }
   .page-subtitle{
     font-size:13px !important;
@@ -3307,7 +3307,7 @@ body .demo-mode-banner a{
     gap:12px !important;
   }
   .settings-nav-card{
-    order:1 !important;
+    order:-1 !important;
   }
   .settings-card{
     order:2 !important;
@@ -3371,7 +3371,7 @@ body .demo-mode-banner a{
 /* extra-small phones */
 @media (max-width: 420px){
   .page-title{
-    font-size:26px !important;
+    font-size:20px !important;
   }
   .editor-title{
     font-size:20px !important;
@@ -3969,6 +3969,8 @@ function navTo(page, el) {
     showFreeUpgradePaywall('analytics');
     return;
   }
+  // Mobile: close the sidebar drawer immediately so the page shows straight away
+  if (window.innerWidth <= 768) closeMobSidebar();
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item[data-page]').forEach(n=>n.classList.remove('active'));
   const pg = document.getElementById('page-'+page); if(!pg) return;
@@ -7157,8 +7159,8 @@ body .demo-mode-banner a{
     align-items:flex-start !important;
   }
   .page-title{
-    font-size:30px !important;
-    line-height:1.05 !important;
+    font-size:22px !important;
+    line-height:1.1 !important;
   }
   .page-subtitle{
     font-size:13px !important;
@@ -7356,7 +7358,7 @@ body .demo-mode-banner a{
     gap:12px !important;
   }
   .settings-nav-card{
-    order:1 !important;
+    order:-1 !important;
   }
   .settings-card{
     order:2 !important;
@@ -7420,7 +7422,7 @@ body .demo-mode-banner a{
 /* extra-small phones */
 @media (max-width: 420px){
   .page-title{
-    font-size:26px !important;
+    font-size:20px !important;
   }
   .editor-title{
     font-size:20px !important;
@@ -7697,18 +7699,19 @@ function showUpdateBanner() {
   if (existing) return;
   const banner = document.createElement('div');
   banner.id = 'swUpdateBanner';
-  banner.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9998;background:linear-gradient(135deg,#1a1c2e,#111220);border:1px solid rgba(201,168,76,0.4);border-radius:14px;padding:14px 20px;display:flex;align-items:center;gap:14px;box-shadow:0 8px 32px rgba(0,0,0,0.5);font-family:Outfit,sans-serif;min-width:300px;max-width:90vw;';
+  banner.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9998;background:var(--surface);color:var(--text);border:1px solid var(--accent-border);border-radius:14px;padding:14px 20px;display:flex;align-items:center;gap:14px;box-shadow:0 12px 40px var(--shadow-lg);font-family:Outfit,sans-serif;min-width:300px;max-width:90vw;';
   banner.innerHTML = `
     <div style="flex:1;">
-      <div style="font-size:13.5px;font-weight:600;color:#f0ede8;margin-bottom:3px;">Update available</div>
-      <div style="font-size:12px;color:#9d9a94;">A new version of InvoKit Pro is ready.</div>
+      <div style="font-size:13.5px;font-weight:600;color:var(--text);margin-bottom:3px;">Update available</div>
+      <div style="font-size:12px;color:var(--text2);">A new version of InvoKit Pro is ready.</div>
     </div>
     <button onclick="applyUpdate()" style="background:linear-gradient(135deg,#f0cf7d,#c9a84c);color:#0c0c0e;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:Outfit,sans-serif;">Update now</button>
-    <button onclick="document.getElementById('swUpdateBanner').remove()" style="background:transparent;border:none;color:#6e6b65;font-size:18px;cursor:pointer;padding:2px 4px;line-height:1;">×</button>`;
+    <button onclick="document.getElementById('swUpdateBanner').remove()" style="background:transparent;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:2px 4px;line-height:1;">×</button>`;
   document.body.appendChild(banner);
 }
 
 function applyUpdate() {
+  try { localStorage.setItem('ikp_just_updated', '1'); } catch(e){}
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistration().then(reg => {
       if (reg && reg.waiting) {
@@ -9055,9 +9058,56 @@ function renderAppShell() {
 // POST-SHELL INIT — runs only after renderAppShell() has injected the DOM
 // ================================================================
 let _appInitDone = false;
+// ============================================================
+// PHONE BACK BUTTON — navigate within the app instead of exiting
+// Back closes an open modal → then the mobile sidebar → then returns
+// to Dashboard → and only exits on a second press from the Dashboard.
+// ============================================================
+let _ikpBackReady = false, _ikpExitPrompt = false;
+function _ikpTopOverlay() {
+  const ids = ['confirmOverlay','editorOverlay','previewOverlay','receiptOverlay','clientModalOverlay','catModalOverlay','recurringModal'];
+  for (const id of ids) { const el = document.getElementById(id); if (el && el.classList.contains('open')) return id; }
+  return null;
+}
+function _ikpCloseOverlay(id) {
+  const closers = { confirmOverlay: closeConfirm, editorOverlay: closeEditor, previewOverlay: closePreview,
+    receiptOverlay: closeReceipt, clientModalOverlay: closeClientModal, catModalOverlay: closeCatModal, recurringModal: closeRecurringModal };
+  try { (closers[id] || function(){})(); } catch(e){}
+}
+function _ikpArm() { try { history.pushState({ ikp: 1 }, ''); } catch(e){} }
+function armBackButton() {
+  if (_ikpBackReady) return;
+  _ikpBackReady = true;
+  _ikpArm();
+  window.addEventListener('popstate', function() {
+    // 1) a modal/overlay is open → close it
+    const ov = _ikpTopOverlay();
+    if (ov) { _ikpCloseOverlay(ov); _ikpArm(); return; }
+    // 2) the mobile sidebar is open → close it
+    const sb = document.querySelector('.sidebar');
+    if (sb && sb.classList.contains('mob-open')) { closeMobSidebar(); _ikpArm(); return; }
+    // 3) not on the Dashboard → go home instead of exiting
+    if (currentPage && currentPage !== 'dashboard') {
+      navTo('dashboard', document.querySelector('.nav-item[data-page="dashboard"]'));
+      _ikpArm(); return;
+    }
+    // 4) on the Dashboard with nothing open → confirm before exiting
+    if (!_ikpExitPrompt) {
+      _ikpExitPrompt = true;
+      showToast('Press back again to exit');
+      _ikpArm();
+      setTimeout(function(){ _ikpExitPrompt = false; }, 2000);
+      return;
+    }
+    history.back(); // second press within 2s → allow exit
+  });
+}
+
 function initAppAfterShell() {
   if (_appInitDone) return;
   _appInitDone = true;
+  armBackButton();
+  try { if (localStorage.getItem('ikp_just_updated')) { localStorage.removeItem('ikp_just_updated'); setTimeout(function(){ showToast('Updated to the latest version'); }, 900); } } catch(e){}
   buildDashboard();
   loadSettingsForm();
   checkOverdue();
