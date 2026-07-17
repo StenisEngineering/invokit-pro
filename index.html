@@ -46,13 +46,15 @@
   --accent-border:rgba(201,168,76,0.24);
   --radius:12px;--radius-sm:8px;--radius-xs:6px;
   --sidebar-w:230px;--tr:0.2s cubic-bezier(0.4,0,0.2,1);
-  /* Sidebar — always deep dark */
-  --sb-bg:#13131a;--sb-surface:#1c1c26;
-  --sb-border:rgba(255,255,255,0.07);
-  --sb-text:#c8c4bc;--sb-text2:#6e6b65;
-  --sb-hover:rgba(255,255,255,0.06);
-  --sb-active-bg:rgba(201,168,76,0.13);
-  --sb-active-border:rgba(201,168,76,0.22);
+  /* Sidebar — soft light gray (light/hybrid themes) */
+  --sb-bg:#e9e6e0;--sb-surface:#dedad3;
+  --sb-border:rgba(0,0,0,0.09);
+  --sb-text:#4a453d;--sb-text2:#8b847a;
+  --sb-hover:rgba(0,0,0,0.05);
+  --sb-text-hover:#1a1814;
+  --sb-brand:#7a5c1e;
+  --sb-active-bg:rgba(201,168,76,0.20);
+  --sb-active-border:rgba(201,168,76,0.42);
 }
 /* HYBRID default — dark sidebar, light content */
 :root,[data-theme="hybrid"]{
@@ -81,6 +83,8 @@
   --sb-border:rgba(255,255,255,0.07);
   --sb-text:#9d9a94;--sb-text2:#5a5855;
   --sb-hover:rgba(255,255,255,0.05);
+  --sb-text-hover:#f0ede8;
+  --sb-brand:var(--accent);
 }
 /* LIGHT — everything light */
 [data-theme="light"]{
@@ -116,23 +120,23 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-
 .sidebar{width:var(--sidebar-w);background:var(--sb-bg);border-right:1px solid var(--sb-border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:background var(--tr),border-color var(--tr);}
 .sidebar-top{padding:24px 20px 20px;border-bottom:1px solid var(--sb-border);}
 .logo-row{display:flex;align-items:center;justify-content:space-between;}
-.logo-mark{font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:600;color:var(--accent);letter-spacing:0.04em;}
+.logo-mark{font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:600;color:var(--sb-brand);letter-spacing:0.04em;}
 .logo-sub{font-family:'DM Mono',monospace;font-size:12px;color:var(--sb-text2);letter-spacing:0.2em;text-transform:uppercase;margin-top:3px;}
 .theme-btn{width:30px;height:30px;border-radius:var(--radius-sm);border:1px solid var(--sb-border);background:var(--sb-surface);color:var(--sb-text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all var(--tr);}
-.theme-btn:hover{background:var(--sb-active-bg);color:var(--accent);border-color:var(--sb-active-border);}
+.theme-btn:hover{background:var(--sb-active-bg);color:var(--sb-brand);border-color:var(--sb-active-border);}
 .nav{flex:1;padding:14px 10px;overflow-y:auto;}
 .nav-lbl{font-family:'DM Mono',monospace;font-size:12px;color:var(--sb-text2);letter-spacing:0.18em;text-transform:uppercase;padding:0 11px;margin:14px 0 5px;}
 .nav-lbl:first-child{margin-top:0;}
 .nav-item{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:var(--radius-sm);cursor:pointer;font-size:13.5px;font-weight:400;color:var(--sb-text);transition:all var(--tr);margin-bottom:1px;border:1px solid transparent;user-select:none;}
-.nav-item:hover{color:#f0ede8;background:var(--sb-hover);}
-.nav-item.active{color:var(--accent);background:var(--sb-active-bg);border-color:var(--sb-active-border);font-weight:500;}
+.nav-item:hover{color:var(--sb-text-hover);background:var(--sb-hover);}
+.nav-item.active{color:var(--sb-brand);background:var(--sb-active-bg);border-color:var(--sb-active-border);font-weight:500;}
 .nav-icon{width:17px;height:17px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
 .nav-badge{margin-left:auto;font-family:'DM Mono',monospace;font-size:12px;padding:2px 6px;border-radius:9px;background:var(--red-dim);color:var(--red);}
 .sidebar-footer{padding:14px 16px;border-top:1px solid var(--sb-border);margin-top:auto;}
 
 /* ── COMING SOON SECTION ── */
 .coming-soon-toggle{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:var(--radius-sm);cursor:pointer;font-size:13.5px;font-weight:400;color:var(--sb-text2);transition:all var(--tr);margin-bottom:1px;border:1px solid transparent;user-select:none;justify-content:space-between;}
-.coming-soon-toggle:hover{color:#f0ede8;background:var(--sb-hover);}
+.coming-soon-toggle:hover{color:var(--sb-text-hover);background:var(--sb-hover);}
 .coming-soon-toggle .nav-icon{opacity:0.5;}
 .coming-soon-badge{font-family:'DM Mono',monospace;font-size:12.5px;padding:2px 7px;border-radius:8px;background:rgba(201,168,76,0.15);color:var(--accent);border:1px solid rgba(201,168,76,0.2);letter-spacing:0.06em;text-transform:uppercase;flex-shrink:0;}
 .coming-soon-arrow{font-size:12.5px;color:var(--sb-text2);transition:transform 0.2s;margin-left:auto;}
@@ -2714,10 +2718,10 @@ body[data-page="settings"]{
     linear-gradient(180deg, color-mix(in srgb,var(--bg) 97%, #fff) 0%, var(--bg) 100%);
 }
 
-/* sidebar: reduce harsh black slab feeling */
+/* sidebar: soft themed surface (light gray on light, dark on dark) */
 .sidebar{
   background:
-    linear-gradient(180deg, rgba(15,18,28,.96) 0%, rgba(12,15,24,.94) 100%) !important;
+    linear-gradient(180deg, color-mix(in srgb,var(--sb-bg) 96%, #fff) 0%, var(--sb-bg) 100%) !important;
   box-shadow: 8px 0 24px rgba(0,0,0,.10) !important;
 }
 .sidebar::after{
@@ -2734,8 +2738,8 @@ body[data-page="settings"]{
   background:transparent !important;
 }
 .nav-item:hover{
-  background:rgba(255,255,255,.025) !important;
-  border-color:rgba(201,168,76,.06) !important;
+  background:var(--sb-hover) !important;
+  border-color:rgba(201,168,76,.18) !important;
 }
 .nav-item.active{
   background:
@@ -3847,7 +3851,7 @@ const DEF_SETTINGS = {
   bizName:'',ownerName:'',email:'',phone:'',address:'',vat:'',regNum:'',website:'',
   prefix:'INV-2026-',currency:'£',taxRate:20,terms:'Net 30',
   notes:'Thank you for your business.',template:'classic',
-  theme:'dark',accentColour:'#c9a84c',bizLogo:''
+  theme:'light',accentColour:'#c9a84c',bizLogo:''
 };
 
 const SEED_INV = [];
@@ -4599,6 +4603,7 @@ function switchSettingsTab(tab,el){
   document.querySelectorAll('.settings-nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('settings-'+tab).classList.add('active'); el.classList.add('active');
   if(tab==='branding') buildPalette();
+  if(tab==='devices') loadDevicesPanel();
 }
 function updateSidebarProfile(){
   const s=APP.settings;
@@ -6762,10 +6767,10 @@ body[data-page="settings"]{
     linear-gradient(180deg, color-mix(in srgb,var(--bg) 97%, #fff) 0%, var(--bg) 100%);
 }
 
-/* sidebar: reduce harsh black slab feeling */
+/* sidebar: soft themed surface (light gray on light, dark on dark) */
 .sidebar{
   background:
-    linear-gradient(180deg, rgba(15,18,28,.96) 0%, rgba(12,15,24,.94) 100%) !important;
+    linear-gradient(180deg, color-mix(in srgb,var(--sb-bg) 96%, #fff) 0%, var(--sb-bg) 100%) !important;
   box-shadow: 8px 0 24px rgba(0,0,0,.10) !important;
 }
 .sidebar::after{
@@ -6782,8 +6787,8 @@ body[data-page="settings"]{
   background:transparent !important;
 }
 .nav-item:hover{
-  background:rgba(255,255,255,.025) !important;
-  border-color:rgba(201,168,76,.06) !important;
+  background:var(--sb-hover) !important;
+  border-color:rgba(201,168,76,.18) !important;
 }
 .nav-item.active{
   background:
@@ -8476,6 +8481,7 @@ function renderAppShell() {
         <div class="settings-nav-item" onclick="switchSettingsTab('branding',this)">Brand & Colours</div>
         <div class="settings-nav-item" onclick="switchSettingsTab('appearance',this)">Appearance</div>
         <div class="settings-nav-item" onclick="switchSettingsTab('data',this)">Data & Export</div>
+        <div class="settings-nav-item" data-settings-tab="devices" onclick="switchSettingsTab('devices',this)">Devices</div>
         <div class="settings-nav-item" data-settings-tab="roadmap" onclick="switchSettingsTab('roadmap',this)">Cloud Protect & Roadmap</div>
         <div class="settings-nav-item" onclick="switchSettingsTab('about',this)">About</div>
       </div>
@@ -8613,6 +8619,21 @@ function renderAppShell() {
           </div>
         </div>
 
+
+        <!-- Devices -->
+        <div class="settings-section" id="settings-devices">
+          <div class="settings-card">
+            <div class="settings-title">Your Devices</div>
+            <div style="font-size:13.5px;color:var(--text2);line-height:1.8;margin-bottom:18px;">
+              Your licence can be activated on a limited number of devices. Each browser or installed app counts as one activation. If you've run out of slots, remove a device you no longer use to free one up.
+            </div>
+            <div id="devicesSummary" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--text);"></div>
+            <div id="devicesList"></div>
+            <div style="margin-top:16px;">
+              <button class="btn btn-ghost btn-sm" type="button" onclick="loadDevicesPanel()">Refresh</button>
+            </div>
+          </div>
+        </div>
 
         <!-- Cloud Protect / Roadmap -->
         <div class="settings-section" id="settings-roadmap">
@@ -9316,7 +9337,7 @@ function saveGDriveClientId() {
 // ================================================================
 // NOTE: renderAppShell() is called by bootSplash() only after
 // licence is verified. Nothing below runs before the shell exists.
-applyTheme(APP.theme||'dark');
+applyTheme(APP.theme||'light');
 applyAccentColour(APP.settings.accentColour||'#c9a84c');
 
 // ================================================================
@@ -9345,20 +9366,266 @@ function saveLicenceData(data) {
   try { idbSet(LICENCE_STORE, JSON.stringify(data)).catch(() => {}); } catch(e) {}
 }
 
+// ================================================================
+// LICENCE SECURITY — ES256 token verification + device management
+// ================================================================
+const LICENCE_API = 'https://invokit-licence.engineeringstenis.workers.dev';
+const LICENCE_CLIENT_VER = '20-es256';
+// Public half of the activation-signing keypair. Safe to ship — it can only
+// VERIFY tokens, never mint them. The private key lives only in the Worker.
+const ACTIVATION_PUBLIC_KEY_JWK = {"kty":"EC","crv":"P-256","x":"ybrEfbuqM0uk4w6mVRvUwhUkJSfmYdk18IQkQ_Zc950","y":"uhgTScJSvGLHxARcqcHxYaEjUvDRQKh9bQd2tlUcPX0"};
+// After this date, a valid ES256 token is REQUIRED to unlock offline. Before it,
+// existing (pre-ES256) activations are still trusted so nobody gets locked out
+// mid-migration; every online boot upgrades them to a real token.
+const LICENCE_MIGRATION_DEADLINE = Date.parse('2026-09-30T23:59:59Z');
+// How long a device may stay offline past its 30-day recheck before it must reconnect.
+const LICENCE_RECHECK_GRACE_DAYS = 21;
+
+function getInstallId() {
+  let id = null;
+  try { id = localStorage.getItem('invokit_install_id'); } catch(e) {}
+  if (!id) {
+    id = (crypto.randomUUID ? crypto.randomUUID() : 'install-' + Date.now() + '-' + Math.random().toString(36).slice(2));
+    try { localStorage.setItem('invokit_install_id', id); } catch(e) {}
+  }
+  return id;
+}
+
+function b64urlToBytes(s) {
+  s = String(s || '').replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  const bin = atob(s);
+  const u = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return u;
+}
+
+let _activationPubKey = null;
+function getActivationPublicKey() {
+  if (!_activationPubKey) {
+    _activationPubKey = crypto.subtle.importKey('jwk', ACTIVATION_PUBLIC_KEY_JWK,
+      { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
+  }
+  return _activationPubKey;
+}
+
+// Returns { valid, payload } for a genuine ES256 token, or { valid:false }.
+async function verifyActivationToken(token) {
+  try {
+    if (!token || typeof token !== 'string') return { valid: false };
+    const parts = token.split('.');
+    if (parts.length !== 3) return { valid: false };
+    const header = JSON.parse(new TextDecoder().decode(b64urlToBytes(parts[0])));
+    if (header.alg !== 'ES256') return { valid: false };
+    const key = await getActivationPublicKey();
+    const ok = await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, key,
+      b64urlToBytes(parts[2]), new TextEncoder().encode(parts[0] + '.' + parts[1]));
+    if (!ok) return { valid: false };
+    const payload = JSON.parse(new TextDecoder().decode(b64urlToBytes(parts[1])));
+    return { valid: true, payload };
+  } catch (e) { return { valid: false }; }
+}
+
+// One online round-trip to the Worker. Returns { ok, activation } or { ok:false, offline }.
+async function revalidateOnline(key, installId) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    const res = await fetch(LICENCE_API + '/validate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, installId, deviceName: navigator.userAgent || 'Unknown device', appVersion: LICENCE_CLIENT_VER }),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    // Treat server errors (5xx) like being offline so a Worker hiccup or a
+    // mis-deploy can't lock out paying users — the offline grace covers them.
+    // A genuine 4xx (invalid/revoked key) still falls through and blocks.
+    if (res.status >= 500) return { ok: false, offline: true, error: 'Server error' };
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) return { ok: false, error: data.error || 'Validation failed' };
+    return { ok: true, activation: data.activation };
+  } catch (e) {
+    clearTimeout(timeout);
+    return { ok: false, offline: true, error: e && e.message };
+  }
+}
+
+// Re-fetch a fresh ES256 token using the stored key, and persist it.
+async function tryUpgradeLicence(ld, installId) {
+  if (!ld || !ld.key) return { ok: false };
+  const r = await revalidateOnline(ld.key, installId);
+  if (r.ok && r.activation) {
+    const licenceMeta = r.activation.licence || ld.licenceMeta || {};
+    saveLicenceData({
+      status: 'active', key: ld.key, installId,
+      activatedAt: ld.activatedAt || Date.now(),
+      activationToken: r.activation.token || '',
+      licenceMeta
+    });
+    return { ok: true, licenceMeta };
+  }
+  return { ok: false, offline: r.offline };
+}
+
+// The boot gate. Decides whether a stored 'active' licence may unlock the app.
+async function verifyLicenceForBoot(ld) {
+  const installId = getInstallId();
+  const now = Date.now();
+  const tokenRes = await verifyActivationToken(ld.activationToken);
+
+  if (tokenRes.valid) {
+    const p = tokenRes.payload;
+    // Bind the token to this physical device.
+    if (p.installId && p.installId !== installId) {
+      return { ok: false, message: 'This licence is activated on a different device.' };
+    }
+    // Hard licence expiry (annual plans).
+    if (p.expiresAt && Date.parse(p.expiresAt) < now) {
+      const up = await tryUpgradeLicence(ld, installId);
+      if (up.ok) return up;
+      return { ok: false, message: 'Your licence has expired. Please renew to continue.' };
+    }
+    // Periodic online recheck with an offline grace window.
+    const recheck = p.recheckAfter ? Date.parse(p.recheckAfter) : (now + 1);
+    if (now > recheck) {
+      const up = await tryUpgradeLicence(ld, installId);
+      if (up.ok) return up;
+      const graceEnd = recheck + LICENCE_RECHECK_GRACE_DAYS * 864e5;
+      if (now < graceEnd) return { ok: true, licenceMeta: ld.licenceMeta };
+      return { ok: false, message: 'Please reconnect to the internet to verify your licence.' };
+    }
+    return { ok: true, licenceMeta: ld.licenceMeta };
+  }
+
+  // No valid ES256 token — either a pre-ES256 (legacy) activation, or a forgery.
+  const up = await tryUpgradeLicence(ld, installId);
+  if (up.ok) return up;
+  // During the migration window, keep trusting existing activations ONLY when we
+  // couldn't reach the server (offline), so genuine customers on old builds aren't
+  // locked out. If the server was reachable and rejected the key, block. Window
+  // closes after the deadline, after which a valid signed token is mandatory.
+  if (up.offline && ld.key && now < LICENCE_MIGRATION_DEADLINE) {
+    return { ok: true, licenceMeta: ld.licenceMeta };
+  }
+  return { ok: false, message: 'Please reconnect to the internet to verify your licence.' };
+}
+
+// ---- Devices panel (Settings → Devices) ----
+function fmtDeviceDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+function shortDeviceName(ua) {
+  ua = String(ua || '');
+  let os = /Windows/i.test(ua) ? 'Windows' : /iPhone|iPad|iOS/i.test(ua) ? 'iOS' : /Android/i.test(ua) ? 'Android' : /Mac/i.test(ua) ? 'Mac' : /Linux/i.test(ua) ? 'Linux' : '';
+  let br = /Edg\//i.test(ua) ? 'Edge' : /Chrome\//i.test(ua) ? 'Chrome' : /Firefox\//i.test(ua) ? 'Firefox' : /Safari\//i.test(ua) ? 'Safari' : 'Browser';
+  return (br + (os ? ' · ' + os : '')) || 'Unknown device';
+}
+
+async function loadDevicesPanel() {
+  const list = document.getElementById('devicesList');
+  const summary = document.getElementById('devicesSummary');
+  if (!list) return;
+  const ld = getLicenceData();
+  if (!ld || !ld.key || ld.status === 'demo') {
+    summary.style.display = 'none';
+    list.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:16px;text-align:center;">Device management is available once your licence is activated.</div>';
+    return;
+  }
+  list.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:16px;text-align:center;">Loading your devices…</div>';
+  const installId = getInstallId();
+  try {
+    const res = await fetch(LICENCE_API + '/devices', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: ld.key, installId })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      list.innerHTML = '<div style="font-size:13px;color:var(--red);padding:16px;text-align:center;">' + (data.error || 'Could not load devices.') + '</div>';
+      summary.style.display = 'none';
+      return;
+    }
+    renderDevicesList(data);
+  } catch (e) {
+    summary.style.display = 'none';
+    list.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:16px;text-align:center;">Couldn\'t reach the licence server. Check your internet connection and try again.</div>';
+  }
+}
+
+function renderDevicesList(data) {
+  const list = document.getElementById('devicesList');
+  const summary = document.getElementById('devicesSummary');
+  const devices = data.devices || [];
+  const used = data.used != null ? data.used : devices.length;
+  const limit = data.deviceLimit || 1;
+  summary.style.display = 'block';
+  summary.innerHTML = '<strong>' + used + ' of ' + limit + '</strong> activation' + (limit === 1 ? '' : 's') + ' in use'
+    + (used >= limit ? ' — <span style="color:var(--amber)">all slots full</span>' : '');
+  if (!devices.length) {
+    list.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:16px;text-align:center;">No active devices found.</div>';
+    return;
+  }
+  list.innerHTML = devices.map(function(dv) {
+    const name = shortDeviceName(dv.deviceName);
+    const isCurrent = dv.current;
+    const removeBtn = isCurrent
+      ? '<span style="font-size:11px;color:var(--text3);font-family:\'DM Mono\',monospace;">This device</span>'
+      : '<button class="btn btn-ghost btn-sm" type="button" onclick="removeDevice(' + JSON.stringify(dv.installId) + ')">Remove</button>';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface2);border:1px solid ' + (isCurrent ? 'var(--accent-border)' : 'var(--border)') + ';border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;">'
+      + '<div style="min-width:0;">'
+      + '<div style="font-size:13.5px;color:var(--text);font-weight:500;">' + name + '</div>'
+      + '<div style="font-size:11.5px;color:var(--text3);font-family:\'DM Mono\',monospace;margin-top:2px;">Last used ' + fmtDeviceDate(dv.lastSeenAt) + '</div>'
+      + '</div>'
+      + '<div style="flex-shrink:0;">' + removeBtn + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+async function removeDevice(targetInstallId) {
+  const ld = getLicenceData();
+  if (!ld || !ld.key) return;
+  if (!confirm('Remove this device? It will need to re-activate with your licence key to use the app again.')) return;
+  const installId = getInstallId();
+  try {
+    const res = await fetch(LICENCE_API + '/deactivate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: ld.key, installId, targetInstallId })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) { showToast(data.error || 'Could not remove device'); return; }
+    showToast('Device removed — a slot is now free');
+    loadDevicesPanel();
+  } catch (e) {
+    showToast('Couldn\'t reach the licence server');
+  }
+}
+
 async function bootSplash() {
   await hydrateAppFromBestStorage({ reason: 'pre-boot' });
   const ld = await getLicenceDataAsync();
 
-  // Already activated — inject app shell then go straight to app
+  // Already activated — verify the signed licence before unlocking.
   if (ld && ld.status === 'active') {
-    const savedPlan = String(ld.licenceMeta?.plan || 'lifetime').toLowerCase();
-    const savedFeatures = ld.licenceMeta?.features || {};
-    APP.plan = savedPlan;
-    APP.planFeatures = savedFeatures;
-    renderAppShell();
-    initAppAfterShell();
-    if (savedPlan === 'free') applyFreePlanUI();
-    dismissSplash(false);
+    const gate = await verifyLicenceForBoot(ld);
+    if (gate.ok) {
+      const meta = gate.licenceMeta || ld.licenceMeta || {};
+      const savedPlan = String(meta.plan || 'lifetime').toLowerCase();
+      const savedFeatures = meta.features || {};
+      APP.plan = savedPlan;
+      APP.planFeatures = savedFeatures;
+      renderAppShell();
+      initAppAfterShell();
+      if (savedPlan === 'free') applyFreePlanUI();
+      dismissSplash(false);
+      return;
+    }
+    // Verification failed (tampered, expired, or needs reconnection) — send to licence screen.
+    document.getElementById('splashScreen').style.display = 'none';
+    showLicenceScreen();
+    if (gate.message) showLicenceMsg(gate.message, 'error');
+    document.body.style.overflow = 'hidden';
     return;
   }
   if (ld && ld.status === 'demo') {

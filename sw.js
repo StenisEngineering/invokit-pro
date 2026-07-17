@@ -1,4 +1,4 @@
-const CACHE = 'invokit-v20-bold-totals';
+const CACHE = 'invokit-v21-licence-security';
 const SHELL = [
   '/',
   '/index.html',
