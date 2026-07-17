@@ -191,7 +191,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-
 .stat-card.c-red::after{background:var(--red);}
 .stat-card.c-blue::after{background:var(--blue);}
 .stat-label{font-family:'DM Mono',monospace;font-size:12.5px;color:var(--text3);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:9px;}
-.stat-value{font-family:'Cormorant Garamond',serif;font-size:29px;font-weight:500;line-height:1;letter-spacing:-0.02em;}
+.stat-value{font-family:'Cormorant Garamond',serif;font-size:25px;font-weight:600;line-height:1;letter-spacing:-0.02em;}
 .stat-change{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;margin-top:8px;padding:3px 8px;border-radius:4px;}
 .stat-change.up{color:var(--green);background:var(--green-dim);}
 .stat-change.down{color:var(--red);background:var(--red-dim);}
@@ -3156,7 +3156,10 @@ body .demo-mode-banner a{
   }
 
   /* dashboard */
-  .stats-grid,
+  .stats-grid{
+    grid-template-columns:1fr 1fr !important;
+    gap:12px !important;
+  }
   .dashboard-grid,
   .overview-grid{
     grid-template-columns:1fr !important;
@@ -4013,6 +4016,12 @@ function checkOverdue() {
 // ================================================================
 function buildDashboard() {
   const now = new Date();
+  const s = APP.settings || {};
+  const first = (s.ownerName || '').trim().split(/\s+/)[0];
+  const h = now.getHours();
+  const part = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  const greetEl = document.getElementById('dashGreeting');
+  if (greetEl) greetEl.textContent = first ? `${part}, ${first}` : 'Dashboard';
   document.getElementById('dashSubtitle').textContent =
     now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   renderStats(); buildBarChart(); renderDonut(); renderDashTable();
@@ -7207,7 +7216,10 @@ body .demo-mode-banner a{
   }
 
   /* dashboard */
-  .stats-grid,
+  .stats-grid{
+    grid-template-columns:1fr 1fr !important;
+    gap:12px !important;
+  }
   .dashboard-grid,
   .overview-grid{
     grid-template-columns:1fr !important;
@@ -8255,7 +8267,7 @@ function renderAppShell() {
 <div class="page active" id="page-dashboard">
   <header class="topbar">
     <button class="mob-menu-btn" onclick="toggleMobSidebar()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-    <div><div class="page-title">Dashboard</div><div class="page-subtitle" id="dashSubtitle">—</div></div>
+    <div><div class="page-title" id="dashGreeting">Dashboard</div><div class="page-subtitle" id="dashSubtitle">—</div></div>
     <div class="topbar-actions">
       <button class="btn btn-ghost" onclick="exportCSV()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export CSV</button>
       <button class="btn btn-ghost" onclick="openQuoteEditor()">+ New Quote</button><button class="btn btn-primary" onclick="openEditor()">+ New Invoice</button>
@@ -9718,6 +9730,13 @@ function dismissSplash(animate=true, isNewActivation=false) {
   document.body.style.overflow = '';
   // Show backup reminder shortly after new activation if user has data
   if (isNewActivation) {
+    const name = (APP.settings?.ownerName || '').trim().split(/\s+/)[0];
+    showToast(name ? `Welcome to InvoKit Pro, ${name}!` : 'Welcome to InvoKit Pro!');
+    // No business profile yet → gently nudge them to set it up (needed for invoices)
+    const noProfile = !(APP.settings?.bizName || '').trim();
+    if (noProfile) {
+      setTimeout(() => showToast('Tip: add your business details in Settings to start invoicing'), 3400);
+    }
     setTimeout(() => {
       if (hasBusinessData() && shouldShowBackupReminder()) showBackupReminder();
     }, 2000);
