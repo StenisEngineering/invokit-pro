@@ -9,7 +9,7 @@ Benchmarked against modern apps (Stripe, Wave, Notion, Linear, polished mobile-f
 - [x] **4. Primary action on mobile** — DONE 2026-07-18. Speed-dial FAB (`initFab`/`updateFab`/`fabDo`) bottom-right on mobile, shows on Dashboard + Invoices, expands to New Invoice / New Quote. Closes on outside-tap and back button. Hidden on desktop (topbar buttons stay).
 
 ## 🟡 Medium — consistency & polish
-- [ ] **5. Design-token system** — root cause of most rough edges: 529 `!important`, ~14 stacked override blocks, page-title defined 11×, duplicated print styles. Establish one scale for type / spacing / radius / colour. Highest-leverage but invasive.
+- [~] **5. Design-token system** — FOUNDATION DONE 2026-07-18. Added a token vocabulary in `:root` (type scale `--fs-2xs`…`--fs-display`, `--fw-*` weights, `--lh-*` line-heights, `--sp-*` spacing). Tokenised the semantic hierarchy (page-title, stat-value, card-title, settings-title, editor-title, field-label, card-meta, btn). Snapped all sloppy half-pixel sizes (11.5/12.5/13.5/14.5/12.8/10.5) onto the clean scale — the main "no irregularities" win. Verified desktop/tablet/mobile, no overflow. STILL TO DO (follow-on stages): adopt `--sp-*` spacing + colour tokens across rules, tokenise the remaining off-scale sizes (19/21/23/24/28/34), and remove the 529 `!important` overrides now that a clean base exists.
 - [ ] **6. Accessibility pass** — only 4 `aria-label`, 0 `role=`, 2 `focus-visible`. Add ARIA, roles, focus-visible, keyboard nav.
 - [ ] **7. Richer empty states** — turn "No documents found" into a CTA ("No invoices yet — Create your first →").
 - [ ] **8. Replace native confirm()** — device removal uses browser `confirm()`; everything else uses the styled modal. Make it consistent.
