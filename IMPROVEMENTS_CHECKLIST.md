@@ -6,7 +6,7 @@ Benchmarked against modern apps (Stripe, Wave, Notion, Linear, polished mobile-f
 - [x] **1. Touch targets → 44px+** — DONE 2026-07-18 (`invokit-touch-targets` style block, ≤768px, !important to beat mobile-pass 38/42px rules). Verified all controls ≥44px on mobile across screens; desktop unaffected.
 - [x] **2. Offline / connection indicator** — DONE 2026-07-18 (`initOfflineIndicator` injects a subtle bottom-left "Offline" pill; "Back online" toast on reconnect).
 - [x] **3. Undo on delete** — DONE 2026-07-18 (`showUndoToast`; invoice delete now deletes immediately + "Undo" restores). NOTE: clients & catalogue deletes still use the confirm modal — extend undo to them later.
-- [ ] **4. Primary action on mobile** — "New Invoice" is top-right; move to a floating button (FAB) or bottom bar for thumb reach.
+- [x] **4. Primary action on mobile** — DONE 2026-07-18. Speed-dial FAB (`initFab`/`updateFab`/`fabDo`) bottom-right on mobile, shows on Dashboard + Invoices, expands to New Invoice / New Quote. Closes on outside-tap and back button. Hidden on desktop (topbar buttons stay).
 
 ## 🟡 Medium — consistency & polish
 - [ ] **5. Design-token system** — root cause of most rough edges: 529 `!important`, ~14 stacked override blocks, page-title defined 11×, duplicated print styles. Establish one scale for type / spacing / radius / colour. Highest-leverage but invasive.
