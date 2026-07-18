@@ -3488,6 +3488,21 @@ body .demo-mode-banner a{
 }
 </style>
 
+<style id="invokit-touch-targets">
+/* Comfortable tap sizes on touch/small screens (44px min per Apple/Material).
+   !important is needed to beat earlier mobile-pass rules (e.g. filter-btn 38px). */
+@media (max-width:768px){
+  .btn, .icon-btn, .filter-btn, .mob-menu-btn, .status-sel,
+  .field-input, input:not([type=checkbox]):not([type=radio]), select, textarea{
+    min-height:44px !important;
+  }
+  .icon-btn, .mob-menu-btn{min-width:44px !important;}
+  textarea{min-height:88px !important;}
+  /* beat the more-specific 42px topbar/footer button rules */
+  .topbar .btn, .topbar .icon-btn, .header-actions .btn, .editor-footer .btn{min-height:44px !important;}
+}
+</style>
+
 </head>
 <body>
 
@@ -7609,11 +7624,17 @@ function exportCSV(){
 // DELETE / CONFIRM / RESET
 // ================================================================
 function confirmDelete(id){
-  const inv=APP.invoices.find(i=>i.id===id);
-  document.getElementById('confirmTitle').textContent=(inv?.documentType==='quote'?'Delete Quote':'Delete Invoice');
-  document.getElementById('confirmMsg').textContent=`Delete ${id} for ${inv?.client}? Cannot be undone.`;
- document.getElementById('confirmOkBtn').onclick=()=>{APP.invoices=APP.invoices.filter(i=>i.id!==id);persist();refreshAll();closeConfirm();showToast(inv?.documentType==='quote'?'Quote deleted':'Invoice deleted');};
-  document.getElementById('confirmOverlay').classList.add('open');
+  const idx=APP.invoices.findIndex(i=>i.id===id);
+  if(idx<0)return;
+  const inv=APP.invoices[idx];
+  const label=inv.documentType==='quote'?'Quote':'Invoice';
+  APP.invoices.splice(idx,1);
+  persist(); refreshAll();
+  showUndoToast(label+' deleted', ()=>{
+    APP.invoices.splice(Math.min(idx,APP.invoices.length),0,inv);
+    persist(); refreshAll();
+    showToast(label+' restored');
+  });
 }
 function confirmReset(){
   document.getElementById('confirmTitle').textContent='Reset All Data';
@@ -7644,7 +7665,22 @@ function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):'';}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function gv(id){const el=document.getElementById(id);return el?el.value:'';}
 function setValue(id,v){const el=document.getElementById(id);if(el) el.value=v;}
-function showToast(msg){const t=document.getElementById('toast');document.getElementById('toastMsg').textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3000);}
+function showToast(msg){const t=document.getElementById('toast');const b=document.getElementById('toastUndoBtn');if(b)b.remove();document.getElementById('toastMsg').textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3000);}
+
+// Toast with an Undo action — modern "delete then undo" pattern
+function showUndoToast(msg, onUndo, ms=6000){
+  const t=document.getElementById('toast');
+  document.getElementById('toastMsg').textContent=msg;
+  let btn=document.getElementById('toastUndoBtn'); if(btn) btn.remove();
+  btn=document.createElement('button');
+  btn.id='toastUndoBtn'; btn.type='button'; btn.textContent='Undo';
+  btn.style.cssText='margin-left:auto;background:transparent;border:none;color:var(--accent);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;padding:6px 8px;min-height:32px;';
+  btn.onclick=()=>{ clearTimeout(t._t); t.classList.remove('show'); btn.remove(); try{ onUndo && onUndo(); }catch(e){} };
+  t.appendChild(btn);
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t=setTimeout(()=>{ t.classList.remove('show'); btn.remove(); }, ms);
+}
 
 // ================================================================
 // PWA — Service Worker + Install prompt
@@ -9180,6 +9216,24 @@ function initAppAfterShell() {
     brandEl.addEventListener('click', goToDashboardHome);
   }
   startAutoTooltips();
+  initOfflineIndicator();
+}
+
+// Subtle connection-status pill — informational (offline is normal for this app)
+function initOfflineIndicator(){
+  let pill=document.getElementById('offlinePill');
+  if(!pill){
+    pill=document.createElement('div');
+    pill.id='offlinePill';
+    pill.setAttribute('role','status');
+    pill.innerHTML='<span style="width:7px;height:7px;border-radius:50%;background:#e05a5a;display:inline-block;flex-shrink:0"></span> Offline';
+    pill.style.cssText='position:fixed;bottom:16px;left:16px;z-index:9997;display:none;align-items:center;gap:7px;background:var(--surface);color:var(--text2);border:1px solid var(--border);border-radius:999px;padding:8px 14px;font-size:12.5px;font-family:Outfit,sans-serif;box-shadow:0 6px 20px var(--shadow-lg);';
+    document.body.appendChild(pill);
+  }
+  const update=()=>{ pill.style.display = navigator.onLine ? 'none' : 'inline-flex'; };
+  window.addEventListener('online', ()=>{ update(); showToast('Back online'); });
+  window.addEventListener('offline', update);
+  update();
 }
 
 // ================================================================
