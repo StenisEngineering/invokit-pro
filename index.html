@@ -4132,15 +4132,39 @@ function buildDashboard() {
 
 function renderStats() {
   const inv=APP.invoices, sym=APP.settings.currency||'£';
-  const paid=inv.filter(i=>i.status==='paid').reduce((s,i)=>s+i.amount,0);
-  const out=inv.filter(i=>i.status==='pending'||i.status==='overdue').reduce((s,i)=>s+i.amount,0);
-  const pc=inv.filter(i=>i.status==='paid').length;
+  const paidList=inv.filter(i=>i.status==='paid');
+  const unpaidList=inv.filter(i=>i.status==='pending'||i.status==='overdue');
+  const overdueList=inv.filter(i=>i.status==='overdue');
+  const paid=paidList.reduce((s,i)=>s+i.amount,0);
+  const out=unpaidList.reduce((s,i)=>s+i.amount,0);
+  const pc=paidList.length;
+  const overdue=overdueList.length;
+  const overdueAmt=overdueList.reduce((s,i)=>s+i.amount,0);
+  const invoiced=paid+out;
+  const rate=invoiced>0?Math.round(paid/invoiced*100):0;
   const avg=inv.length?Math.round(inv.reduce((s,i)=>s+i.amount,0)/inv.length):0;
+  const up='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>';
+  const down='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>';
+  // Insightful, plain-English sub-lines that describe what the number means
+  const paidSub = pc ? `Received from ${pc} paid invoice${pc===1?'':'s'}` : 'No payments received yet';
+  const outSub  = overdue>0 ? `${overdue} overdue · ${sym}${overdueAmt.toLocaleString()}`
+                : unpaidList.length ? `${unpaidList.length} invoice${unpaidList.length===1?'':'s'} awaiting payment`
+                : 'Nothing outstanding — all settled';
+  const rateSub = invoiced>0 ? `${pc} of ${paidList.length+unpaidList.length} invoices paid` : 'Send an invoice to start tracking';
+  const avgSub  = inv.length ? `Across ${inv.length} invoice${inv.length===1?'':'s'}` : 'No invoices yet';
   document.getElementById('statsGrid').innerHTML = `
-    <div class="stat-card c-accent"><div class="stat-label">Total Paid</div><div class="stat-value">${sym}${paid.toLocaleString()}</div><div class="stat-change up"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg> ${pc} invoices</div></div>
-    <div class="stat-card c-red"><div class="stat-label">Outstanding</div><div class="stat-value">${sym}${out.toLocaleString()}</div><div class="stat-change down"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg> Awaiting</div></div>
-    <div class="stat-card c-green"><div class="stat-label">Paid Invoices</div><div class="stat-value">${pc}</div><div class="stat-change up">of ${inv.length} total</div></div>
-    <div class="stat-card c-blue"><div class="stat-label">Avg Invoice</div><div class="stat-value">${sym}${avg.toLocaleString()}</div><div class="stat-change neutral">Per invoice</div></div>`;
+    <div class="stat-card c-accent" title="Total value of invoices you've marked as paid — money actually received.">
+      <div class="stat-label">Total Paid</div><div class="stat-value">${sym}${paid.toLocaleString()}</div>
+      <div class="stat-change up">${up} ${paidSub}</div></div>
+    <div class="stat-card c-red" title="Money still owed to you across unpaid and overdue invoices.">
+      <div class="stat-label">Outstanding</div><div class="stat-value">${sym}${out.toLocaleString()}</div>
+      <div class="stat-change ${overdue>0?'down':'neutral'}">${overdue>0?down+' ':''}${outSub}</div></div>
+    <div class="stat-card c-green" title="Share of everything you've invoiced that customers have paid. Higher is healthier.">
+      <div class="stat-label">Collection Rate</div><div class="stat-value">${rate}%</div>
+      <div class="stat-change ${rate>=70?'up':'neutral'}">${rateSub}</div></div>
+    <div class="stat-card c-blue" title="Your typical invoice size — average value across all invoices.">
+      <div class="stat-label">Avg Invoice</div><div class="stat-value">${sym}${avg.toLocaleString()}</div>
+      <div class="stat-change neutral">${avgSub}</div></div>`;
 }
 
 function buildBarChart() {
@@ -4181,7 +4205,14 @@ function renderInvTable() {
 function renderTableInto(id, data) {
   const sym=APP.settings.currency||'£', tbody=document.getElementById(id);
   const today=new Date().toISOString().split('T')[0];
-  if (!data.length) { tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg></div>No documents found</div></td></tr>`; return; }
+  if (!data.length) {
+    const empty = !APP.invoices.length;
+    const msg  = empty ? 'No invoices yet' : 'No matching invoices';
+    const hint = empty ? 'Create your first invoice — it\'ll appear here and on your dashboard.'
+                       : 'Try a different filter or clear your search.';
+    tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg></div><div style="font-weight:600;color:var(--text2);margin-top:6px">${msg}</div><div style="font-size:13px;color:var(--text3);margin-top:4px;max-width:320px;margin-left:auto;margin-right:auto;line-height:1.5">${hint}</div></div></td></tr>`;
+    return;
+  }
   tbody.innerHTML = data.map(inv=>`<tr onclick="openEditorForInvoice('${inv.id}')">
     <td data-label="Invoice"><span class="inv-num">${inv.id}</span><div style="font-size:11px;color:var(--text3);margin-top:2px">${inv.documentType==='quote'?'Quote':'Invoice'}</div></td>
     <td data-label="Client"><div class="client-name">${esc(inv.client)}</div>${inv.title?`<div style="font-size:12px;color:var(--text2);margin-top:1px">${esc(inv.title)}</div>`:''}<div class="client-email">${esc(inv.email)}</div></td>
