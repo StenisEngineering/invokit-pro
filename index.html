@@ -70,7 +70,7 @@
   --bg:#f5f4f1;--surface:#ffffff;--surface2:#f0eeea;
   --surface3:#e8e5e0;--surface4:#dedad4;
   --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
-  --text:#1a1814;--text2:#6b6560;--text3:#7a736a;
+  --text:#1a1814;--text2:#57524b;--text3:#6e675d;
   --green:#2d8a5e;--green-dim:rgba(45,138,94,0.1);
   --red:#c0392b;--red-dim:rgba(192,57,43,0.1);
   --blue:#2563c0;--blue-dim:rgba(37,99,192,0.1);
@@ -100,7 +100,7 @@
   --bg:#f2f0ec;--surface:#ffffff;--surface2:#f7f5f1;
   --surface3:#eeebe6;--surface4:#e4e1db;
   --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
-  --text:#1a1814;--text2:#6b6560;--text3:#7a736a;
+  --text:#1a1814;--text2:#57524b;--text3:#6e675d;
   --green:#2d8a5e;--green-dim:rgba(45,138,94,0.1);
   --red:#c0392b;--red-dim:rgba(192,57,43,0.1);
   --blue:#2563c0;--blue-dim:rgba(37,99,192,0.1);
@@ -200,7 +200,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-
 .stat-card.c-red::after{background:var(--red);}
 .stat-card.c-blue::after{background:var(--blue);}
 .stat-label{font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:9px;}
-.stat-value{font-family:'Cormorant Garamond',serif;font-size:var(--fs-2xl);font-weight:var(--fw-semibold);line-height:1;letter-spacing:-0.02em;}
+.stat-value{font-family:'Outfit',sans-serif;font-size:var(--fs-2xl);font-weight:var(--fw-semibold);line-height:1;letter-spacing:-0.01em;}
 .stat-change{display:inline-flex;align-items:center;gap:4px;font-size:12px;margin-top:8px;padding:3px 8px;border-radius:4px;}
 .stat-change.up{color:var(--green);background:var(--green-dim);}
 .stat-change.down{color:var(--red);background:var(--red-dim);}
@@ -388,6 +388,13 @@ select.field-input{appearance:none;background-image:url("data:image/svg+xml,%3Cs
 .del-btn{width:24px;height:24px;border-radius:var(--radius-xs);border:none;background:transparent;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all var(--tr);}
 .del-btn:hover{background:var(--red-dim);color:var(--red);}
 .add-item-btn{display:flex;align-items:center;gap:7px;padding:9px 13px;background:transparent;border:1px dashed var(--border2);border-radius:var(--radius-sm);color:var(--text3);font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer;width:100%;transition:all var(--tr);margin-bottom:20px;}
+/* Line-item add toolbar — sits at the TOP of the items table, clearly visible */
+.items-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:11px;}
+.add-item-primary{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--accent),#9a6e1c);color:#0c0c0e;font-family:'Outfit',sans-serif;font-size:var(--fs-sm);font-weight:var(--fw-semibold);cursor:pointer;box-shadow:0 4px 14px var(--accent-glow);transition:transform var(--tr),box-shadow var(--tr);}
+.add-item-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px var(--accent-glow);}
+.add-item-secondary{display:inline-flex;align-items:center;gap:6px;padding:9px 13px;border-radius:var(--radius-sm);border:1px dashed var(--border2);background:transparent;color:var(--text2);font-family:'Outfit',sans-serif;font-size:var(--fs-sm);cursor:pointer;transition:all var(--tr);}
+.add-item-secondary:hover{border-color:var(--accent);color:var(--accent);}
+@media(max-width:768px){ .add-item-primary{flex:1 1 100%;justify-content:center;min-height:44px;} .add-item-secondary{flex:1;justify-content:center;min-height:44px;} }
 .add-item-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
 .totals-section{display:flex;justify-content:flex-end;margin-bottom:20px;}
 .totals-box{width:296px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
@@ -8980,11 +8987,16 @@ function renderAppShell() {
         </div>
       </div>
     </div>
+    <div class="items-actions">
+      <button type="button" class="add-item-primary" onclick="addItem()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Item</button>
+      <button type="button" class="add-item-secondary" onclick="addHeading()">＋ Header</button>
+      <button type="button" class="add-item-secondary" onclick="addSubHeading()">＋ Sub-header</button>
+    </div>
     <div class="items-table">
       <div class="items-head" id="itemsHead"><span>Description</span><span>Qty</span><span>Unit Price</span><span>Amount</span><span></span></div>
       <div id="itemsContainer"></div>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px"><button class="add-item-btn" style="flex:1;margin-bottom:0" onclick="addItem()">＋ Add Line Item</button><button class="add-item-btn" style="flex:0 0 auto;margin-bottom:0" onclick="addHeading()">＋ Add Header</button><button class="add-item-btn" style="flex:0 0 auto;margin-bottom:0" onclick="addSubHeading()">＋ Add Sub-header</button></div>
+    <div style="margin-bottom:18px"></div>
     <div class="totals-section">
       <div class="totals-box">
         <div class="discount-row">
