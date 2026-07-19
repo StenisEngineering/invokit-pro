@@ -266,6 +266,7 @@ tbody td{padding:12px 20px;font-size:13px;}
 .sp-pending{background:var(--amber-dim);color:var(--amber);}
 .sp-overdue{background:var(--red-dim);color:var(--red);}
 .sp-draft{background:var(--surface3);color:var(--text3);}
+.sp-partial{background:var(--blue-dim);color:var(--blue);}
 .status-select-wrap{position:relative;display:inline-flex;}
 .status-sel{appearance:none;background:transparent;border:none;outline:none;cursor:pointer;font-family:'Outfit',sans-serif;font-size:12px;font-weight:500;color:inherit;padding-right:13px;}
 .status-sel-arrow{position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:12px;color:currentColor;pointer-events:none;}
@@ -4222,12 +4223,15 @@ function buildDashboard() {
 }
 
 function renderStats() {
-  const inv=APP.invoices, sym=APP.settings.currency||'£';
+  const inv=APP.invoices.filter(i=>i.documentType!=='quote'), sym=APP.settings.currency||'£';
   const paidList=inv.filter(i=>i.status==='paid');
-  const unpaidList=inv.filter(i=>i.status==='pending'||i.status==='overdue');
+  const partialList=inv.filter(i=>i.status==='partial');
+  const unpaidList=inv.filter(i=>i.status==='pending'||i.status==='overdue'||i.status==='partial');
   const overdueList=inv.filter(i=>i.status==='overdue');
-  const paid=paidList.reduce((s,i)=>s+i.amount,0);
-  const out=unpaidList.reduce((s,i)=>s+i.amount,0);
+  // money received = fully-paid invoices + amounts received on part-paid ones
+  const paid=paidList.reduce((s,i)=>s+Number(i.amount||0),0)+partialList.reduce((s,i)=>s+Number(i.paidAmount||0),0);
+  // outstanding = unpaid balances (part-paid counts only the remainder)
+  const out=inv.filter(i=>i.status==='pending'||i.status==='overdue').reduce((s,i)=>s+Number(i.amount||0),0)+partialList.reduce((s,i)=>s+Math.max(0,Number(i.amount||0)-Number(i.paidAmount||0)),0);
   const pc=paidList.length;
   const overdue=overdueList.length;
   const overdueAmt=overdueList.reduce((s,i)=>s+i.amount,0);
@@ -4309,13 +4313,15 @@ function renderTableInto(id, data) {
     <td data-label="Customer"><div class="client-name">${esc(inv.client)}</div>${inv.title?`<div style="font-size:12px;color:var(--text2);margin-top:1px">${esc(inv.title)}</div>`:''}<div class="client-email">${esc(inv.email)}</div></td>
     <td data-label="Issued" style="font-size:12px;color:var(--text2)">${fmtDate(inv.issued)}</td>
     <td data-label="Due" style="font-size:12px;color:var(--text2)">${inv.status==='overdue'?'<span class="overdue-dot"></span>':''}${fmtDate(inv.due)}</td>
-    <td data-label="Amount"><span class="amount">${getInvoiceCurrency(inv)}${inv.amount.toLocaleString()}</span></td>
-    <td data-label="Status" onclick="event.stopPropagation()"><span class="status-pill sp-${inv.status}"><div class="status-select-wrap"><select class="status-sel" onchange="changeStatus('${inv.id}',this.value)"><option value="paid"${inv.status==='paid'?' selected':''}>Paid</option><option value="pending"${inv.status==='pending'?' selected':''}>Pending</option><option value="overdue"${inv.status==='overdue'?' selected':''}>Overdue</option><option value="draft"${inv.status==='draft'?' selected':''}>Draft</option></select><span class="status-sel-arrow"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span></div></span></td>
+    <td data-label="Amount"><span class="amount">${getInvoiceCurrency(inv)}${inv.amount.toLocaleString()}</span>${inv.status==='partial'?`<div style="font-size:11px;color:var(--blue);margin-top:2px">${getInvoiceCurrency(inv)}${(Number(inv.amount)-Number(inv.paidAmount||0)).toLocaleString()} due</div>`:''}</td>
+    <td data-label="Status" onclick="event.stopPropagation()"><span class="status-pill sp-${inv.status}"><div class="status-select-wrap"><select class="status-sel" onchange="changeStatus('${inv.id}',this.value)"><option value="paid"${inv.status==='paid'?' selected':''}>Paid</option>${inv.status==='partial'?'<option value="partial" selected>Part-paid</option>':''}<option value="pending"${inv.status==='pending'?' selected':''}>Pending</option><option value="overdue"${inv.status==='overdue'?' selected':''}>Overdue</option><option value="draft"${inv.status==='draft'?' selected':''}>Draft</option></select><span class="status-sel-arrow"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span></div></span></td>
     <td class="td-actions"><div class="row-actions" onclick="event.stopPropagation()">
       <button class="icon-btn" title="Edit" onclick="openEditorForInvoice('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
       <button class="icon-btn" title="Preview" onclick="previewById('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      ${inv.documentType==='quote'?`<button class="icon-btn" title="Convert to Invoice" onclick="event.stopPropagation();convertQuoteToInvoice('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 11 17 15 13"/></svg></button>`:''}
       ${inv.status==='paid'?`<button class="icon-btn receipt-btn" title="View Receipt" onclick="event.stopPropagation();openReceiptById('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg> Receipt</button>`:''}
       <button class="icon-btn" title="Duplicate" onclick="duplicateInvoice('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+      ${inv.documentType!=='quote'&&inv.status!=='paid'?`<button class="icon-btn" title="Record payment" onclick="event.stopPropagation();openPaymentModal('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></button>`:''}
       <button class="icon-btn" title="PDF" onclick="downloadById('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
       <button class="icon-btn danger" title="Delete" onclick="confirmDelete('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div></td>
@@ -4821,7 +4827,7 @@ function printReceipt(){
 // ANALYTICS
 // ================================================================
 function renderAnalytics(){
-  const inv = APP.invoices, sym = APP.settings.currency || '£';
+  const inv = APP.invoices.filter(i=>i.documentType!=='quote'), sym = APP.settings.currency || '£';
   const paid = inv.filter(i=>i.status==='paid').reduce((s,i)=>s+Number(i.amount||0),0);
   const pend = inv.filter(i=>i.status==='pending').reduce((s,i)=>s+Number(i.amount||0),0);
   const over = inv.filter(i=>i.status==='overdue').reduce((s,i)=>s+Number(i.amount||0),0);
@@ -4862,8 +4868,22 @@ function renderAnalytics(){
     : null;
   document.getElementById('avgDaysToPay').innerHTML = `<div style="font-family:'Cormorant Garamond',serif;font-size:42px;font-weight:500;color:var(--blue);line-height:1;margin-bottom:5px">${avgDays === null ? '—' : avgDays}</div><div style="font-size:12px;color:var(--text3)">avg days to payment</div>`;
 
-  const counts = {paid:0,pending:0,overdue:0,draft:0}; inv.forEach(i=>counts[i.status]=(counts[i.status]||0)+1);
-  document.getElementById('statusBreakdown').innerHTML = [{k:'paid',l:'Paid',c:'var(--green)'},{k:'pending',l:'Pending',c:'var(--amber)'},{k:'overdue',l:'Overdue',c:'var(--red)'},{k:'draft',l:'Draft',c:'var(--text3)'}].map(s=>`<div class="progress-wrap"><div class="progress-label"><span class="pl-name">${s.l}</span><span class="pl-val">${counts[s.k]||0}</span></div><div class="progress-track"><div class="progress-fill" style="width:${inv.length?Math.round((counts[s.k]||0)/inv.length*100):0}%;background:${s.c}"></div></div></div>`).join('');
+  const counts = {paid:0,pending:0,overdue:0,partial:0,draft:0}; inv.forEach(i=>counts[i.status]=(counts[i.status]||0)+1);
+  document.getElementById('statusBreakdown').innerHTML = [{k:'paid',l:'Paid',c:'var(--green)'},{k:'partial',l:'Part-paid',c:'var(--blue)'},{k:'pending',l:'Pending',c:'var(--amber)'},{k:'overdue',l:'Overdue',c:'var(--red)'},{k:'draft',l:'Draft',c:'var(--text3)'}].map(s=>`<div class="progress-wrap"><div class="progress-label"><span class="pl-name">${s.l}</span><span class="pl-val">${counts[s.k]||0}</span></div><div class="progress-track"><div class="progress-fill" style="width:${inv.length?Math.round((counts[s.k]||0)/inv.length*100):0}%;background:${s.c}"></div></div></div>`).join('');
+
+  const sent = inv.filter(i=>i.status!=='draft' && i.documentType!=='quote');
+  const vatAll = sent.reduce((s,i)=>s+Number(i.tax||0),0);
+  const vatPaid = sent.filter(i=>i.status==='paid').reduce((s,i)=>s+Number(i.tax||0),0);
+  const netSales = sent.reduce((s,i)=>s+Math.max(0,Number(i.subtotal||i.amount||0)-Number(i.discount||0)),0);
+  const money=v=>sym+Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  const vatEl=document.getElementById('vatSummary');
+  if(vatEl) vatEl.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+      <div><div style="font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:5px">Net sales (ex&nbsp;VAT)</div><div style="font-size:20px;font-weight:600">${sym}${Math.round(netSales).toLocaleString()}</div></div>
+      <div><div style="font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:5px">VAT charged</div><div style="font-size:20px;font-weight:600;color:var(--accent)">${money(vatAll)}</div></div>
+      <div><div style="font-size:11px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:5px">VAT on paid invoices</div><div style="font-size:20px;font-weight:600;color:var(--green)">${money(vatPaid)}</div></div>
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:var(--text3);line-height:1.6;border-top:1px solid var(--border);padding-top:10px">VAT charged is the output VAT across all sent invoices; VAT on paid invoices is what you've collected so far. A summary to help with your return — confirm the figures with your accountant.</div>`;
 }
 
 // ================================================================
@@ -5018,7 +5038,7 @@ function openEditorForInvoice(id){
   document.body.style.overflow='hidden';
 }
 function closeEditor(){document.getElementById('editorOverlay').classList.remove('open');document.body.style.overflow='';}
-function handleOvClick(e,id){if(e.target===document.getElementById(id)){if(id==='editorOverlay') closeEditor();else if(id==='previewOverlay') closePreview();else if(id==='receiptOverlay') closeReceipt();else if(id==='clientModalOverlay') closeClientModal();else if(id==='catModalOverlay') closeCatModal();else if(id==='expenseModalOverlay') closeExpenseModal();else if(id==='recurringModal') closeRecurringModal();}}
+function handleOvClick(e,id){if(e.target===document.getElementById(id)){if(id==='editorOverlay') closeEditor();else if(id==='previewOverlay') closePreview();else if(id==='receiptOverlay') closeReceipt();else if(id==='clientModalOverlay') closeClientModal();else if(id==='catModalOverlay') closeCatModal();else if(id==='expenseModalOverlay') closeExpenseModal();else if(id==='paymentModalOverlay') closePaymentModal();else if(id==='recurringModal') closeRecurringModal();}}
 function clearEditor(){
   ['bizName','bizAddress','bizEmail','bizPhone','bizVAT','clientName','clientAddress','clientEmail','clientPhone','notes','docTitle'].forEach(id=>setValue(id,''));
   toggleDocTitle(false);
@@ -5050,6 +5070,69 @@ function duplicateInvoice(id){
   APP.invoices.unshift({...JSON.parse(JSON.stringify(inv)),id:newId,status:'draft',issued:new Date().toISOString().split('T')[0],due:new Date(Date.now()+30*864e5).toISOString().split('T')[0]});
   APP.nextNum=(APP.nextNum||1)+1; persist(); refreshAll(); showToast(`Duplicated as ${newId}`);
   openEditorForInvoice(newId);
+}
+
+// Turn an accepted quote into an invoice in one click
+function convertQuoteToInvoice(id){
+  if(!checkFreePlanInvoiceCap()) return;
+  const q=APP.invoices.find(i=>i.id===id);
+  if(!q || q.documentType!=='quote'){ showToast('Not a quote'); return; }
+  const prefix=APP.settings.prefix||'INV-2026-';
+  const newId=prefix+String(APP.nextNum||1).padStart(3,'0');
+  const copy=JSON.parse(JSON.stringify(q));
+  // map quote line items (unitPrice + installRate) to invoice items (price)
+  const items=(copy.items||[]).map(it=>{
+    if(it.type==='heading'||it.type==='subheading') return it;
+    const price=(parseFloat(it.unitPrice!==undefined?it.unitPrice:it.price)||0)+(parseFloat(it.installRate)||0);
+    return { desc:it.desc, qty:it.qty, price:price };
+  });
+  const today=new Date().toISOString().split('T')[0];
+  APP.invoices.unshift({...copy, id:newId, documentType:'invoice', status:'pending',
+    convertedFrom:q.id, issued:today, due:new Date(Date.now()+30*864e5).toISOString().split('T')[0], items});
+  APP.nextNum=(APP.nextNum||1)+1;
+  persist(); refreshAll();
+  showToast(`Quote converted to ${newId}`);
+  openEditorForInvoice(newId);
+}
+
+// ---- Partial payments ----
+function invBalance(inv){ return Math.max(0, Number(inv.amount||0) - Number(inv.paidAmount||0)); }
+function openPaymentModal(id){
+  const inv=APP.invoices.find(i=>i.id===id); if(!inv) return;
+  const sym=(typeof getInvoiceCurrency==='function')?getInvoiceCurrency(inv):(APP.settings.currency||'£');
+  const bal=invBalance(inv);
+  document.getElementById('payInvId').value=id;
+  document.getElementById('payMeta').textContent=`${inv.id} · ${inv.client||''}`;
+  document.getElementById('pay_amount').value=bal>0?bal.toFixed(2):'';
+  document.getElementById('pay_date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('payBalanceHint').innerHTML=`Total ${sym}${Number(inv.amount||0).toLocaleString()} · Already paid ${sym}${Number(inv.paidAmount||0).toLocaleString()} · <strong style="color:var(--text)">Balance ${sym}${bal.toLocaleString()}</strong>`;
+  document.getElementById('paymentModalOverlay').classList.add('open');
+}
+function closePaymentModal(){ document.getElementById('paymentModalOverlay').classList.remove('open'); }
+function applyPayment(inv, amt, date){
+  inv.payments=inv.payments||[];
+  inv.payments.push({amount:Number(amt)||0, date:date});
+  inv.paidAmount=inv.payments.reduce((s,p)=>s+Number(p.amount||0),0);
+  const total=Number(inv.amount||0);
+  if(inv.paidAmount>=total-0.005){ inv.paidAmount=total; inv.status='paid'; inv.paidAt=date; }
+  else if(inv.paidAmount>0){ inv.status='partial'; }
+}
+function recordPayment(){
+  const id=document.getElementById('payInvId').value;
+  const inv=APP.invoices.find(i=>i.id===id); if(!inv) return;
+  const amt=parseFloat(document.getElementById('pay_amount').value);
+  if(!(amt>0)){ showToast('Enter an amount'); return; }
+  applyPayment(inv, amt, document.getElementById('pay_date').value||new Date().toISOString().split('T')[0]);
+  persist(); closePaymentModal(); refreshAll();
+  showToast(inv.status==='paid'?'Paid in full — nice!':'Payment recorded');
+}
+function markFullyPaid(){
+  const id=document.getElementById('payInvId').value;
+  const inv=APP.invoices.find(i=>i.id===id); if(!inv) return;
+  const date=document.getElementById('pay_date').value||new Date().toISOString().split('T')[0];
+  const bal=invBalance(inv);
+  if(bal>0) applyPayment(inv, bal, date); else { inv.status='paid'; inv.paidAt=date; inv.paidAmount=Number(inv.amount||0); }
+  persist(); closePaymentModal(); refreshAll(); showToast('Marked as paid');
 }
 
 // ================================================================
@@ -7892,7 +7975,12 @@ function buildTemplate(inv,tmpl,sym){
   const totRows=`<div class="id-trow"><span>Subtotal</span><span class="tv">${sym}${sub.toFixed(2)}</span></div>${disc>0?`<div class="id-trow credit"><span>Discount</span><span class="tv">−${sym}${disc.toFixed(2)}</span></div>`:''}${tax>0?`<div class="id-trow"><span>VAT</span><span class="tv">${sym}${tax.toFixed(2)}</span></div>`:''}`;
   const statusChip = inv.status==='paid'
     ? '<div class="id-chip"><span class="d"></span> Paid</div>'
-    : (inv.status==='overdue' ? '<div class="id-chip" style="background:#fbeaea;color:#c0392b"><span class="d" style="background:#c0392b"></span> Overdue</div>' : '');
+    : (inv.status==='overdue' ? '<div class="id-chip" style="background:#fbeaea;color:#c0392b"><span class="d" style="background:#c0392b"></span> Overdue</div>'
+    : (inv.status==='partial' ? '<div class="id-chip" style="background:#eaf1fb;color:#2563c0"><span class="d" style="background:#2563c0"></span> Part-paid</div>' : ''));
+  const bal=Number(inv.amount||0)-Number(inv.paidAmount||0);
+  const balRows = inv.status==='partial'
+    ? `<div class="id-trow"><span>Paid</span><span class="tv" style="color:#2d8a5e">${sym}${Number(inv.paidAmount||0).toFixed(2)}</span></div><div class="id-trow"><span style="font-weight:600;color:#211d17">Balance due</span><span class="tv" style="color:#2563c0;font-weight:600">${sym}${bal.toFixed(2)}</span></div>`
+    : '';
   const brandMark = bizLogo
     ? `<img src="${bizLogo}" class="id-logo" style="max-height:50px;object-fit:contain">`
     : `<div class="id-mark">${esc((inv.bizName||'•').trim().charAt(0)||'•')}</div>`;
@@ -7915,7 +8003,7 @@ function buildTemplate(inv,tmpl,sym){
     <table class="id-table"><thead>${tableHead}</thead><tbody>${rows}</tbody></table>
     <div class="id-foot">
       <div class="id-pay">${inv.notes?`<div class="id-label">Notes &amp; payment</div><div style="white-space:pre-line">${esc(inv.notes)}</div>`:`<div class="id-label">Payment terms</div><div>${esc(inv.paymentTerms||inv.terms||'Net 30')} · Due ${fmtDate(inv.due)}</div>`}</div>
-      <div class="id-totals">${totRows}<div class="id-grand"><span class="gl">${totalLabel}</span><span class="gv">${sym}${total.toFixed(2)}</span></div></div>
+      <div class="id-totals">${totRows}<div class="id-grand"><span class="gl">${totalLabel}</span><span class="gv">${sym}${total.toFixed(2)}</span></div>${balRows}</div>
     </div>
     <div class="id-thanks"><span>Thank you for your business.</span><span class="id-made">made with <b>InvoKitPro</b></span></div>
   </div>`;
@@ -8832,12 +8920,13 @@ function renderAppShell() {
     <div class="stats-grid" id="analyticsStats"></div>
     <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:13px;margin-bottom:13px">
       <div class="card"><div class="card-header"><div><div class="card-title">Monthly Revenue</div><div class="card-meta">Paid by month</div></div></div><div id="analyticsMonthly"></div></div>
-      <div class="card"><div class="card-header"><div><div class="card-title">Top Clients</div><div class="card-meta">By total billed</div></div></div><div id="topClients"></div></div>
+      <div class="card"><div class="card-header"><div><div class="card-title">Top Customers</div><div class="card-meta">By total billed</div></div></div><div id="topClients"></div></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px">
       <div class="card"><div class="card-header"><div><div class="card-title">Collection Rate</div></div></div><div id="collectionRate"></div></div>
       <div class="card"><div class="card-header"><div><div class="card-title">Avg Days to Pay</div></div></div><div id="avgDaysToPay"></div></div>
       <div class="card"><div class="card-header"><div><div class="card-title">Status Split</div></div></div><div id="statusBreakdown"></div></div>
+      <div class="card" style="grid-column:1/-1"><div class="card-header"><div><div class="card-title">VAT Summary</div><div class="card-meta">Output VAT on invoices — for your return</div></div></div><div id="vatSummary"></div></div>
     </div>
   </div>
 </div>
@@ -9435,6 +9524,27 @@ function renderAppShell() {
 </div>
 </div>
 
+<div class="overlay" id="paymentModalOverlay" onclick="handleOvClick(event,'paymentModalOverlay')">
+<div class="client-modal-panel" style="max-width:460px">
+  <div class="editor-header">
+    <div><div class="editor-title">Record Payment</div><div id="payMeta" style="font-size:12px;color:var(--text3);margin-top:2px"></div></div>
+    <button class="btn btn-ghost btn-sm" onclick="closePaymentModal()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <div class="editor-body">
+    <input type="hidden" id="payInvId">
+    <div class="half-grid">
+      <div class="field-group"><label class="field-label">Amount received *</label><input class="field-input" type="number" min="0" step="0.01" id="pay_amount" placeholder="0.00"></div>
+      <div class="field-group"><label class="field-label">Date</label><input class="field-input" type="date" id="pay_date"></div>
+    </div>
+    <div id="payBalanceHint" style="font-size:12.5px;color:var(--text2);margin-top:8px;line-height:1.6"></div>
+  </div>
+  <div class="editor-footer">
+    <button class="btn btn-ghost" onclick="markFullyPaid()">Mark fully paid</button>
+    <button class="btn btn-primary" onclick="recordPayment()">Record payment</button>
+  </div>
+</div>
+</div>
+
 <div class="overlay" id="recurringModal" onclick="handleOvClick(event,'recurringModal')">
 <div class="client-modal-panel" style="max-width:560px">
   <div class="editor-header"><div><div class="editor-title">New Recurring Invoice</div></div><button class="btn btn-ghost btn-sm" onclick="closeRecurringModal()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
@@ -9522,13 +9632,13 @@ let _appInitDone = false;
 // ============================================================
 let _ikpBackReady = false, _ikpExitPrompt = false;
 function _ikpTopOverlay() {
-  const ids = ['confirmOverlay','editorOverlay','previewOverlay','receiptOverlay','clientModalOverlay','catModalOverlay','expenseModalOverlay','recurringModal'];
+  const ids = ['confirmOverlay','editorOverlay','previewOverlay','receiptOverlay','clientModalOverlay','catModalOverlay','expenseModalOverlay','paymentModalOverlay','recurringModal'];
   for (const id of ids) { const el = document.getElementById(id); if (el && el.classList.contains('open')) return id; }
   return null;
 }
 function _ikpCloseOverlay(id) {
   const closers = { confirmOverlay: closeConfirm, editorOverlay: closeEditor, previewOverlay: closePreview,
-    receiptOverlay: closeReceipt, clientModalOverlay: closeClientModal, catModalOverlay: closeCatModal, expenseModalOverlay: closeExpenseModal, recurringModal: closeRecurringModal };
+    receiptOverlay: closeReceipt, clientModalOverlay: closeClientModal, catModalOverlay: closeCatModal, expenseModalOverlay: closeExpenseModal, paymentModalOverlay: closePaymentModal, recurringModal: closeRecurringModal };
   try { (closers[id] || function(){})(); } catch(e){}
 }
 function _ikpArm() { try { history.pushState({ ikp: 1 }, ''); } catch(e){} }
