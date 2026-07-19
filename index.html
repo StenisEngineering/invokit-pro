@@ -3502,8 +3502,8 @@ body .demo-mode-banner a{
   .tbl-cards td:first-child::before{display:none;}
   .tbl-cards td:first-child .inv-num{font-size:15px;font-weight:600;}
   /* client value keeps its stacked name/email, right-aligned */
-  .tbl-cards td[data-label="Client"] .client-name,
-  .tbl-cards td[data-label="Client"] .client-email{text-align:right;}
+  .tbl-cards td[data-label="Customer"] .client-name,
+  .tbl-cards td[data-label="Customer"] .client-email{text-align:right;}
   /* actions row: full width, buttons left-aligned, no label */
   .tbl-cards td.td-actions{padding-top:10px;}
   .tbl-cards td.td-actions::before{display:none;}
@@ -4222,7 +4222,7 @@ function renderTableInto(id, data) {
   }
   tbody.innerHTML = data.map(inv=>`<tr onclick="openEditorForInvoice('${inv.id}')">
     <td data-label="Invoice"><span class="inv-num">${inv.id}</span><div style="font-size:11px;color:var(--text3);margin-top:2px">${inv.documentType==='quote'?'Quote':'Invoice'}</div></td>
-    <td data-label="Client"><div class="client-name">${esc(inv.client)}</div>${inv.title?`<div style="font-size:12px;color:var(--text2);margin-top:1px">${esc(inv.title)}</div>`:''}<div class="client-email">${esc(inv.email)}</div></td>
+    <td data-label="Customer"><div class="client-name">${esc(inv.client)}</div>${inv.title?`<div style="font-size:12px;color:var(--text2);margin-top:1px">${esc(inv.title)}</div>`:''}<div class="client-email">${esc(inv.email)}</div></td>
     <td data-label="Issued" style="font-size:12px;color:var(--text2)">${fmtDate(inv.issued)}</td>
     <td data-label="Due" style="font-size:12px;color:var(--text2)">${inv.status==='overdue'?'<span class="overdue-dot"></span>':''}${fmtDate(inv.due)}</td>
     <td data-label="Amount"><span class="amount">${getInvoiceCurrency(inv)}${inv.amount.toLocaleString()}</span></td>
@@ -4268,7 +4268,7 @@ function renderClients() {
   const cnt=document.getElementById('clientCount');
   if(cnt) cnt.textContent=`${filtered.length} client${filtered.length!==1?'s':''}`;
   const grid=document.getElementById('clientsGrid');
-  if(!filtered.length){grid.innerHTML=`<div style="color:var(--text3);font-size:13px;grid-column:1/-1">No clients found.</div>`;return;}
+  if(!filtered.length){grid.innerHTML=`<div style="color:var(--text3);font-size:13px;grid-column:1/-1">No customers found.</div>`;return;}
   grid.innerHTML=filtered.map(c=>{
     const im=invMap[c.name]||{count:0,total:0};
     const logoHtml=c.logo?`<img src="${c.logo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`${c.name.charAt(0).toUpperCase()}`;
@@ -4297,7 +4297,7 @@ function renderClients() {
 
 function openClientModal(id) {
   const modal=document.getElementById('clientModalOverlay');
-  document.getElementById('clientModalTitle').textContent=id?'Edit Client':'Add Client';
+  document.getElementById('clientModalTitle').textContent=id?'Edit Customer':'Add Customer';
   // clear
   ['cm_name','cm_contact','cm_email','cm_phone','cm_address','cm_industry','cm_website','cm_notes'].forEach(f=>setValue(f,''));
   document.getElementById('clientModalId').value=id||'';
@@ -4318,7 +4318,7 @@ function openClientModal(id) {
 function closeClientModal(){document.getElementById('clientModalOverlay').classList.remove('open');}
 
 function saveClient() {
- const name=gv('cm_name').trim(); if(!name){showToast('Client name required');return;}
+ const name=gv('cm_name').trim(); if(!name){showToast('Customer name required');return;}
   const id=gv('clientModalId');
   const logo=document.getElementById('clientLogoPreview').src||'';
   const data={name,contact:gv('cm_contact'),email:gv('cm_email'),phone:gv('cm_phone'),address:gv('cm_address'),industry:gv('cm_industry'),website:gv('cm_website'),notes:gv('cm_notes'),logo:logo.startsWith('data:')?logo:''};
@@ -4334,9 +4334,9 @@ function saveClient() {
 
 function confirmDeleteClient(id){
   const c=APP.clients.find(x=>x.id===id);
-  document.getElementById('confirmTitle').textContent='Delete Client';
+  document.getElementById('confirmTitle').textContent='Delete Customer';
   document.getElementById('confirmMsg').textContent=`Delete "${c?.name}"? Invoice history will be kept.`;
- document.getElementById('confirmOkBtn').onclick=()=>{APP.clients=APP.clients.filter(x=>x.id!==id);persist();closeConfirm();renderClients();showToast('Client removed');};
+ document.getElementById('confirmOkBtn').onclick=()=>{APP.clients=APP.clients.filter(x=>x.id!==id);persist();closeConfirm();renderClients();showToast('Customer removed');};
   document.getElementById('confirmOverlay').classList.add('open');
 }
 
@@ -4521,8 +4521,8 @@ function saveCatItem() {
 
 function confirmDeleteCat(id) {
   const item = (APP.catalogue || []).find(i => i.id === id);
-  document.getElementById('confirmTitle').textContent = 'Remove from Catalogue';
-  document.getElementById('confirmMsg').textContent = `Remove "${item?.name}" from your catalogue? Existing invoices are not affected.`;
+  document.getElementById('confirmTitle').textContent = 'Remove Product / Service';
+  document.getElementById('confirmMsg').textContent = `Remove "${item?.name}" from your products & services? Existing invoices are not affected.`;
  document.getElementById('confirmOkBtn').onclick = () => { APP.catalogue = APP.catalogue.filter(i => i.id !== id); persist(); closeConfirm(); renderCatalogue(); showToast('Item removed'); };
   document.getElementById('confirmOverlay').classList.add('open');
 }
@@ -4587,7 +4587,7 @@ function renderReceiptsTable(){
     const recNum='REC-'+inv.id.replace('INV-','');
     return `<tr onclick="openReceiptById('${inv.id}')">
       <td data-label="Receipt"><span class="inv-num" style="color:var(--green)">${recNum}</span></td>
-      <td data-label="Client"><div class="client-name">${esc(inv.client)}</div>${inv.title?`<div style="font-size:12px;color:var(--text2);margin-top:1px">${esc(inv.title)}</div>`:''}<div class="client-email">${esc(inv.email)}</div></td>
+      <td data-label="Customer"><div class="client-name">${esc(inv.client)}</div>${inv.title?`<div style="font-size:12px;color:var(--text2);margin-top:1px">${esc(inv.title)}</div>`:''}<div class="client-email">${esc(inv.email)}</div></td>
       <td data-label="Invoice ref" style="font-size:12px;color:var(--text3)">${inv.id}</td>
       <td data-label="Date paid" style="font-size:12px;color:var(--text2)">${fmtDate(inv.issued)}</td>
       <td data-label="Amount"><span class="amount" style="color:var(--green)">${getInvoiceCurrency(inv)}${inv.amount.toLocaleString()}</span></td>
@@ -4718,12 +4718,12 @@ function renderAnalytics(){
 function renderRecurring(){
   const sym=APP.settings.currency||'£', el=document.getElementById('recurringList');
   if(!APP.recurring||!APP.recurring.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div><div>No recurring invoices yet.</div><div style="margin-top:10px"><button class="btn btn-primary btn-sm" onclick="openRecurringModal()">Create First</button></div></div>`;return;}
-  el.innerHTML=`<div class="table-wrap"><table><thead><tr><th>Client</th><th>Amount</th><th>Frequency</th><th>Start</th><th>End</th><th>Description</th><th></th></tr></thead><tbody>`+APP.recurring.map((r,i)=>`<tr><td><div class="client-name">${esc(r.client)}</div><div class="client-email">${esc(r.email)}</div></td><td><span class="amount">${sym}${parseFloat(r.amount).toLocaleString()}</span></td><td><span class="recurring-badge"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> ${cap(r.freq)}</span></td><td style="font-size:12px;color:var(--text2)">${fmtDate(r.start)}</td><td style="font-size:12px;color:var(--text2)">${r.end?fmtDate(r.end):'—'}</td><td style="font-size:13px;color:var(--text2)">${esc(r.desc)}</td><td><div class="row-actions" style="opacity:1"><button class="icon-btn danger" onclick="delRecurring(${i})"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div></td></tr>`).join('')+`</tbody></table></div>`;
+  el.innerHTML=`<div class="table-wrap"><table><thead><tr><th>Customer</th><th>Amount</th><th>Frequency</th><th>Start</th><th>End</th><th>Description</th><th></th></tr></thead><tbody>`+APP.recurring.map((r,i)=>`<tr><td><div class="client-name">${esc(r.client)}</div><div class="client-email">${esc(r.email)}</div></td><td><span class="amount">${sym}${parseFloat(r.amount).toLocaleString()}</span></td><td><span class="recurring-badge"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> ${cap(r.freq)}</span></td><td style="font-size:12px;color:var(--text2)">${fmtDate(r.start)}</td><td style="font-size:12px;color:var(--text2)">${r.end?fmtDate(r.end):'—'}</td><td style="font-size:13px;color:var(--text2)">${esc(r.desc)}</td><td><div class="row-actions" style="opacity:1"><button class="icon-btn danger" onclick="delRecurring(${i})"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div></td></tr>`).join('')+`</tbody></table></div>`;
 }
 function openRecurringModal(){document.getElementById('r_start').value=new Date().toISOString().split('T')[0];document.getElementById('recurringModal').classList.add('open');}
 function closeRecurringModal(){document.getElementById('recurringModal').classList.remove('open');}
 function saveRecurring(){
- const client=gv('r_client').trim(); if(!client){showToast('Client required');return;}
+ const client=gv('r_client').trim(); if(!client){showToast('Customer required');return;}
   if(!APP.recurring) APP.recurring=[];
   APP.recurring.push({client,email:gv('r_email'),amount:parseFloat(gv('r_amount'))||0,freq:gv('r_freq'),start:gv('r_start'),end:gv('r_end'),desc:gv('r_desc')});
  persist(); closeRecurringModal(); renderRecurring(); showToast(`Recurring created for ${client}`);
@@ -5023,7 +5023,7 @@ function saveToList(inv){
   persist(); refreshAll();
 }
 function saveDraft(){if(!checkFreePlanInvoiceCap())return;const inv=buildInvObj('draft');saveToList(inv);showToast(inv.documentType==='quote'?'Quote draft saved':'Draft saved');}
-function sendInvoice(){if(!gv('clientName').trim()){showToast('Client name required');return;}if(!checkFreePlanInvoiceCap())return;const inv=buildInvObj('pending');saveToList(inv);closeEditor();showToast(inv.documentType==='quote'?'Quote saved':'Invoice saved');}
+function sendInvoice(){if(!gv('clientName').trim()){showToast('Customer name required');return;}if(!checkFreePlanInvoiceCap())return;const inv=buildInvObj('pending');saveToList(inv);closeEditor();showToast(inv.documentType==='quote'?'Quote saved':'Invoice saved');}
 
 // ================================================================
 // PREVIEW & PRINT (FIXED: all styles inlined)
@@ -8383,8 +8383,8 @@ function renderAppShell() {
     <div class="nav-item" onclick="openQuoteEditor()"><span class="nav-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></span>New Quote</div>
     <div class="nav-lbl">Manage</div>
     <div class="nav-item" data-page="invoices" onclick="navTo('invoices',this)"><span class="nav-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>Invoices<span class="nav-badge" id="overdueBadge" style="display:none">0</span></div>
-    <div class="nav-item" data-page="clients" onclick="navTo('clients',this)"><span class="nav-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Clients</div>
-    <div class="nav-item" data-page="catalogue" onclick="navTo('catalogue',this)"><span class="nav-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>Catalogue</div>
+    <div class="nav-item" data-page="clients" onclick="navTo('clients',this)"><span class="nav-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Customers</div>
+    <div class="nav-item" data-page="catalogue" onclick="navTo('catalogue',this)"><span class="nav-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>Products &amp; Services</div>
     <div class="nav-item" data-page="receipts" onclick="navTo('receipts',this)"><span class="nav-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg></span>Receipts</div>
     <div class="nav-item" data-page="recurring" onclick="navTo('recurring',this)"><span class="nav-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>Recurring</div>
     <div class="nav-lbl">Reports</div>
@@ -8481,7 +8481,7 @@ function renderAppShell() {
           </div>
         </div>
       </div>
-      <table class="tbl-cards"><thead><tr><th>Document #</th><th>Client</th><th>Issued</th><th>Due</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+      <table class="tbl-cards"><thead><tr><th>Document #</th><th>Customer</th><th>Issued</th><th>Due</th><th>Amount</th><th>Status</th><th></th></tr></thead>
       <tbody id="dashTableBody"></tbody></table>
     </div>
   </div>
@@ -8509,7 +8509,7 @@ function renderAppShell() {
           <button class="filter-btn" onclick="setFilter('draft',this,'inv')">Draft</button>
         </div>
       </div>
-      <table class="tbl-cards"><thead><tr><th>Document #</th><th>Client</th><th>Issued</th><th>Due</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+      <table class="tbl-cards"><thead><tr><th>Document #</th><th>Customer</th><th>Issued</th><th>Due</th><th>Amount</th><th>Status</th><th></th></tr></thead>
       <tbody id="invTableBody"></tbody></table>
     </div>
   </div>
@@ -8519,14 +8519,14 @@ function renderAppShell() {
 <div class="page" id="page-clients">
   <header class="topbar">
     <button class="mob-menu-btn" onclick="toggleMobSidebar()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-    <div><div class="page-title">Clients</div><div class="page-subtitle">Manage your client database</div></div>
+    <div><div class="page-title">Customers</div><div class="page-subtitle">Manage your customer database</div></div>
     <div class="topbar-actions">
-      <button class="btn btn-primary" onclick="openClientModal(null)">+ Add Client</button>
+      <button class="btn btn-primary" onclick="openClientModal(null)">+ Add Customer</button>
     </div>
   </header>
   <div class="content fade-in">
     <div class="clients-toolbar">
-      <div class="search-box" style="width:220px"><span style="color:var(--text3)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><input type="text" placeholder="Search clients…" id="clientSearch" oninput="renderClients()"></div>
+      <div class="search-box" style="width:220px"><span style="color:var(--text3)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><input type="text" placeholder="Search customers…" id="clientSearch" oninput="renderClients()"></div>
       <div style="font-size:12px;color:var(--text3)" id="clientCount">—</div>
     </div>
     <div class="clients-grid" id="clientsGrid"></div>
@@ -8537,7 +8537,7 @@ function renderAppShell() {
 <div class="page" id="page-catalogue">
   <header class="topbar">
     <button class="mob-menu-btn" onclick="toggleMobSidebar()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-    <div><div class="page-title">Catalogue</div><div class="page-subtitle">Your products &amp; services library</div></div>
+    <div><div class="page-title">Products &amp; Services</div><div class="page-subtitle">Your reusable items &amp; price list</div></div>
     <div class="topbar-actions">
       <button class="btn btn-ghost" id="catViewGrid" onclick="setCatView('grid')" title="Grid view"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></button>
       <button class="btn btn-ghost" id="catViewList" onclick="setCatView('list')" title="List view"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
@@ -8547,7 +8547,7 @@ function renderAppShell() {
   <div class="content fade-in">
     <div class="clients-toolbar">
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <div class="search-box" style="width:220px"><span style="color:var(--text3)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><input type="text" placeholder="Search catalogue…" id="catSearch" oninput="renderCatalogue()"></div>
+        <div class="search-box" style="width:220px"><span style="color:var(--text3)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><input type="text" placeholder="Search products…" id="catSearch" oninput="renderCatalogue()"></div>
         <div class="filter-row" id="catCategoryFilter"></div>
       </div>
       <div style="font-size:12px;color:var(--text3)" id="catCount">—</div>
@@ -8569,7 +8569,7 @@ function renderAppShell() {
         <div><div class="card-title" style="font-size:16px">Paid Invoices</div></div>
         <div class="search-box"><span style="color:var(--text3)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><input type="text" placeholder="Search…" id="recSearch" oninput="renderReceiptsTable()"></div>
       </div>
-      <table class="tbl-cards"><thead><tr><th>Receipt #</th><th>Client</th><th>Invoice Ref</th><th>Date Paid</th><th>Amount</th><th></th></tr></thead>
+      <table class="tbl-cards"><thead><tr><th>Receipt #</th><th>Customer</th><th>Invoice Ref</th><th>Date Paid</th><th>Amount</th><th></th></tr></thead>
       <tbody id="receiptsTableBody"></tbody></table>
     </div>
   </div>
@@ -8644,7 +8644,7 @@ function renderAppShell() {
         <h3>Available Now</h3>
         <div class="roadmap-feature-row"><div><div class="roadmap-feature-name">Invoices & receipts</div><div class="roadmap-feature-note">Create, save, print and export business documents offline.</div></div><span class="roadmap-status available">Live</span></div>
         <div class="roadmap-feature-row"><div><div class="roadmap-feature-name">Quote Builder</div><div class="roadmap-feature-note">Create quotations with S/N, quantity units, unit price, install rate and calculated totals.</div></div><span class="roadmap-status live">Live</span></div>
-        <div class="roadmap-feature-row"><div><div class="roadmap-feature-name">Clients & catalogue</div><div class="roadmap-feature-note">Store client details and reusable products or services.</div></div><span class="roadmap-status available">Live</span></div>
+        <div class="roadmap-feature-row"><div><div class="roadmap-feature-name">Customers & products</div><div class="roadmap-feature-note">Store customer details and reusable products or services.</div></div><span class="roadmap-status available">Live</span></div>
         <div class="roadmap-feature-row"><div><div class="roadmap-feature-name">Manual backup & restore</div><div class="roadmap-feature-note">Export and import JSON backup files for data protection.</div></div><span class="roadmap-status available">Live</span></div>
         <div class="roadmap-feature-row"><div><div class="roadmap-feature-name">Offline-first PWA</div><div class="roadmap-feature-note">Designed to work on the same device even without internet.</div></div><span class="roadmap-status available">Live</span></div>
       </div>
@@ -8929,12 +8929,12 @@ function renderAppShell() {
         <div class="field-group"><label class="field-label">VAT No.</label><input class="field-input" type="text" id="bizVAT" placeholder="GB 123456789"></div>
       </div>
       <div>
-        <div class="section-divider">Client
+        <div class="section-divider">Customer
           <select class="field-input" id="clientQuickSelect" style="max-width:160px;margin-left:auto;font-size:12px;padding:5px 28px 5px 8px;" onchange="fillClientFromSelect(this.value)">
             <option value="">— quick fill —</option>
           </select>
         </div>
-        <div class="field-group"><label class="field-label">Client Name</label><input class="field-input" type="text" id="clientName" placeholder="Client or Company"></div>
+        <div class="field-group"><label class="field-label">Customer Name</label><input class="field-input" type="text" id="clientName" placeholder="Client or Company"></div>
         <div class="field-group"><label class="field-label">Address</label><input class="field-input" type="text" id="clientAddress" placeholder="456 Client Ave, City"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <div class="field-group"><label class="field-label">Email</label><input class="field-input" type="email" id="clientEmail" placeholder="client@email.com"></div>
@@ -8980,9 +8980,9 @@ function renderAppShell() {
     </div>
     <div class="section-divider"><span id="lineItemsTitle">Line Items</span>
       <div class="cat-picker-wrap" style="margin:0;flex:1;max-width:260px;" id="catPickerWrap">
-        <button class="cat-picker-btn" onclick="toggleCatPicker()" id="catPickerBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Add from Catalogue</button>
+        <button class="cat-picker-btn" onclick="toggleCatPicker()" id="catPickerBtn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Add from Products</button>
         <div class="cat-picker-dropdown" id="catPickerDropdown">
-          <div class="cat-picker-search"><input type="text" placeholder="Search catalogue…" id="catPickerSearch" oninput="renderCatPicker()" onclick="event.stopPropagation()"></div>
+          <div class="cat-picker-search"><input type="text" placeholder="Search products…" id="catPickerSearch" oninput="renderCatPicker()" onclick="event.stopPropagation()"></div>
           <div id="catPickerList"></div>
         </div>
       </div>
@@ -9093,7 +9093,7 @@ function renderAppShell() {
 <div class="overlay" id="clientModalOverlay" onclick="handleOvClick(event,'clientModalOverlay')">
 <div class="client-modal-panel">
   <div class="editor-header">
-    <div><div class="editor-title" id="clientModalTitle">Add Client</div></div>
+    <div><div class="editor-title" id="clientModalTitle">Add Customer</div></div>
     <button class="btn btn-ghost btn-sm" onclick="closeClientModal()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
   </div>
   <div class="editor-body">
@@ -9109,7 +9109,7 @@ function renderAppShell() {
       <div class="field-group"><label class="field-label">Industry</label><input class="field-input" type="text" id="cm_industry" placeholder="Tech, Design, Legal…"></div>
       <div class="field-group"><label class="field-label">Website</label><input class="field-input" type="url" id="cm_website" placeholder="https://"></div>
     </div>
-    <div class="field-group"><label class="field-label">Notes</label><textarea class="field-input" id="cm_notes" rows="2" placeholder="Internal notes about this client…"></textarea></div>
+    <div class="field-group"><label class="field-label">Notes</label><textarea class="field-input" id="cm_notes" rows="2" placeholder="Internal notes about this customer…"></textarea></div>
     <div class="field-group">
       <label class="field-label">Client Logo (appears on invoices)</label>
       <div class="logo-upload-area" id="clientLogoUpload" onclick="document.getElementById('clientLogoInput').click()">
@@ -9124,7 +9124,7 @@ function renderAppShell() {
     <div></div>
     <div class="footer-right">
       <button class="btn btn-ghost btn-sm" onclick="closeClientModal()">Cancel</button>
-      <button class="btn btn-primary btn-sm" onclick="saveClient()">Save Client</button>
+      <button class="btn btn-primary btn-sm" onclick="saveClient()">Save Customer</button>
     </div>
   </div>
 </div>
