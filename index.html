@@ -578,6 +578,88 @@ select.field-input{appearance:none;background-image:url("data:image/svg+xml,%3Cs
 .tmpl-compact .t-tr-final .val{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;color:var(--accent);}
 .tmpl-compact .t-footer{margin-top:14px;padding-top:12px;border-top:1px solid #eee;font-size:12px;color:#ccc;text-align:center;font-family:'DM Mono',monospace;}
 
+/* ============================================================ PREMIUM INVOICE TEMPLATES (shared structure, 3 looks) */
+.inv-doc{background:#fff;color:#211d17;font-family:'Outfit',system-ui,sans-serif;padding:52px 54px 40px;position:relative;overflow:hidden;}
+.inv-doc *{box-sizing:border-box;}
+.inv-doc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#c9a84c,#b08d3e);}
+.inv-doc .id-head{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;}
+.inv-doc .id-brand{display:flex;align-items:center;gap:14px;}
+.inv-doc .id-mark{width:50px;height:50px;border-radius:11px;background:linear-gradient(135deg,#c9a84c,#9a6e1c);color:#231a08;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',Georgia,serif;font-size:25px;font-weight:600;flex-shrink:0;}
+.inv-doc .id-logo{max-height:50px;object-fit:contain;display:block;}
+.inv-doc .id-biz{font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:600;letter-spacing:-.01em;line-height:1.05;color:#211d17;}
+.inv-doc .id-biz-sub{font-size:12px;color:#6f685c;margin-top:3px;line-height:1.5;}
+.inv-doc .id-mark-wrap{text-align:right;flex-shrink:0;}
+.inv-doc .id-word{font-family:'Cormorant Garamond',Georgia,serif;font-size:33px;font-weight:500;letter-spacing:.02em;line-height:.9;color:#211d17;}
+.inv-doc .id-num{font-family:'DM Mono',monospace;font-size:12.5px;color:#b08d3e;letter-spacing:.06em;margin-top:7px;}
+.inv-doc .id-chip{display:inline-flex;align-items:center;gap:6px;margin-top:9px;padding:4px 10px;border-radius:999px;background:#eaf4ee;color:#2d8a5e;font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;}
+.inv-doc .id-chip .d{width:6px;height:6px;border-radius:50%;background:#2d8a5e;}
+.inv-doc .id-rule{height:1px;background:linear-gradient(90deg,#e7d9b6,transparent 70%);margin:24px 0 22px;}
+.inv-doc .id-label{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#9a9284;margin-bottom:6px;}
+.inv-doc .id-parties{display:grid;grid-template-columns:1fr 1fr auto;gap:26px;margin-bottom:30px;}
+.inv-doc .id-pname{font-size:14px;font-weight:600;color:#211d17;}
+.inv-doc .id-pinfo{font-size:12.5px;color:#6f685c;line-height:1.6;margin-top:3px;}
+.inv-doc .id-dates{text-align:right;display:grid;gap:12px;}
+.inv-doc .id-dates .v{font-size:13px;font-weight:600;color:#211d17;}
+.inv-doc .id-dates .due{color:#b08d3e;}
+.inv-doc .id-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;font-weight:600;color:#211d17;margin-bottom:18px;line-height:1.3;}
+.inv-doc table.id-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;}
+.inv-doc .id-table thead th{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#9a9284;font-weight:400;text-align:left;padding:0 0 10px;border-bottom:1.5px solid #e7d9b6;}
+.inv-doc .id-table th.r,.inv-doc .id-table td.r{text-align:right;}
+.inv-doc .id-table th.c,.inv-doc .id-table td.c{text-align:center;}
+.inv-doc .id-table tbody td{padding:13px 0;border-bottom:1px solid #ece7dc;font-size:13px;color:#211d17;vertical-align:top;}
+.inv-doc .id-table tbody td.c{color:#6f685c;}
+.inv-doc .id-desc{font-weight:500;}
+.inv-doc .id-amt{font-weight:600;}
+.inv-doc .id-secrow td{background:#faf5e9;color:#7a5c1e;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:10px;padding:8px 10px !important;}
+.inv-doc .id-subrow td{color:#746b5c;font-style:italic;font-size:11.5px;padding-left:14px !important;}
+.inv-doc .id-foot{display:grid;grid-template-columns:1fr 290px;gap:34px;margin-top:26px;align-items:start;}
+.inv-doc .id-pay{font-size:12.5px;color:#6f685c;line-height:1.7;}
+.inv-doc .id-totals .id-trow{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;color:#6f685c;}
+.inv-doc .id-totals .id-trow .tv{color:#211d17;font-weight:500;font-variant-numeric:tabular-nums;}
+.inv-doc .id-totals .id-trow.credit .tv{color:#2d8a5e;}
+.inv-doc .id-grand{margin-top:11px;background:#faf5e9;border:1px solid #e7d9b6;border-radius:11px;padding:15px 17px;display:flex;justify-content:space-between;align-items:baseline;}
+.inv-doc .id-grand .gl{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#b08d3e;}
+.inv-doc .id-grand .gv{font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;font-weight:600;color:#211d17;letter-spacing:-.01em;font-variant-numeric:tabular-nums;}
+.inv-doc .id-thanks{margin-top:30px;padding-top:16px;border-top:1px solid #ece7dc;display:flex;justify-content:space-between;align-items:center;gap:16px;font-size:11.5px;color:#9a9284;}
+.inv-doc .id-made{font-family:'DM Mono',monospace;letter-spacing:.04em;}
+.inv-doc .id-made b{color:#b08d3e;font-weight:400;}
+/* MODERN */
+.inv-doc[data-tmpl="modern"]::before{left:0;right:0;top:0;bottom:auto;width:auto;height:3px;background:#c9a84c;}
+.inv-doc[data-tmpl="modern"] .id-mark{background:#211d17;color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:21px;}
+.inv-doc[data-tmpl="modern"] .id-biz{font-family:'Outfit',sans-serif;font-weight:700;letter-spacing:-.02em;font-size:23px;}
+.inv-doc[data-tmpl="modern"] .id-word{font-family:'Outfit',sans-serif;font-size:19px;font-weight:700;text-transform:uppercase;letter-spacing:.16em;color:#9a9284;}
+.inv-doc[data-tmpl="modern"] .id-num{color:#6f685c;}
+.inv-doc[data-tmpl="modern"] .id-rule{background:#ddd6c8;}
+.inv-doc[data-tmpl="modern"] .id-table thead th{border-bottom-color:#ddd6c8;}
+.inv-doc[data-tmpl="modern"] .id-dates .due{color:#211d17;}
+.inv-doc[data-tmpl="modern"] .id-grand{background:#fff;border:1.5px solid #211d17;}
+.inv-doc[data-tmpl="modern"] .id-grand .gl{color:#6f685c;}
+.inv-doc[data-tmpl="modern"] .id-grand .gv{font-family:'Outfit',sans-serif;font-weight:700;}
+/* BOLD */
+.inv-doc[data-tmpl="bold"]{padding-top:0;}
+.inv-doc[data-tmpl="bold"]::before{display:none;}
+.inv-doc[data-tmpl="bold"] .id-head{background:#211d17;color:#fff;margin:0 -54px 0;padding:36px 54px;align-items:center;}
+.inv-doc[data-tmpl="bold"] .id-mark{background:#c9a84c;}
+.inv-doc[data-tmpl="bold"] .id-biz{color:#fff;}
+.inv-doc[data-tmpl="bold"] .id-biz-sub{color:rgba(255,255,255,.65);}
+.inv-doc[data-tmpl="bold"] .id-word{color:#c9a84c;font-weight:600;}
+.inv-doc[data-tmpl="bold"] .id-num{color:rgba(255,255,255,.6);}
+.inv-doc[data-tmpl="bold"] .id-chip{background:rgba(122,224,170,.18);color:#8fe6b3;}
+.inv-doc[data-tmpl="bold"] .id-rule{display:none;}
+.inv-doc[data-tmpl="bold"] .id-parties{margin-top:32px;}
+.inv-doc[data-tmpl="bold"] .id-table thead th{border-bottom:2px solid #211d17;color:#6f685c;}
+.inv-doc[data-tmpl="bold"] .id-grand{background:#211d17;border:none;}
+.inv-doc[data-tmpl="bold"] .id-grand .gl{color:#c9a84c;}
+.inv-doc[data-tmpl="bold"] .id-grand .gv{color:#fff;font-family:'Outfit',sans-serif;font-weight:700;}
+@media(max-width:640px){
+  .inv-doc{padding:28px 20px 24px;}
+  .inv-doc .id-head{flex-direction:column;gap:16px;} .inv-doc .id-mark-wrap{text-align:left;}
+  .inv-doc .id-parties{grid-template-columns:1fr;gap:16px;} .inv-doc .id-dates{text-align:left;grid-auto-flow:column;justify-content:start;gap:24px;}
+  .inv-doc .id-foot{grid-template-columns:1fr;gap:20px;}
+  .inv-doc .id-word{font-size:27px;} .inv-doc .id-biz{font-size:22px;}
+  .inv-doc[data-tmpl="bold"] .id-head{margin:0 -20px;padding:24px 20px;}
+}
+
 /* ============================================================ CATALOGUE */
 .cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;}
 .cat-list{display:flex;flex-direction:column;gap:8px;}
@@ -5167,6 +5249,78 @@ function openPrintWindow(html, type){
     thead{display:table-header-group;}
     tfoot{display:table-footer-group;}
     tr,td,th,.t-header,.t-addresses,.t-totals-wrap,.t-notes,.t-footer,.receipt-card,.receipt-top,.receipt-mid,.receipt-amount{page-break-inside:avoid;break-inside:avoid;}
+    .inv-doc .id-head,.inv-doc .id-parties,.inv-doc .id-foot,.inv-doc .id-grand,.inv-doc .id-thanks{page-break-inside:avoid;break-inside:avoid;}
+    /* ===== PREMIUM INVOICE TEMPLATES (PDF copy — keep identical to app) ===== */
+    .inv-doc{background:#fff;color:#211d17;font-family:'Outfit',system-ui,sans-serif;padding:40px 44px 32px;position:relative;overflow:hidden;}
+    .inv-doc *{box-sizing:border-box;}
+    .inv-doc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#c9a84c,#b08d3e);}
+    .inv-doc .id-head{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;}
+    .inv-doc .id-brand{display:flex;align-items:center;gap:14px;}
+    .inv-doc .id-mark{width:50px;height:50px;border-radius:11px;background:linear-gradient(135deg,#c9a84c,#9a6e1c);color:#231a08;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',Georgia,serif;font-size:25px;font-weight:600;flex-shrink:0;}
+    .inv-doc .id-logo{max-height:50px;object-fit:contain;display:block;}
+    .inv-doc .id-biz{font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:600;letter-spacing:-.01em;line-height:1.05;color:#211d17;}
+    .inv-doc .id-biz-sub{font-size:12px;color:#6f685c;margin-top:3px;line-height:1.5;}
+    .inv-doc .id-mark-wrap{text-align:right;flex-shrink:0;}
+    .inv-doc .id-word{font-family:'Cormorant Garamond',Georgia,serif;font-size:33px;font-weight:500;letter-spacing:.02em;line-height:.9;color:#211d17;}
+    .inv-doc .id-num{font-family:'DM Mono',monospace;font-size:12.5px;color:#b08d3e;letter-spacing:.06em;margin-top:7px;}
+    .inv-doc .id-chip{display:inline-flex;align-items:center;gap:6px;margin-top:9px;padding:4px 10px;border-radius:999px;background:#eaf4ee;color:#2d8a5e;font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;}
+    .inv-doc .id-chip .d{width:6px;height:6px;border-radius:50%;background:#2d8a5e;}
+    .inv-doc .id-rule{height:1px;background:linear-gradient(90deg,#e7d9b6,transparent 70%);margin:24px 0 22px;}
+    .inv-doc .id-label{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#9a9284;margin-bottom:6px;}
+    .inv-doc .id-parties{display:grid;grid-template-columns:1fr 1fr auto;gap:26px;margin-bottom:30px;}
+    .inv-doc .id-pname{font-size:14px;font-weight:600;color:#211d17;}
+    .inv-doc .id-pinfo{font-size:12.5px;color:#6f685c;line-height:1.6;margin-top:3px;}
+    .inv-doc .id-dates{text-align:right;display:grid;gap:12px;}
+    .inv-doc .id-dates .v{font-size:13px;font-weight:600;color:#211d17;}
+    .inv-doc .id-dates .due{color:#b08d3e;}
+    .inv-doc .id-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;font-weight:600;color:#211d17;margin-bottom:18px;line-height:1.3;}
+    .inv-doc table.id-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;table-layout:auto;}
+    .inv-doc .id-table thead th{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#9a9284;font-weight:400;text-align:left;padding:0 0 10px;border-bottom:1.5px solid #e7d9b6;}
+    .inv-doc .id-table th.r,.inv-doc .id-table td.r{text-align:right;}
+    .inv-doc .id-table th.c,.inv-doc .id-table td.c{text-align:center;}
+    .inv-doc .id-table tbody td{padding:13px 0;border-bottom:1px solid #ece7dc;font-size:13px;color:#211d17;vertical-align:top;}
+    .inv-doc .id-table tbody td.c{color:#6f685c;}
+    .inv-doc .id-desc{font-weight:500;}
+    .inv-doc .id-amt{font-weight:600;}
+    .inv-doc .id-secrow td{background:#faf5e9;color:#7a5c1e;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:10px;padding:8px 10px !important;}
+    .inv-doc .id-subrow td{color:#746b5c;font-style:italic;font-size:11.5px;padding-left:14px !important;}
+    .inv-doc .id-foot{display:grid;grid-template-columns:1fr 290px;gap:34px;margin-top:26px;align-items:start;}
+    .inv-doc .id-pay{font-size:12.5px;color:#6f685c;line-height:1.7;}
+    .inv-doc .id-totals .id-trow{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;color:#6f685c;}
+    .inv-doc .id-totals .id-trow .tv{color:#211d17;font-weight:500;}
+    .inv-doc .id-totals .id-trow.credit .tv{color:#2d8a5e;}
+    .inv-doc .id-grand{margin-top:11px;background:#faf5e9;border:1px solid #e7d9b6;border-radius:11px;padding:15px 17px;display:flex;justify-content:space-between;align-items:baseline;}
+    .inv-doc .id-grand .gl{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#b08d3e;}
+    .inv-doc .id-grand .gv{font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;font-weight:600;color:#211d17;letter-spacing:-.01em;}
+    .inv-doc .id-thanks{margin-top:30px;padding-top:16px;border-top:1px solid #ece7dc;display:flex;justify-content:space-between;align-items:center;gap:16px;font-size:11.5px;color:#9a9284;}
+    .inv-doc .id-made{font-family:'DM Mono',monospace;letter-spacing:.04em;}
+    .inv-doc .id-made b{color:#b08d3e;font-weight:400;}
+    .inv-doc[data-tmpl="modern"]::before{left:0;right:0;top:0;bottom:auto;width:auto;height:3px;background:#c9a84c;}
+    .inv-doc[data-tmpl="modern"] .id-mark{background:#211d17;color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:21px;}
+    .inv-doc[data-tmpl="modern"] .id-biz{font-family:'Outfit',sans-serif;font-weight:700;letter-spacing:-.02em;font-size:23px;}
+    .inv-doc[data-tmpl="modern"] .id-word{font-family:'Outfit',sans-serif;font-size:19px;font-weight:700;text-transform:uppercase;letter-spacing:.16em;color:#9a9284;}
+    .inv-doc[data-tmpl="modern"] .id-num{color:#6f685c;}
+    .inv-doc[data-tmpl="modern"] .id-rule{background:#ddd6c8;}
+    .inv-doc[data-tmpl="modern"] .id-table thead th{border-bottom-color:#ddd6c8;}
+    .inv-doc[data-tmpl="modern"] .id-dates .due{color:#211d17;}
+    .inv-doc[data-tmpl="modern"] .id-grand{background:#fff;border:1.5px solid #211d17;}
+    .inv-doc[data-tmpl="modern"] .id-grand .gl{color:#6f685c;}
+    .inv-doc[data-tmpl="modern"] .id-grand .gv{font-family:'Outfit',sans-serif;font-weight:700;}
+    .inv-doc[data-tmpl="bold"]{padding-top:0;}
+    .inv-doc[data-tmpl="bold"]::before{display:none;}
+    .inv-doc[data-tmpl="bold"] .id-head{background:#211d17;color:#fff;margin:0 -44px 0;padding:32px 44px;align-items:center;}
+    .inv-doc[data-tmpl="bold"] .id-mark{background:#c9a84c;}
+    .inv-doc[data-tmpl="bold"] .id-biz{color:#fff;}
+    .inv-doc[data-tmpl="bold"] .id-biz-sub{color:rgba(255,255,255,.65);}
+    .inv-doc[data-tmpl="bold"] .id-word{color:#c9a84c;font-weight:600;}
+    .inv-doc[data-tmpl="bold"] .id-num{color:rgba(255,255,255,.6);}
+    .inv-doc[data-tmpl="bold"] .id-chip{background:rgba(122,224,170,.18);color:#8fe6b3;}
+    .inv-doc[data-tmpl="bold"] .id-rule{display:none;}
+    .inv-doc[data-tmpl="bold"] .id-parties{margin-top:32px;}
+    .inv-doc[data-tmpl="bold"] .id-table thead th{border-bottom:2px solid #211d17;color:#6f685c;}
+    .inv-doc[data-tmpl="bold"] .id-grand{background:#211d17;border:none;}
+    .inv-doc[data-tmpl="bold"] .id-grand .gl{color:#c9a84c;}
+    .inv-doc[data-tmpl="bold"] .id-grand .gv{color:#fff;font-family:'Outfit',sans-serif;font-weight:700;}
     /* CLASSIC */
     .tmpl-classic{padding:36px 40px;}
     .tmpl-classic .t-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:44px;}
@@ -7721,60 +7875,50 @@ function buildTemplate(inv,tmpl,sym){
   const docTitle=(inv.title||'').trim();
   let rowNo=0;
   const rows=(inv.items||[]).map(it=>{
-    if(it.type==='heading') return `<tr><td colspan="${isQuote?7:4}" style="background:#f8f4e8;color:#7a5c1e;font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:11px">${esc(it.desc||'')}</td></tr>`;
-    if(it.type==='subheading') return `<tr><td colspan="${isQuote?7:4}" style="background:#fcfaf4;color:#746b5c;font-weight:600;font-style:italic;font-size:11px;padding-left:22px">${esc(it.desc||'')}</td></tr>`;
+    if(it.type==='heading') return `<tr class="id-secrow"><td colspan="${isQuote?7:4}">${esc(it.desc||'')}</td></tr>`;
+    if(it.type==='subheading') return `<tr class="id-subrow"><td colspan="${isQuote?7:4}">${esc(it.desc||'')}</td></tr>`;
     rowNo++;
     if(isQuote){
       const qty=parseFloat(it.qty)||0, unitPrice=parseFloat(it.unitPrice!==undefined?it.unitPrice:it.price)||0, install=parseFloat(it.installRate)||0;
-      return `<tr><td style="text-align:center">${rowNo}</td><td>${esc(it.desc||'—')}</td><td style="text-align:center">${qty}</td><td style="text-align:center">${esc(it.unit||'unit')}</td><td style="text-align:right">${sym}${unitPrice.toFixed(2)}</td><td style="text-align:right">${sym}${install.toFixed(2)}</td><td style="text-align:right">${sym}${(qty*(unitPrice+install)).toFixed(2)}</td></tr>`;
+      return `<tr><td class="c">${rowNo}</td><td><div class="id-desc">${esc(it.desc||'—')}</div></td><td class="c">${qty}</td><td class="c">${esc(it.unit||'unit')}</td><td class="r">${sym}${unitPrice.toFixed(2)}</td><td class="r">${sym}${install.toFixed(2)}</td><td class="r id-amt">${sym}${(qty*(unitPrice+install)).toFixed(2)}</td></tr>`;
     }
     const qty=parseFloat(it.qty)||0, price=parseFloat(it.price||it.unitPrice||0);
-    return `<tr><td>${esc(it.desc||'—')}</td><td style="text-align:center">${qty}</td><td style="text-align:right">${sym}${price.toFixed(2)}</td><td style="text-align:right">${sym}${(qty*price).toFixed(2)}</td></tr>`;
+    return `<tr><td><div class="id-desc">${esc(it.desc||'—')}</div></td><td class="c">${qty}</td><td class="r">${sym}${price.toFixed(2)}</td><td class="r id-amt">${sym}${(qty*price).toFixed(2)}</td></tr>`;
   }).join('');
-  const tableHead=isQuote?`<tr><th style="text-align:center">S/N</th><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:center">Unit</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Install Rate</th><th style="text-align:right">Amount</th></tr>`:`<tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Amount</th></tr>`;
-  const totRows=`<div class="t-tot-row"><span>Subtotal</span><span>${sym}${sub.toFixed(2)}</span></div>${disc>0?`<div class="t-tot-row"><span>Discount</span><span style="color:#27a060">-${sym}${disc.toFixed(2)}</span></div>`:''} ${tax>0?`<div class="t-tot-row"><span>VAT</span><span>${sym}${tax.toFixed(2)}</span></div>`:''}`;
+  const colspan=isQuote?7:4;
+  const tableHead=isQuote
+    ?`<tr><th class="c">S/N</th><th>Description</th><th class="c">Qty</th><th class="c">Unit</th><th class="r">Unit price</th><th class="r">Install</th><th class="r">Amount</th></tr>`
+    :`<tr><th>Description</th><th class="c">Qty</th><th class="r">Unit price</th><th class="r">Amount</th></tr>`;
+  const totRows=`<div class="id-trow"><span>Subtotal</span><span class="tv">${sym}${sub.toFixed(2)}</span></div>${disc>0?`<div class="id-trow credit"><span>Discount</span><span class="tv">−${sym}${disc.toFixed(2)}</span></div>`:''}${tax>0?`<div class="id-trow"><span>VAT</span><span class="tv">${sym}${tax.toFixed(2)}</span></div>`:''}`;
+  const statusChip = inv.status==='paid'
+    ? '<div class="id-chip"><span class="d"></span> Paid</div>'
+    : (inv.status==='overdue' ? '<div class="id-chip" style="background:#fbeaea;color:#c0392b"><span class="d" style="background:#c0392b"></span> Overdue</div>' : '');
+  const brandMark = bizLogo
+    ? `<img src="${bizLogo}" class="id-logo" style="max-height:50px;object-fit:contain">`
+    : `<div class="id-mark">${esc((inv.bizName||'•').trim().charAt(0)||'•')}</div>`;
+  const t=(tmpl==='modern'||tmpl==='bold')?tmpl:'classic';
 
-  if(tmpl==='bold') return `<div class="tmpl-bold">
-    <div class="t-hero">${logoHtml?`<div style="margin-bottom:10px">${logoHtml}</div>`:''}
-      <div class="t-biz-name">${esc(inv.bizName)}</div><div class="t-biz-info">${esc(inv.bizAddress)}<br>${esc(inv.bizEmail)}${inv.bizVAT?' | VAT: '+esc(inv.bizVAT):''}${inv.bizRegNum?' | Reg: '+esc(inv.bizRegNum):''}</div>
-      <div class="t-inv-row"><div class="t-inv-big">${esc(inv.id)} · ${fmtDate(inv.issued)}</div><div class="t-status-big">Due ${fmtDate(inv.due)}</div></div></div>
-    <div class="t-body">${docTitle?`<div style="font-size:19px;font-weight:700;color:#111;margin-bottom:20px;line-height:1.3">${esc(docTitle)}</div>`:''}<div class="t-bill-row">
-      <div class="t-bill-item"><div class="t-bill-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:26px;object-fit:contain;margin-bottom:4px;display:block">`:''}<div class="t-bill-val">${esc(inv.client)}</div><div class="t-bill-sub">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div>
-      <div class="t-bill-item"><div class="t-bill-label">From</div><div class="t-bill-val">${esc(inv.bizName)}</div><div class="t-bill-sub">${esc(inv.bizAddress)}</div></div>
-      <div class="t-bill-item"><div class="t-bill-label">Terms</div><div class="t-bill-val">${esc(inv.terms||'Net 30')}</div><div class="t-bill-sub">Due ${fmtDate(inv.due)}</div></div></div>
-    <table class="t-table"><thead>${tableHead}</thead><tbody>${rows}</tbody></table>
-    <div class="t-summary"><div class="t-summary-inner">${totRows}<div class="t-s-total"><span class="lbl">${totalLabel}</span><span class="val">${sym}${total.toFixed(2)}</span></div></div></div></div>
-    <div class="t-foot"><span>${inv.notes?esc(inv.notes).substring(0,80):''}</span><span>InvoKit Pro</span></div></div>`;
-
-  if(tmpl==='modern') return `<div class="tmpl-modern">
-    <div class="t-top-bar"><div>${logoHtml?`<div style="margin-bottom:8px">${logoHtml}</div>`:''}<div class="t-biz-name">${esc(inv.bizName)}</div>${inv.bizAddress?`<div class="t-biz-tagline">${esc(inv.bizAddress)}</div>`:''}</div>
-      <div class="t-inv-chip">${docLabel} · ${esc(inv.id)}</div></div>
-    <div class="t-body">
-      <div class="t-meta-row">
-        <div><div class="t-meta-label">From</div><div class="t-meta-val">${esc(inv.bizName)}</div><div class="t-meta-sub">${esc(inv.bizAddress)}${inv.bizEmail?'<br>'+esc(inv.bizEmail):''}${inv.bizVAT?'<br>VAT: '+esc(inv.bizVAT):''}</div></div>
-        <div><div class="t-meta-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:26px;object-fit:contain;margin-bottom:4px;display:block">`:''}<div class="t-meta-val">${esc(inv.client)}</div><div class="t-meta-sub">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div>
-        <div style="text-align:right"><div class="t-meta-label">Terms</div><div class="t-meta-val">${esc(inv.paymentTerms||inv.terms||'Net 30')}</div><div class="t-meta-sub">Issued ${fmtDate(inv.issued)}<br>Due ${fmtDate(inv.due)}</div></div>
+  return `<div class="inv-doc" data-tmpl="${t}">
+    <div class="id-head">
+      <div class="id-brand">${brandMark}
+        <div><div class="id-biz">${esc(inv.bizName||'Your Business')}</div><div class="id-biz-sub">${esc(inv.bizAddress||'')}${inv.bizVAT?' · VAT '+esc(inv.bizVAT):''}</div></div>
       </div>
-      <div class="t-divider"></div>
-      ${docTitle?`<div style="font-size:19px;font-weight:600;color:#111;margin-bottom:20px;line-height:1.3">${esc(docTitle)}</div>`:''}
-      <table class="t-table"><thead>${tableHead}</thead><tbody>${rows}</tbody></table>
-      <div class="t-totals-section"><div class="t-totals">${totRows}<div class="t-grand"><span class="lbl">${totalLabel}</span><span class="val">${sym}${total.toFixed(2)}</span></div></div></div>
+      <div class="id-mark-wrap"><div class="id-word">${docLabel}</div><div class="id-num">${esc(inv.id)}</div>${statusChip}</div>
     </div>
-    <div class="t-bottom"><div class="t-bottom-notes">${inv.notes?esc(inv.notes):''}</div><div class="t-bottom-badge">InvoKit Pro</div></div></div>`;
-
-  // Classic (default)
-  return `<div class="tmpl-classic">
-    <div class="t-header"><div>${logoHtml}<div class="t-biz-name">${esc(inv.bizName)}</div><div class="t-biz-info">${esc(inv.bizAddress)}<br>${esc(inv.bizEmail)}${inv.bizPhone?' · '+esc(inv.bizPhone):''}</div></div>
-    <div class="t-inv-meta"><div class="t-inv-label">${docLabel}</div><div class="t-inv-num">${esc(inv.id)}</div><div class="t-dates">Issued: ${fmtDate(inv.issued)}<br>Due: ${fmtDate(inv.due)}</div></div></div>
-    ${docTitle?`<div style="font-size:20px;font-weight:600;color:#111;margin:-20px 0 30px;font-family:'Cormorant Garamond',serif;line-height:1.3">${esc(docTitle)}</div>`:''}
-    <div class="t-addresses">
-      <div><div class="t-addr-label">From</div><div class="t-addr-name">${esc(inv.bizName)}</div><div class="t-addr-info">${esc(inv.bizAddress)}</div></div>
-      <div><div class="t-addr-label">Bill To</div>${clientLogo?`<img src="${clientLogo}" style="height:28px;object-fit:contain;margin-bottom:5px;display:block">`:''}<div class="t-addr-name">${esc(inv.client)}</div><div class="t-addr-info">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div>
+    <div class="id-rule"></div>
+    <div class="id-parties">
+      <div><div class="id-label">Billed to</div>${clientLogo?`<img src="${clientLogo}" style="height:24px;object-fit:contain;margin-bottom:4px;display:block">`:''}<div class="id-pname">${esc(inv.client||'—')}</div><div class="id-pinfo">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div>
+      <div><div class="id-label">From</div><div class="id-pname">${esc(inv.bizName||'')}</div><div class="id-pinfo">${esc(inv.bizAddress||'')}${inv.bizEmail?'<br>'+esc(inv.bizEmail):''}</div></div>
+      <div class="id-dates"><div><div class="id-label">Issued</div><div class="v">${fmtDate(inv.issued)}</div></div><div><div class="id-label">Due</div><div class="v due">${fmtDate(inv.due)}</div></div></div>
     </div>
-    <table class="t-table"><thead>${tableHead}</thead><tbody>${rows}</tbody></table>
-    <div class="t-totals-wrap"><div class="t-totals">${totRows}<div class="t-tot-final"><span class="lbl">${totalLabel}</span><span class="val">${sym}${total.toFixed(2)}</span></div></div></div>
-    ${inv.notes?`<div class="t-notes">${esc(inv.notes)}</div>`:''}
-    <div class="t-footer">Generated with InvoKit Pro · Thank you for your business</div></div>`;
+    ${docTitle?`<div class="id-title">${esc(docTitle)}</div>`:''}
+    <table class="id-table"><thead>${tableHead}</thead><tbody>${rows}</tbody></table>
+    <div class="id-foot">
+      <div class="id-pay">${inv.notes?`<div class="id-label">Notes &amp; payment</div><div style="white-space:pre-line">${esc(inv.notes)}</div>`:`<div class="id-label">Payment terms</div><div>${esc(inv.paymentTerms||inv.terms||'Net 30')} · Due ${fmtDate(inv.due)}</div>`}</div>
+      <div class="id-totals">${totRows}<div class="id-grand"><span class="gl">${totalLabel}</span><span class="gv">${sym}${total.toFixed(2)}</span></div></div>
+    </div>
+    <div class="id-thanks"><span>Thank you for your business.</span><span class="id-made">made with <b>InvoKitPro</b></span></div>
+  </div>`;
 }
 
 // ================================================================
