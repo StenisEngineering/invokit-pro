@@ -3775,7 +3775,7 @@ function parseStoredJSON(raw) {
 }
 
 function normaliseAppState(data) {
-  const empty = (typeof createEmptyAppState === 'function') ? createEmptyAppState() : { invoices: [], clients: [], catalogue: [], recurring: [], settings: {} };
+  const empty = (typeof createEmptyAppState === 'function') ? createEmptyAppState() : { invoices: [], clients: [], catalogue: [], expenses: [], recurring: [], settings: {} };
   const out = data && typeof data === 'object' ? { ...empty, ...data } : empty;
   out.invoices = Array.isArray(out.invoices) ? out.invoices : [];
   out.clients = Array.isArray(out.clients) ? out.clients : [];
@@ -3975,6 +3975,7 @@ function createEmptyAppState() {
     invoices: [],
     clients: [],
     catalogue: [],
+    expenses: [],
     settings: {...DEF_SETTINGS},
     nextNum: 1,
     recurring: [],
@@ -4099,6 +4100,7 @@ function navTo(page, el) {
   else if (page==='roadmap') renderRoadmap();
   else if (page==='settings') { loadSettingsForm(); buildPalette(); }
   else if (page==='recurring') renderRecurring();
+  else if (page==='expenses') renderExpenses();
 }
 
 
@@ -4577,6 +4579,76 @@ document.addEventListener('click', e => {
 // ================================================================
 // RECEIPTS
 // ================================================================
+// ============================================================
+// EXPENSES — light money-out tracking + income vs expenses
+// ============================================================
+function renderExpenses(){
+  if(!APP.expenses) APP.expenses=[];
+  const sym=APP.settings.currency||'£';
+  const q=(document.getElementById('expSearch')||{}).value?.toLowerCase()||'';
+  const list=[...APP.expenses].sort((a,b)=>(b.date||'').localeCompare(a.date||''))
+    .filter(e=>!q || (e.category||'').toLowerCase().includes(q) || (e.description||'').toLowerCase().includes(q));
+  const income=APP.invoices.filter(i=>i.status==='paid').reduce((s,i)=>s+i.amount,0);
+  const totalExp=APP.expenses.reduce((s,e)=>s+(Number(e.amount)||0),0);
+  const net=income-totalExp;
+  const sumEl=document.getElementById('expenseSummary');
+  if(sumEl) sumEl.innerHTML=`
+    <div class="stat-card c-green" title="Money received from paid invoices."><div class="stat-label">Income</div><div class="stat-value">${sym}${income.toLocaleString()}</div><div class="stat-change neutral">From paid invoices</div></div>
+    <div class="stat-card c-red" title="Everything you've recorded as a business expense."><div class="stat-label">Expenses</div><div class="stat-value">${sym}${totalExp.toLocaleString()}</div><div class="stat-change neutral">${APP.expenses.length} recorded</div></div>
+    <div class="stat-card ${net>=0?'c-accent':'c-red'}" title="Income minus expenses — a rough profit figure."><div class="stat-label">Net</div><div class="stat-value">${net<0?'-':''}${sym}${Math.abs(net).toLocaleString()}</div><div class="stat-change ${net>=0?'up':'down'}">${net>=0?'In profit':'Spending exceeds income'}</div></div>`;
+  const tbody=document.getElementById('expensesTableBody');
+  if(!tbody) return;
+  if(!list.length){
+    const emptyAll=!APP.expenses.length;
+    tbody.innerHTML=`<tr><td colspan="5"><div class="empty-state"><div class="empty-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div style="font-weight:600;color:var(--text2);margin-top:6px">${emptyAll?'No expenses yet':'No matching expenses'}</div><div style="font-size:13px;color:var(--text3);margin-top:4px">${emptyAll?'Record your costs to see income vs expenses at a glance.':'Try a different search.'}</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML=list.map(e=>`<tr>
+    <td data-label="Date" style="font-size:13px;color:var(--text2)">${fmtDate(e.date)}</td>
+    <td data-label="Category">${esc(e.category||'—')}</td>
+    <td data-label="Description" style="color:var(--text2)">${esc(e.description||'—')}</td>
+    <td data-label="Amount"><span class="amount" style="color:var(--red)">${sym}${(Number(e.amount)||0).toLocaleString()}</span></td>
+    <td class="td-actions"><div class="row-actions" onclick="event.stopPropagation()">
+      <button class="icon-btn" title="Edit" onclick="openExpenseModal('${e.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+      <button class="icon-btn danger" title="Delete" onclick="confirmDeleteExpense('${e.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div></td>
+  </tr>`).join('');
+}
+function openExpenseModal(id){
+  if(!APP.expenses) APP.expenses=[];
+  const e = id ? APP.expenses.find(x=>x.id===id) : null;
+  document.getElementById('expModalTitle').textContent = e ? 'Edit Expense' : 'Add Expense';
+  document.getElementById('expModalId').value = e ? e.id : '';
+  document.getElementById('exp_date').value = e ? (e.date||'') : new Date().toISOString().split('T')[0];
+  document.getElementById('exp_amount').value = e ? (e.amount||'') : '';
+  document.getElementById('exp_category').value = e ? (e.category||'') : '';
+  document.getElementById('exp_desc').value = e ? (e.description||'') : '';
+  document.getElementById('expenseModalOverlay').classList.add('open');
+}
+function closeExpenseModal(){ document.getElementById('expenseModalOverlay').classList.remove('open'); }
+function saveExpense(){
+  if(!APP.expenses) APP.expenses=[];
+  const amount=parseFloat(document.getElementById('exp_amount').value);
+  if(!(amount>0)){ showToast('Enter an amount'); return; }
+  const id=document.getElementById('expModalId').value;
+  const rec={
+    id: id || ('exp-'+Date.now()),
+    date: document.getElementById('exp_date').value || new Date().toISOString().split('T')[0],
+    amount: amount,
+    category: document.getElementById('exp_category').value.trim(),
+    description: document.getElementById('exp_desc').value.trim()
+  };
+  if(id){ const i=APP.expenses.findIndex(x=>x.id===id); if(i>=0) APP.expenses[i]=rec; }
+  else APP.expenses.unshift(rec);
+  persist(); closeExpenseModal(); renderExpenses(); showToast(id?'Expense updated':'Expense added');
+}
+function confirmDeleteExpense(id){
+  document.getElementById('confirmTitle').textContent='Delete Expense';
+  document.getElementById('confirmMsg').textContent='Delete this expense entry? This cannot be undone.';
+  document.getElementById('confirmOkBtn').onclick=()=>{APP.expenses=APP.expenses.filter(x=>x.id!==id);persist();closeConfirm();renderExpenses();showToast('Expense deleted');};
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+
 function renderReceiptsTable(){
   const q=(document.getElementById('recSearch')||{}).value?.toLowerCase()||'';
   const sym=APP.settings.currency||'£';
@@ -4864,7 +4936,7 @@ function openEditorForInvoice(id){
   document.body.style.overflow='hidden';
 }
 function closeEditor(){document.getElementById('editorOverlay').classList.remove('open');document.body.style.overflow='';}
-function handleOvClick(e,id){if(e.target===document.getElementById(id)){if(id==='editorOverlay') closeEditor();else if(id==='previewOverlay') closePreview();else if(id==='receiptOverlay') closeReceipt();else if(id==='clientModalOverlay') closeClientModal();else if(id==='catModalOverlay') closeCatModal();else if(id==='recurringModal') closeRecurringModal();}}
+function handleOvClick(e,id){if(e.target===document.getElementById(id)){if(id==='editorOverlay') closeEditor();else if(id==='previewOverlay') closePreview();else if(id==='receiptOverlay') closeReceipt();else if(id==='clientModalOverlay') closeClientModal();else if(id==='catModalOverlay') closeCatModal();else if(id==='expenseModalOverlay') closeExpenseModal();else if(id==='recurringModal') closeRecurringModal();}}
 function clearEditor(){
   ['bizName','bizAddress','bizEmail','bizPhone','bizVAT','clientName','clientAddress','clientEmail','clientPhone','notes','docTitle'].forEach(id=>setValue(id,''));
   toggleDocTitle(false);
@@ -8386,6 +8458,7 @@ function renderAppShell() {
     <div class="nav-item" data-page="clients" onclick="navTo('clients',this)"><span class="nav-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Customers</div>
     <div class="nav-item" data-page="catalogue" onclick="navTo('catalogue',this)"><span class="nav-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>Products &amp; Services</div>
     <div class="nav-item" data-page="receipts" onclick="navTo('receipts',this)"><span class="nav-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg></span>Receipts</div>
+    <div class="nav-item" data-page="expenses" onclick="navTo('expenses',this)"><span class="nav-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Expenses</div>
     <div class="nav-item" data-page="recurring" onclick="navTo('recurring',this)"><span class="nav-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>Recurring</div>
     <div class="nav-lbl">Reports</div>
     <div class="nav-item" data-page="analytics" onclick="navTo('analytics',this)"><span class="nav-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>Analytics</div>
@@ -8571,6 +8644,25 @@ function renderAppShell() {
       </div>
       <table class="tbl-cards"><thead><tr><th>Receipt #</th><th>Customer</th><th>Invoice Ref</th><th>Date Paid</th><th>Amount</th><th></th></tr></thead>
       <tbody id="receiptsTableBody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EXPENSES ===== -->
+<div class="page" id="page-expenses">
+  <header class="topbar">
+    <button class="mob-menu-btn" onclick="toggleMobSidebar()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+    <div><div class="page-title">Expenses</div><div class="page-subtitle">Track what your business spends</div></div>
+    <div class="topbar-actions"><button class="btn btn-primary" onclick="openExpenseModal(null)">+ Add Expense</button></div>
+  </header>
+  <div class="content fade-in">
+    <div class="stats-grid" id="expenseSummary" style="grid-template-columns:repeat(3,1fr);margin-bottom:22px"></div>
+    <div class="table-wrap">
+      <div class="table-head">
+        <div class="search-box"><span style="color:var(--text3)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><input type="text" placeholder="Search expenses…" id="expSearch" oninput="renderExpenses()"></div>
+      </div>
+      <table class="tbl-cards"><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th></th></tr></thead>
+      <tbody id="expensesTableBody"></tbody></table>
     </div>
   </div>
 </div>
@@ -9174,6 +9266,31 @@ function renderAppShell() {
 </div>
 
 <!-- ============================================================ RECURRING MODAL -->
+<div class="overlay" id="expenseModalOverlay" onclick="handleOvClick(event,'expenseModalOverlay')">
+<div class="client-modal-panel" style="max-width:520px">
+  <div class="editor-header">
+    <div><div class="editor-title" id="expModalTitle">Add Expense</div></div>
+    <button class="btn btn-ghost btn-sm" onclick="closeExpenseModal()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <div class="editor-body">
+    <input type="hidden" id="expModalId">
+    <div class="half-grid">
+      <div class="field-group"><label class="field-label">Date</label><input class="field-input" type="date" id="exp_date"></div>
+      <div class="field-group"><label class="field-label">Amount *</label><input class="field-input" type="number" min="0" step="0.01" id="exp_amount" placeholder="0.00"></div>
+      <div class="field-group" style="grid-column:1/-1"><label class="field-label">Category</label>
+        <input class="field-input" type="text" id="exp_category" placeholder="e.g. Software, Travel, Materials, Rent…" list="expCategoryList">
+        <datalist id="expCategoryList"><option>Software</option><option>Travel</option><option>Materials</option><option>Rent</option><option>Utilities</option><option>Marketing</option><option>Equipment</option><option>Subscriptions</option><option>Fees</option><option>Other</option></datalist>
+      </div>
+      <div class="field-group" style="grid-column:1/-1"><label class="field-label">Description</label><input class="field-input" type="text" id="exp_desc" placeholder="What was this expense for?"></div>
+    </div>
+  </div>
+  <div class="editor-footer">
+    <button class="btn btn-ghost" onclick="closeExpenseModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="saveExpense()">Save Expense</button>
+  </div>
+</div>
+</div>
+
 <div class="overlay" id="recurringModal" onclick="handleOvClick(event,'recurringModal')">
 <div class="client-modal-panel" style="max-width:560px">
   <div class="editor-header"><div><div class="editor-title">New Recurring Invoice</div></div><button class="btn btn-ghost btn-sm" onclick="closeRecurringModal()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
@@ -9261,13 +9378,13 @@ let _appInitDone = false;
 // ============================================================
 let _ikpBackReady = false, _ikpExitPrompt = false;
 function _ikpTopOverlay() {
-  const ids = ['confirmOverlay','editorOverlay','previewOverlay','receiptOverlay','clientModalOverlay','catModalOverlay','recurringModal'];
+  const ids = ['confirmOverlay','editorOverlay','previewOverlay','receiptOverlay','clientModalOverlay','catModalOverlay','expenseModalOverlay','recurringModal'];
   for (const id of ids) { const el = document.getElementById(id); if (el && el.classList.contains('open')) return id; }
   return null;
 }
 function _ikpCloseOverlay(id) {
   const closers = { confirmOverlay: closeConfirm, editorOverlay: closeEditor, previewOverlay: closePreview,
-    receiptOverlay: closeReceipt, clientModalOverlay: closeClientModal, catModalOverlay: closeCatModal, recurringModal: closeRecurringModal };
+    receiptOverlay: closeReceipt, clientModalOverlay: closeClientModal, catModalOverlay: closeCatModal, expenseModalOverlay: closeExpenseModal, recurringModal: closeRecurringModal };
   try { (closers[id] || function(){})(); } catch(e){}
 }
 function _ikpArm() { try { history.pushState({ ikp: 1 }, ''); } catch(e){} }
