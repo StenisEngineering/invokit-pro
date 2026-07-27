@@ -10437,6 +10437,12 @@ async function activateLicence() {
     // Critical: reload the safest saved records before licence activation writes anything.
     await hydrateAppFromBestStorage({ reason: 'pre-licence-persist' });
 
+    // Coming from the demo? Clear the sample business so the real account starts clean.
+    if (APP._demo) {
+      APP.invoices=[]; APP.clients=[]; APP.catalogue=[]; APP.expenses=[]; APP.recurring=[];
+      APP.settings={...DEF_SETTINGS}; APP.nextNum=1; APP.nextQuoteNum=1; delete APP._demo;
+    }
+
     saveLicenceData({
   status: 'active',
   key,
@@ -10545,9 +10551,54 @@ window.checkFreePlanInvoiceCap = checkFreePlanInvoiceCap;
 window.showFreeUpgradePaywall = showFreeUpgradePaywall;
 // == END FREE PLAN ==
 
+// Populate the demo with a lively sample business so prospects see a full app
+function seedDemoData(){
+  if(APP.invoices && APP.invoices.length) return; // never clobber real data
+  const biz={bizName:'Meridian Studio',bizAddress:'27 Ludgate Hill, London EC4M 7JS',bizEmail:'hello@meridian.studio',bizPhone:'+44 20 7946 0123',bizVAT:'GB 418 2290 71'};
+  Object.assign(APP.settings,{bizName:biz.bizName,ownerName:'Alex Rivera',email:biz.bizEmail,phone:biz.bizPhone,address:biz.bizAddress,vat:biz.bizVAT,currency:'£',taxRate:20,terms:'Net 14',template:'classic'});
+  APP.clients=[
+    {id:'cd1',name:'Harbour & Co.',contact:'Amara Bello',email:'accounts@harbour.co',phone:'+44 117 496 0022',address:'14 Wharf Road, Bristol BS1 6XN',industry:'Hospitality'},
+    {id:'cd2',name:'Bright Films',contact:"Tom O'Neil",email:'hello@brightfilms.tv',phone:'+44 161 850 4410',address:'8 Quay Street, Manchester M3 3JE',industry:'Media'},
+    {id:'cd3',name:'Corvid Group',contact:'Priya Shah',email:'ap@corvidgroup.com',address:'220 King Street, Leeds LS1 2HL',industry:'Consulting'},
+    {id:'cd4',name:'Delta Retail',contact:'Sam Cole',email:'finance@deltaretail.co.uk',address:'5 Market Sq, Birmingham B2 4QA',industry:'Retail'}
+  ];
+  APP.catalogue=[
+    {id:'p1',name:'Brand identity system',category:'Design',type:'service',price:2400,unit:'project',desc:'Logo suite, colour & type'},
+    {id:'p2',name:'Marketing website',category:'Web',type:'service',price:3200,unit:'project',desc:'Responsive multi-page build'},
+    {id:'p3',name:'Consultation',category:'Consulting',type:'hourly',price:140,unit:'hour',desc:'Strategy & advisory'},
+    {id:'p4',name:'Monthly retainer',category:'Retainer',type:'subscription',price:900,unit:'month',desc:'Ongoing design support'},
+    {id:'p5',name:'Photography direction',category:'Creative',type:'service',price:650,unit:'day',desc:'On-site art direction'}
+  ];
+  const C=APP.clients;
+  const mk=(id,cl,status,issued,due,items,discount,extra={})=>{
+    const sub=items.filter(it=>!it.type).reduce((s,it)=>s+(it.qty*it.price),0);
+    const tax=Math.round((sub-discount)*0.2*100)/100;
+    const amount=Math.round((sub-discount+tax)*100)/100;
+    return {id,documentType:'invoice',status,...biz,client:cl.name,email:cl.email,address:cl.address,issued,due,subtotal:sub,discount,tax,amount,items,template:'classic',...extra};
+  };
+  APP.invoices=[
+    mk('INV-2026-004',C[0],'paid','2026-07-02','2026-07-16',[{desc:'Brand identity system',qty:1,price:2400},{desc:'Marketing website',qty:1,price:3200}],280,{paidAmount:6384}),
+    mk('INV-2026-005',C[1],'partial','2026-07-08','2026-07-22',[{desc:'Monthly retainer',qty:2,price:900},{desc:'Consultation',qty:6,price:140}],0,{paidAmount:1500}),
+    mk('INV-2026-006',C[2],'pending','2026-07-14','2026-07-28',[{desc:'Photography direction',qty:2,price:650},{desc:'Consultation',qty:4,price:140}],0,{}),
+    mk('INV-2026-003',C[3],'overdue','2026-06-05','2026-06-19',[{desc:'Marketing website',qty:1,price:3200}],0,{}),
+    mk('INV-2026-002',C[0],'paid','2026-06-12','2026-06-26',[{desc:'Monthly retainer',qty:1,price:900}],0,{paidAmount:1080})
+  ];
+  APP.invoices.push({id:'QUO-2026-002',documentType:'quote',status:'pending',...biz,client:C[3].name,email:C[3].email,address:C[3].address,issued:'2026-07-18',due:'2026-08-01',subtotal:5400,discount:0,tax:1080,amount:6480,template:'classic',items:[{type:'heading',desc:'Design & build'},{desc:'Brand identity',qty:1,unit:'project',unitPrice:2400,installRate:0},{desc:'Website',qty:1,unit:'project',unitPrice:3000,installRate:0}]});
+  APP.expenses=[
+    {id:'e1',date:'2026-07-03',amount:52,category:'Software',description:'Adobe Creative Cloud'},
+    {id:'e2',date:'2026-07-09',amount:120,category:'Travel',description:'Client visit — Bristol'},
+    {id:'e3',date:'2026-07-15',amount:340,category:'Equipment',description:'Studio lighting'},
+    {id:'e4',date:'2026-07-20',amount:29,category:'Subscriptions',description:'Domain & hosting'}
+  ];
+  APP.nextNum=7; APP.nextQuoteNum=3; APP._demo=true;
+  persist();
+}
+
 function enterDemoMode() {
   saveLicenceData({status:'demo', startedAt: Date.now()});
-  APP.licenceStatus = 'demo'; persist();
+  APP.licenceStatus = 'demo';
+  seedDemoData();
+  persist();
   try { sessionStorage.removeItem('invokit_demo_banner_closed'); } catch(e) {}
   dismissSplash(true);
   setTimeout(showDemoBanner, 700);
