@@ -10274,6 +10274,14 @@ async function bootSplash() {
   await hydrateAppFromBestStorage({ reason: 'pre-boot' });
   const ld = await getLicenceDataAsync();
 
+  // Landing-page "Try demo" deep link (?demo=1 or /demo/) → jump straight
+  // into the seeded demo, unless a real licence is already active.
+  const wantsDemo = /[?&]demo=1\b/.test(location.search) || /\/demo\/?$/.test(location.pathname);
+  if (wantsDemo && !(ld && ld.status === 'active')) {
+    enterDemoMode();
+    return;
+  }
+
   // Already activated — verify the signed licence before unlocking.
   if (ld && ld.status === 'active') {
     const gate = await verifyLicenceForBoot(ld);
