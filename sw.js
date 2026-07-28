@@ -1,4 +1,4 @@
-const CACHE = 'invokit-v21-licence-security';
+const CACHE = 'invokit-v22-trust-consistency';
 const SHELL = [
   '/',
   '/index.html',

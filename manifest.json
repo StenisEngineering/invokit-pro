@@ -1,7 +1,7 @@
 {
-  "name": "InvoKit Pro",
-  "short_name": "InvoKit",
-  "description": "Professional business management. No cloud. No subscription. No limits.",
+  "name": "InvoKitPro Offline",
+  "short_name": "InvoKitPro",
+  "description": "Professional offline business management — invoices, customers, receipts, expenses. Your data stays on your device.",
   "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",
