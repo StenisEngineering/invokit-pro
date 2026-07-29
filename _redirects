@@ -1,2 +1,6 @@
-/demo    /?demo=1  302
-/demo/*  /?demo=1  302
+# Serve the app itself at /demo (200 rewrite, URL stays /demo/) so it
+# auto-enters seeded demo mode via the /demo/ path. Do NOT 302 /demo away
+# to /?demo=1 — a dashboard rule sends /?demo=1 back to /demo/, which loops.
+/demo     /index.html   200
+/demo/    /index.html   200
+/demo/*   /index.html   200
