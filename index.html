@@ -4930,6 +4930,7 @@ function switchSettingsTab(tab,el){
   document.getElementById('settings-'+tab).classList.add('active'); el.classList.add('active');
   if(tab==='branding') buildPalette();
   if(tab==='devices') loadDevicesPanel();
+  if(tab==='data' && typeof renderDataSafetyPanel==='function') renderDataSafetyPanel();
 }
 function updateSidebarProfile(){
   const s=APP.settings;
@@ -8363,10 +8364,20 @@ function exportJSON(markBackupDone = true) {
   if(isFreePlan()){showFreeUpgradePaywall('export');return;}
   const exportState = normaliseAppState(APP);
   exportState._dataSafety = {
+    schema: 'invokitpro-backup/1',
     version: DATA_SAFETY_VERSION,
+    appVersion: IKP_APP_VERSION,
     exportedAt: new Date().toISOString(),
     businessScore: appBusinessScore(exportState),
-    recordCount: appRecordCount(exportState)
+    recordCount: ikpFullRecordCount(exportState),
+    records: {
+      invoices: (exportState.invoices||[]).filter(x=>x.documentType!=='quote').length,
+      quotes: (exportState.invoices||[]).filter(x=>x.documentType==='quote').length,
+      customers: (exportState.clients||[]).length,
+      products: (exportState.catalogue||[]).length,
+      expenses: (exportState.expenses||[]).length,
+      recurring: (exportState.recurring||[]).length
+    }
   };
   const data = JSON.stringify(exportState, null, 2);
   const blob = new Blob([data], {type: 'application/json'});
@@ -8389,13 +8400,29 @@ function importJSON(e) {
   reader.onload = ev => {
     try {
       const data = JSON.parse(ev.target.result);
-      // Validate it looks like InvoKit data
-      if (!data.invoices || !Array.isArray(data.invoices)) {
- showToast('Invalid backup file'); return;
+      // Validate it looks like an InvoKitPro backup
+      if (!data || typeof data !== 'object' || !Array.isArray(data.invoices)) {
+ showToast('That doesn’t look like an InvoKitPro backup file'); return;
       }
+      const nInv = (data.invoices||[]).filter(x=>x.documentType!=='quote').length;
+      const nQuo = (data.invoices||[]).filter(x=>x.documentType==='quote').length;
+      const nCust = (data.clients||[]).length;
+      const nProd = (data.catalogue||[]).length;
+      const nExp = (data.expenses||[]).length;
       document.getElementById('confirmTitle').textContent = 'Restore from Backup?';
-      document.getElementById('confirmMsg').textContent = `This will replace all current data with the backup (${data.invoices.length} invoices, ${(data.clients||[]).length} clients). Cannot be undone.`;
+      document.getElementById('confirmMsg').textContent = `This replaces ALL current data with the backup: ${nInv} invoices, ${nQuo} quotes, ${nCust} customers, ${nProd} products, ${nExp} expenses. Your current data is saved as a safety backup file first.`;
       document.getElementById('confirmOkBtn').onclick = () => {
+        // Pre-restore safety backup of current data
+        try {
+          if (hasBusinessData()) {
+            const pre = JSON.stringify(normaliseAppState(APP), null, 2);
+            const b = new Blob([pre], {type:'application/json'});
+            const u = URL.createObjectURL(b);
+            const a = document.createElement('a');
+            a.href = u; a.download = `invokitpro-pre-restore-${new Date().toISOString().replace(/[:.]/g,'-').slice(0,19)}.json`;
+            a.click(); URL.revokeObjectURL(u);
+          }
+        } catch(e){}
         APP = normaliseAppState(data);
         persist();
         markBackupComplete('restore-json');
@@ -8404,12 +8431,13 @@ function importJSON(e) {
         buildDashboard();
         loadSettingsForm();
         checkOverdue();
+        if (typeof renderDataSafetyPanel === 'function') renderDataSafetyPanel();
         closeConfirm();
- showToast(`Restored — ${data.invoices.length} invoices loaded`);
+ showToast(`Restored — ${nInv} invoices, ${nCust} customers loaded`);
       };
       document.getElementById('confirmOverlay').classList.add('open');
     } catch(err) {
- showToast('Could not read backup file');
+ showToast('Could not read that backup file');
     }
   };
   reader.readAsText(file);
@@ -8442,11 +8470,13 @@ function markBackupComplete(type = 'json') {
     lastBackupAt: Date.now(),
     lastShownAt: Date.now(),
     lastBackupType: type,
+    recordCountAtBackup: ikpFullRecordCount(APP),
     dismissCount: 0,
     snoozeUntil: null
   });
   const overlay = document.getElementById('backupReminderOverlay');
   if (overlay) overlay.classList.remove('open');
+  if (typeof renderDataSafetyPanel === 'function') renderDataSafetyPanel();
  showToast('Backup saved — your data is safe');
 }
 
@@ -8482,6 +8512,132 @@ function hasBusinessData() {
     (APP.clients && APP.clients.length > 0) ||
     (APP.catalogue && APP.catalogue.length > 0)
   );
+}
+
+// ================================================================
+// DATA SAFETY (v14) — persistent storage, health panel, safe reset
+// ================================================================
+const IKP_APP_VERSION = '8.2-data-safety';
+
+function ikpFullRecordCount(data){
+  data = data || APP;
+  if(!data) return 0;
+  return appRecordCount(data) + (Array.isArray(data.expenses) ? data.expenses.length : 0);
+}
+
+async function requestPersistentStorage(interactive){
+  try{
+    if(!(navigator.storage && navigator.storage.persist)) { if(interactive) showToast('This browser can’t protect storage — keep regular backups'); return null; }
+    let persisted = await navigator.storage.persisted();
+    if(!persisted) persisted = await navigator.storage.persist();
+    if(interactive){
+      showToast(persisted ? 'Storage protected — the browser won’t auto-clear your data' : 'Browser declined — keep regular backups to stay safe');
+      renderDataSafetyPanel();
+    }
+    return persisted;
+  }catch(e){ return null; }
+}
+
+async function ikpStorageEstimate(){
+  try{
+    if(!(navigator.storage && navigator.storage.estimate)) return null;
+    return await navigator.storage.estimate();
+  }catch(e){ return null; }
+}
+
+function ikpFmtBytes(n){
+  if(!Number.isFinite(n)) return '—';
+  if(n < 1024) return n+' B';
+  if(n < 1048576) return (n/1024).toFixed(0)+' KB';
+  if(n < 1073741824) return (n/1048576).toFixed(1)+' MB';
+  return (n/1073741824).toFixed(2)+' GB';
+}
+
+function ikpRelDays(ts){
+  if(!ts) return null;
+  const d = Math.floor((Date.now()-ts)/86400000);
+  if(d <= 0) return 'today';
+  if(d === 1) return 'yesterday';
+  return d+' days ago';
+}
+
+async function renderDataSafetyPanel(){
+  const el = document.getElementById('dataSafetyPanel');
+  if(!el) return;
+  const st = getBackupReminderState();
+  const lastTxt = st.lastBackupAt ? ('Last backup ' + ikpRelDays(st.lastBackupAt)) : 'No backup yet';
+  const sinceCount = st.lastBackupAt ? Math.max(0, ikpFullRecordCount(APP) - (st.recordCountAtBackup||0)) : ikpFullRecordCount(APP);
+  const overdue = !st.lastBackupAt || (Date.now()-st.lastBackupAt) > BACKUP_FORCE_AFTER_DAYS*86400000;
+  let persisted = null;
+  try{ persisted = (navigator.storage && navigator.storage.persisted) ? await navigator.storage.persisted() : null; }catch(e){}
+  const est = await ikpStorageEstimate();
+  const statusColor = overdue ? 'var(--red)' : 'var(--green)';
+  const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${statusColor};margin-right:7px;vertical-align:middle;"></span>`;
+  el.innerHTML = `
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+      <div style="flex:1;min-width:160px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;font-family:'DM Mono',monospace;margin-bottom:5px;">Backup status</div>
+        <div style="font-size:14px;color:var(--text);font-weight:600;">${dot}${lastTxt}</div>
+        <div style="font-size:12px;color:${sinceCount>0?'var(--red)':'var(--text3)'};margin-top:3px;">${sinceCount>0 ? sinceCount+' record'+(sinceCount===1?'':'s')+' changed since backup' : 'Everything is backed up'}</div>
+      </div>
+      <div style="flex:1;min-width:160px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;font-family:'DM Mono',monospace;margin-bottom:5px;">Storage protection</div>
+        <div style="font-size:14px;color:var(--text);font-weight:600;">${persisted===true?'Protected':persisted===false?'Not protected':'Not available'}</div>
+        ${persisted===false
+          ? '<button class="btn btn-ghost btn-xs" style="margin-top:7px;" onclick="requestPersistentStorage(true)">Protect my data</button>'
+          : `<div style="font-size:12px;color:var(--text3);margin-top:3px;">${est&&Number.isFinite(est.usage)?ikpFmtBytes(est.usage)+' used on this device':'Stored on this device'}</div>`}
+      </div>
+    </div>`;
+}
+
+// Safe, reversible-guarded reset: type DELETE + offered backup first
+function ikpDataSummaryLine(){
+  const d = APP || {};
+  const inv = (d.invoices||[]).filter(x=>x.documentType!=='quote').length;
+  const quo = (d.invoices||[]).filter(x=>x.documentType==='quote').length;
+  const cust = (d.clients||[]).length;
+  const prod = (d.catalogue||[]).length;
+  const exp = (d.expenses||[]).length;
+  const p = (n,w)=> n+' '+w+(n===1?'':'s');
+  return `${p(inv,'invoice')}, ${p(quo,'quote')}, ${p(cust,'customer')}, ${p(prod,'product')}, ${p(exp,'expense')}`;
+}
+
+function openResetModal(){
+  closeResetModal();
+  const ov = document.createElement('div');
+  ov.id = 'resetModalOverlay';
+  ov.setAttribute('style','position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);');
+  ov.onclick = (e)=>{ if(e.target===ov) closeResetModal(); };
+  ov.innerHTML = `
+    <div role="dialog" aria-modal="true" style="width:100%;max-width:440px;background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.45);padding:22px;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;color:var(--red);margin-bottom:8px;">Reset all data?</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:14px;">
+        This permanently deletes everything on this device:<br>
+        <strong style="color:var(--text);">${ikpDataSummaryLine()}</strong>, plus your business profile and settings. This cannot be undone.
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-bottom:14px;" onclick="exportJSON()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download a backup first</button>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">Type <strong style="color:var(--red);letter-spacing:.08em;">DELETE</strong> to confirm:</div>
+      <input id="resetConfirmInput" class="field-input" autocomplete="off" spellcheck="false" placeholder="DELETE" oninput="var b=document.getElementById('resetConfirmBtn');b.disabled=this.value.trim().toUpperCase()!=='DELETE';" style="margin-bottom:16px;">
+      <div style="display:flex;gap:9px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="closeResetModal()">Cancel</button>
+        <button class="btn btn-danger" id="resetConfirmBtn" style="flex:1;" disabled onclick="performReset()">Delete everything</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  setTimeout(()=>{ const i=document.getElementById('resetConfirmInput'); if(i) i.focus(); },50);
+}
+function closeResetModal(){ const o=document.getElementById('resetModalOverlay'); if(o) o.remove(); }
+function performReset(){
+  const inp = document.getElementById('resetConfirmInput');
+  if(!inp || inp.value.trim().toUpperCase() !== 'DELETE') return;
+  window.__INVOKIT_ALLOW_EMPTY_PERSIST = true;
+  APP = createEmptyAppState();
+  APP.theme = APP.settings.theme = (document.documentElement.getAttribute('data-theme') || 'hybrid');
+  persist();
+  setTimeout(()=>{ window.__INVOKIT_ALLOW_EMPTY_PERSIST = false; },0);
+  refreshAll(); loadSettingsForm(); checkOverdue(); closeResetModal();
+  if(typeof renderDataSafetyPanel==='function') renderDataSafetyPanel();
+  showToast('All data has been reset');
 }
 
 function daysSinceBackup() {
@@ -9109,6 +9265,7 @@ function renderAppShell() {
           <div class="settings-card">
             <div class="settings-title">Data & Export</div>
             <div class="settings-desc">Your data lives on this device. Back it up regularly — save the file to Google Drive, iCloud, email or USB.</div>
+            <div id="dataSafetyPanel"></div>
             <div style="background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.18);border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:12px;color:var(--text2);line-height:1.7;">
               <strong style="color:var(--text);">How to back up:</strong><br>
               1. Tap <strong style="color:var(--text);">Download Backup</strong> below — saves a <code style="font-size:11px;background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:4px;">.json</code> file<br>
@@ -9118,7 +9275,7 @@ function renderAppShell() {
             <div style="display:flex;flex-direction:column;gap:10px;">
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                 <button class="btn btn-primary" onclick="exportJSON()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download Backup</button>
-                <span style="font-size:12px;color:var(--text3)">All invoices, clients, catalogue & settings</span>
+                <span style="font-size:12px;color:var(--text3)">All invoices, customers, products & services & settings</span>
               </div>
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                 <button class="btn btn-ghost" onclick="document.getElementById('importJSONInput').click()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Restore from Backup</button>
@@ -9129,7 +9286,7 @@ function renderAppShell() {
                 <button class="btn btn-ghost" onclick="exportCSV()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export Invoices as CSV</button>
               </div>
               <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-                <button class="btn btn-danger" onclick="confirmReset()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Reset All Data</button>
+                <button class="btn btn-danger" onclick="openResetModal()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Reset All Data</button>
               </div>
             </div>
           </div>
@@ -9203,7 +9360,7 @@ function renderAppShell() {
               </div>
             </div>
             <div style="font-size:12px;color:var(--text3);border-top:1px solid var(--border);padding-top:14px;line-height:1.7;">
-              Your data never leaves your device. No accounts, no cloud sync, no tracking. Install the app to your desktop or home screen for the most consistent experience, and use <strong style="color:var(--text2)">Backup All Data</strong> in Data & Export before switching browsers or devices.
+              Your business records stay on your device — nothing is uploaded to a central server unless you export or share it. No accounts, no cloud sync, no tracking. Because the data is local, install the app to your desktop or home screen and use <strong style="color:var(--text2)">Backup All Data</strong> in Data &amp; Export regularly, and before switching browsers or devices.
             </div>
           </div>
         </div>
@@ -9693,6 +9850,8 @@ function initAppAfterShell() {
   startAutoTooltips();
   initOfflineIndicator();
   initFab();
+  requestPersistentStorage(false);
+  if (typeof renderDataSafetyPanel === 'function') renderDataSafetyPanel();
 }
 
 // Subtle connection-status pill — informational (offline is normal for this app)
