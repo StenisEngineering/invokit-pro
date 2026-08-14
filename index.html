@@ -4222,31 +4222,54 @@ function buildDashboard() {
   renderStats(); buildBarChart(); renderDonut(); renderDashTable();
 }
 
+// ── UNIFIED FINANCIAL CALCULATION LAYER (P0-01) ──
+// Single source of truth for money figures across dashboard, analytics and
+// lists. "Collected" derives ONLY from recorded paid amounts — never from an
+// invoice's status — so changing a status can never fabricate income, and
+// part-paid invoices are always counted. Drafts and quotes are excluded.
+function computeTotals(list){
+  const src = (list || (APP && APP.invoices) || []).filter(i => i && i.documentType!=='quote' && i.status!=='draft');
+  const today = new Date(); today.setHours(0,0,0,0);
+  let billed=0, collected=0, overdueBalance=0, overdueCount=0, paidCount=0, partialCount=0, pendingCount=0;
+  src.forEach(i => {
+    const amt = Math.max(0, Number(i.amount||0));
+    let paidAmt = Number(i.paidAmount);
+    if (!Number.isFinite(paidAmt)) paidAmt = (i.status==='paid') ? amt : 0; // legacy: status 'paid' with no recorded amount
+    paidAmt = Math.min(amt, Math.max(0, paidAmt));
+    const bal = Math.max(0, amt - paidAmt);
+    billed += amt; collected += paidAmt;
+    const due = i.due ? new Date(i.due + 'T00:00:00') : null;
+    const overdue = bal > 0.005 && due && due < today;
+    if (bal <= 0.005) paidCount++; else if (paidAmt > 0.005) partialCount++; else pendingCount++;
+    if (overdue) { overdueCount++; overdueBalance += bal; }
+  });
+  const outstanding = Math.max(0, billed - collected);
+  return {
+    billed, collected, outstanding,
+    pendingBalance: Math.max(0, outstanding - overdueBalance),
+    overdueBalance, overdueCount, paidCount, partialCount, pendingCount,
+    count: src.length,
+    rate: billed > 0 ? (collected / billed * 100) : 0
+  };
+}
+
 function renderStats() {
   const inv=APP.invoices.filter(i=>i.documentType!=='quote'), sym=APP.settings.currency||'£';
-  const paidList=inv.filter(i=>i.status==='paid');
-  const partialList=inv.filter(i=>i.status==='partial');
-  const unpaidList=inv.filter(i=>i.status==='pending'||i.status==='overdue'||i.status==='partial');
-  const overdueList=inv.filter(i=>i.status==='overdue');
-  // money received = fully-paid invoices + amounts received on part-paid ones
-  const paid=paidList.reduce((s,i)=>s+Number(i.amount||0),0)+partialList.reduce((s,i)=>s+Number(i.paidAmount||0),0);
-  // outstanding = unpaid balances (part-paid counts only the remainder)
-  const out=inv.filter(i=>i.status==='pending'||i.status==='overdue').reduce((s,i)=>s+Number(i.amount||0),0)+partialList.reduce((s,i)=>s+Math.max(0,Number(i.amount||0)-Number(i.paidAmount||0)),0);
-  const pc=paidList.length;
-  const overdue=overdueList.length;
-  const overdueAmt=overdueList.reduce((s,i)=>s+i.amount,0);
-  const invoiced=paid+out;
-  const rate=invoiced>0?Math.round(paid/invoiced*100):0;
-  const avg=inv.length?Math.round(inv.reduce((s,i)=>s+i.amount,0)/inv.length):0;
+  const t = computeTotals();
+  const paid=t.collected, out=t.outstanding, rate=Math.round(t.rate);
+  const pc=t.paidCount, overdue=t.overdueCount, overdueAmt=t.overdueBalance;
+  const unpaidCount=t.pendingCount+t.partialCount+t.overdueCount;
+  const finalisedCount=t.count;
+  const avg=finalisedCount?Math.round(t.billed/finalisedCount):0;
   const up='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>';
   const down='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>';
   // Insightful, plain-English sub-lines that describe what the number means
-  const paidSub = pc ? `Received from ${pc} paid invoice${pc===1?'':'s'}` : 'No payments received yet';
-  const outSub  = overdue>0 ? `${overdue} overdue · ${sym}${overdueAmt.toLocaleString()}`
-                : unpaidList.length ? `${unpaidList.length} invoice${unpaidList.length===1?'':'s'} awaiting payment`
-                : 'Nothing outstanding — all settled';
-  const rateSub = invoiced>0 ? `${pc} of ${paidList.length+unpaidList.length} invoices paid` : 'Send an invoice to start tracking';
-  const avgSub  = inv.length ? `Across ${inv.length} invoice${inv.length===1?'':'s'}` : 'No invoices yet';
+  const paidSub = pc ? `Received from ${pc} paid invoice${pc===1?'':'s'}` : (t.collected>0 ? 'Includes part-paid invoices' : 'No payments received yet');
+  const outSub  = overdue>0 ? `${overdue} overdue · ${sym}${Math.round(overdueAmt).toLocaleString()}`
+                : unpaidCount ? `${unpaidCount} invoice${unpaidCount===1?'':'s'} awaiting payment`
+                : (finalisedCount ? 'Nothing outstanding — all settled' : 'No invoices yet');
+  const rateSub = t.billed>0 ? `${sym}${Math.round(t.collected).toLocaleString()} of ${sym}${Math.round(t.billed).toLocaleString()} collected` : 'Send an invoice to start tracking';
+  const avgSub  = finalisedCount ? `Across ${finalisedCount} invoice${finalisedCount===1?'':'s'}` : 'No invoices yet';
   document.getElementById('statsGrid').innerHTML = `
     <div class="stat-card c-accent" title="Total value of invoices you've marked as paid — money actually received.">
       <div class="stat-label">Total Paid</div><div class="stat-value">${sym}${paid.toLocaleString()}</div>
@@ -4828,10 +4851,12 @@ function printReceipt(){
 // ================================================================
 function renderAnalytics(){
   const inv = APP.invoices.filter(i=>i.documentType!=='quote'), sym = APP.settings.currency || '£';
-  const paid = inv.filter(i=>i.status==='paid').reduce((s,i)=>s+Number(i.amount||0),0);
-  const pend = inv.filter(i=>i.status==='pending').reduce((s,i)=>s+Number(i.amount||0),0);
-  const over = inv.filter(i=>i.status==='overdue').reduce((s,i)=>s+Number(i.amount||0),0);
-  const total = paid + pend + over, rate = total ? Math.round(paid/total*100) : 0;
+  const t = computeTotals();
+  const paid  = t.collected;        // money actually collected (from payments, not status)
+  const pend  = t.pendingBalance;   // outstanding balance not yet overdue
+  const over  = t.overdueBalance;   // outstanding balance on overdue invoices
+  const total = t.billed;           // total finalised billed, including part-paid invoices
+  const rate  = Math.round(t.rate); // collected / billed
 
   document.getElementById('analyticsStats').innerHTML = `
     <div class="stat-card c-accent"><div class="stat-label">Total Billed</div><div class="stat-value">${sym}${total.toLocaleString()}</div><div class="stat-change neutral">All time</div></div>
