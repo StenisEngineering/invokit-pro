@@ -8571,7 +8571,7 @@ async function requestPersistentStorage(interactive){
     let persisted = await navigator.storage.persisted();
     if(!persisted) persisted = await navigator.storage.persist();
     if(interactive){
-      showToast(persisted ? 'Storage protected — the browser won’t auto-clear your data' : 'Browser declined — keep regular backups to stay safe');
+      showToast(persisted ? 'This browser will now keep your data (it won’t auto-clear it). This does not lock or encrypt the app.' : 'Browser declined — keep regular backups to stay safe');
       renderDataSafetyPanel();
     }
     return persisted;
@@ -8621,10 +8621,10 @@ async function renderDataSafetyPanel(){
         <div style="font-size:12px;color:${sinceCount>0?'var(--red)':'var(--text3)'};margin-top:3px;">${sinceCount>0 ? sinceCount+' record'+(sinceCount===1?'':'s')+' changed since backup' : 'Everything is backed up'}</div>
       </div>
       <div style="flex:1;min-width:160px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;font-family:'DM Mono',monospace;margin-bottom:5px;">Storage protection</div>
-        <div style="font-size:14px;color:var(--text);font-weight:600;">${persisted===true?'Protected':persisted===false?'Not protected':'Not available'}</div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;font-family:'DM Mono',monospace;margin-bottom:5px;">Browser storage</div>
+        <div style="font-size:14px;color:var(--text);font-weight:600;">${persisted===true?'Retained':persisted===false?'Not retained':'Not available'}</div>
         ${persisted===false
-          ? '<button class="btn btn-ghost btn-xs" style="margin-top:7px;" onclick="requestPersistentStorage(true)">Protect my data</button>'
+          ? '<button class="btn btn-ghost btn-xs" style="margin-top:7px;" onclick="requestPersistentStorage(true)">Prevent auto-cleanup</button><div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5;">Asks this browser to keep your data. This does not lock or encrypt the app.</div>'
           : `<div style="font-size:12px;color:var(--text3);margin-top:3px;">${est&&Number.isFinite(est.usage)?ikpFmtBytes(est.usage)+' used on this device':'Stored on this device'}</div>`}
       </div>
     </div>`;
