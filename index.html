@@ -4209,9 +4209,24 @@ function checkOverdue() {
     if(inv.status !== d){ inv.status = d; changed=true; }
   });
   if(changed && !window.__INVOKIT_ALLOW_EMPTY_PERSIST){ try{ persist(); }catch(e){} }
-  const n = APP.invoices.filter(i=>i.status==='overdue').length;
+  updateNavCounts();
+}
+
+// P0-02: reactive nav counts. The Invoices badge is a live count of invoices
+// (excludes quotes), updated after every create, duplicate, convert, import,
+// restore and delete because this runs inside refreshAll().
+function updateNavCounts(){
+  const invCount = APP.invoices.filter(i=>i && i.documentType!=='quote').length;
+  const overdue  = APP.invoices.filter(i=>i && i.documentType!=='quote' && i.status==='overdue').length;
   const b = document.getElementById('overdueBadge');
-  if (b) { b.textContent=n; b.style.display=n>0?'inline-flex':'none'; }
+  if (b) {
+    b.textContent = invCount;
+    b.style.display = invCount>0 ? 'inline-flex' : 'none';
+    // Neutral when nothing is overdue; red only when there's something to chase.
+    b.style.background = overdue>0 ? 'var(--red-dim)' : 'var(--surface3)';
+    b.style.color = overdue>0 ? 'var(--red)' : 'var(--text3)';
+    b.title = overdue>0 ? `${invCount} invoices · ${overdue} overdue` : `${invCount} invoice${invCount===1?'':'s'}`;
+  }
 }
 
 // ================================================================
