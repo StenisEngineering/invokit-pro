@@ -8363,6 +8363,15 @@ function updateInstallStatus() {
 function exportJSON(markBackupDone = true) {
   if(isFreePlan()){showFreeUpgradePaywall('export');return;}
   const exportState = normaliseAppState(APP);
+  // Never write licence credentials into a business backup. The raw key,
+  // status, plan and entitlements must come from the device's own activation,
+  // not from a file that could be copied or shared.
+  delete exportState.licenceKey;
+  delete exportState.licenceStatus;
+  delete exportState.plan;
+  delete exportState.planFeatures;
+  delete exportState.demo;
+  delete exportState._demo;
   exportState._dataSafety = {
     schema: 'invokitpro-backup/1',
     version: DATA_SAFETY_VERSION,
@@ -8423,7 +8432,13 @@ function importJSON(e) {
             a.click(); URL.revokeObjectURL(u);
           }
         } catch(e){}
+        // Keep THIS device's licence — a restored backup must never carry,
+        // grant, or change activation. Business data is restored; entitlement
+        // stays with the current activation.
+        const keepLicence = { licenceKey: APP?.licenceKey, licenceStatus: APP?.licenceStatus, plan: APP?.plan, planFeatures: APP?.planFeatures };
         APP = normaliseAppState(data);
+        delete APP.licenceKey; delete APP.licenceStatus; delete APP.plan; delete APP.planFeatures; delete APP.demo; delete APP._demo;
+        Object.keys(keepLicence).forEach(k => { if (keepLicence[k] !== undefined && keepLicence[k] !== '' && keepLicence[k] !== null) APP[k] = keepLicence[k]; });
         persist();
         markBackupComplete('restore-json');
         applyTheme(APP.theme || 'hybrid');
