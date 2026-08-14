@@ -4199,8 +4199,16 @@ function renderRoadmap(){
 // OVERDUE AUTO-DETECTION
 // ================================================================
 function checkOverdue() {
-  const today = new Date().toISOString().split('T')[0];
-  APP.invoices.forEach(inv => { if(inv.status==='pending'&&inv.due&&inv.due<today) inv.status='overdue'; });
+  // Reconcile every invoice's status from the derived truth (payments + dates).
+  // This keeps status honest and self-corrects any stale or legacy value — a
+  // part-paid invoice can never sit as "Paid", and due dates flip to Overdue.
+  let changed=false;
+  APP.invoices.forEach(inv => {
+    if(!inv || inv.documentType==='quote') return;
+    const d = deriveStatus(inv);
+    if(inv.status !== d){ inv.status = d; changed=true; }
+  });
+  if(changed && !window.__INVOKIT_ALLOW_EMPTY_PERSIST){ try{ persist(); }catch(e){} }
   const n = APP.invoices.filter(i=>i.status==='overdue').length;
   const b = document.getElementById('overdueBadge');
   if (b) { b.textContent=n; b.style.display=n>0?'inline-flex':'none'; }
@@ -4251,6 +4259,26 @@ function computeTotals(list){
     count: src.length,
     rate: billed > 0 ? (collected / billed * 100) : 0
   };
+}
+
+// Invoice status is DERIVED from payments and dates — it is never set freely by
+// the user. This is what stops a status change from fabricating income. Uses the
+// same paid-amount logic as computeTotals so figures and status always agree.
+function deriveStatus(inv){
+  if(!inv) return 'pending';
+  if(inv.documentType==='quote') return inv.status || 'pending'; // quotes keep their own lifecycle
+  if(inv.status==='draft') return 'draft';
+  const amt = Math.max(0, Number(inv.amount||0));
+  let paidAmt = Number(inv.paidAmount);
+  if(!Number.isFinite(paidAmt)) paidAmt = (inv.status==='paid') ? amt : 0; // legacy 'paid' without a recorded amount
+  paidAmt = Math.min(amt, Math.max(0, paidAmt));
+  const bal = Math.max(0, amt - paidAmt);
+  if(amt > 0 && bal <= 0.005) return 'paid';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const due = inv.due ? new Date(inv.due + 'T00:00:00') : null;
+  if(bal > 0.005 && due && due < today) return 'overdue';
+  if(paidAmt > 0.005) return 'partial';
+  return 'pending';
 }
 
 function renderStats() {
@@ -4337,7 +4365,7 @@ function renderTableInto(id, data) {
     <td data-label="Issued" style="font-size:12px;color:var(--text2)">${fmtDate(inv.issued)}</td>
     <td data-label="Due" style="font-size:12px;color:var(--text2)">${inv.status==='overdue'?'<span class="overdue-dot"></span>':''}${fmtDate(inv.due)}</td>
     <td data-label="Amount"><span class="amount">${getInvoiceCurrency(inv)}${inv.amount.toLocaleString()}</span>${inv.status==='partial'?`<div style="font-size:11px;color:var(--blue);margin-top:2px">${getInvoiceCurrency(inv)}${(Number(inv.amount)-Number(inv.paidAmount||0)).toLocaleString()} due</div>`:''}</td>
-    <td data-label="Status" onclick="event.stopPropagation()"><span class="status-pill sp-${inv.status}"><div class="status-select-wrap"><select class="status-sel" onchange="changeStatus('${inv.id}',this.value)"><option value="paid"${inv.status==='paid'?' selected':''}>Paid</option>${inv.status==='partial'?'<option value="partial" selected>Part-paid</option>':''}<option value="pending"${inv.status==='pending'?' selected':''}>Pending</option><option value="overdue"${inv.status==='overdue'?' selected':''}>Overdue</option><option value="draft"${inv.status==='draft'?' selected':''}>Draft</option></select><span class="status-sel-arrow"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span></div></span></td>
+    <td data-label="Status" onclick="event.stopPropagation()"><span class="status-pill sp-${inv.status}" title="Status is set automatically from recorded payments and the due date">${inv.status==='partial'?'Part-paid':cap(inv.status)}</span></td>
     <td class="td-actions"><div class="row-actions" onclick="event.stopPropagation()">
       <button class="icon-btn" title="Edit" onclick="openEditorForInvoice('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
       <button class="icon-btn" title="Preview" onclick="previewById('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
@@ -4358,10 +4386,12 @@ function setFilter(f,btn,scope) {
   if(scope==='dash') renderDashTable(); else renderInvTable();
 }
 
-function changeStatus(id,s) {
+function changeStatus(id) {
+  // Status is derived from payments and dates — it can no longer be set by hand.
+  // Retained defensively: any call re-derives rather than applying a value, so a
+  // status change can never fabricate income. To change status, record a payment.
   const inv=APP.invoices.find(i=>i.id===id); if(!inv) return;
-  inv.status=s; persist(); renderDashTable(); renderInvTable(); renderStats(); renderDonut(); checkOverdue();
- showToast(`Status → ${cap(s)}`);
+  inv.status=deriveStatus(inv); persist(); refreshAll();
 }
 
 // ================================================================
@@ -5140,8 +5170,8 @@ function applyPayment(inv, amt, date){
   inv.payments.push({amount:Number(amt)||0, date:date});
   inv.paidAmount=inv.payments.reduce((s,p)=>s+Number(p.amount||0),0);
   const total=Number(inv.amount||0);
-  if(inv.paidAmount>=total-0.005){ inv.paidAmount=total; inv.status='paid'; inv.paidAt=date; }
-  else if(inv.paidAmount>0){ inv.status='partial'; }
+  if(inv.paidAmount>=total-0.005){ inv.paidAmount=total; inv.paidAt=date; }
+  inv.status = deriveStatus(inv);
 }
 function recordPayment(){
   const id=document.getElementById('payInvId').value;
