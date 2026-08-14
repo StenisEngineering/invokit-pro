@@ -1,4 +1,4 @@
-const CACHE = 'invokit-v24-backup-security';
+const CACHE = 'invokit-v25-financial-truth';
 const SHELL = [
   '/',
   '/index.html',
