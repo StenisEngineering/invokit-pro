@@ -1,4 +1,4 @@
-const CACHE = 'invokit-v33-quote-workflow';
+const CACHE = 'invokit-v34-expense-categories';
 const SHELL = [
   '/',
   '/index.html',

@@ -273,6 +273,22 @@ tbody td{padding:12px 20px;font-size:13px;}
 .sp-declined{background:var(--red-dim);color:var(--red);}
 .sp-expired{background:var(--surface3);color:var(--text3);}
 .sp-converted{background:var(--accent-dim);color:var(--accent);}
+/* Expense category breakdown (P1-02) */
+.exp-breakdown{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:18px;}
+.exp-breakdown .ebh{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+.exp-breakdown .ebh-title{font-weight:600;font-size:14px;}
+.exp-clear{background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;font-family:inherit;}
+.exp-cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px 16px;}
+.exp-cat-row{display:grid;grid-template-columns:1fr auto;gap:5px 12px;align-items:center;padding:8px 10px;border-radius:var(--radius-sm);cursor:pointer;border:1px solid transparent;transition:background var(--tr),border-color var(--tr);}
+.exp-cat-row:hover{background:var(--surface2);}
+.exp-cat-row.active{background:var(--accent-dim);border-color:var(--accent-border);}
+.exp-cat-top{display:flex;align-items:baseline;gap:8px;min-width:0;}
+.exp-cat-name{font-size:13px;color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.exp-cat-count{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;flex-shrink:0;}
+.exp-cat-amt{font-size:13px;color:var(--text);font-family:'DM Mono',monospace;text-align:right;white-space:nowrap;}
+.exp-cat-share{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;text-align:right;}
+.exp-cat-bar{grid-column:1/3;height:5px;border-radius:99px;background:var(--surface2);overflow:hidden;}
+.exp-cat-bar>span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;}
 .status-select-wrap{position:relative;display:inline-flex;}
 .status-sel{appearance:none;background:transparent;border:none;outline:none;cursor:pointer;font-family:'Outfit',sans-serif;font-size:12px;font-weight:500;color:inherit;padding-right:13px;}
 .status-sel-arrow{position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:12px;color:currentColor;pointer-events:none;}
@@ -4786,12 +4802,21 @@ document.addEventListener('click', e => {
 // ============================================================
 // EXPENSES — light money-out tracking + income vs expenses
 // ============================================================
+// P1-02: expense categories. Blank categories group under one label, and
+// grouping is case-insensitive so "Travel" and "travel" don't split.
+let expFilterCat='all';
+function expCatDisplay(cat){ const c=(cat||'').trim(); return c || 'Uncategorised'; }
+function expCatKey(cat){ return expCatDisplay(cat).toLowerCase(); }
+function setExpenseFilter(key){ expFilterCat = (expFilterCat===key ? 'all' : key); renderExpenses(); }
+window.setExpenseFilter=setExpenseFilter;
 function renderExpenses(){
   if(!APP.expenses) APP.expenses=[];
   const sym=APP.settings.currency||'£';
   const q=(document.getElementById('expSearch')||{}).value?.toLowerCase()||'';
   const list=[...APP.expenses].sort((a,b)=>(b.date||'').localeCompare(a.date||''))
+    .filter(e=> (expFilterCat==='all' || expCatKey(e.category)===expFilterCat))
     .filter(e=>!q || (e.category||'').toLowerCase().includes(q) || (e.description||'').toLowerCase().includes(q));
+  renderExpenseBreakdown(sym);
   const income=APP.invoices.filter(i=>i.status==='paid').reduce((s,i)=>s+i.amount,0);
   const totalExp=APP.expenses.reduce((s,e)=>s+(Number(e.amount)||0),0);
   const net=income-totalExp;
@@ -4817,6 +4842,37 @@ function renderExpenses(){
       <button class="icon-btn danger" title="Delete" onclick="confirmDeleteExpense('${e.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div></td>
   </tr>`).join('');
+}
+let _expCatOrder=[];
+function setExpenseFilterIdx(i){ const k=_expCatOrder[i]; if(k==null) return; expFilterCat=(expFilterCat===k?'all':k); renderExpenses(); }
+window.setExpenseFilterIdx=setExpenseFilterIdx;
+function renderExpenseBreakdown(sym){
+  const host=document.getElementById('expenseBreakdown'); if(!host) return;
+  const all=APP.expenses||[];
+  if(!all.length){ host.innerHTML=''; _expCatOrder=[]; return; }
+  const groups={};
+  all.forEach(e=>{
+    const key=expCatKey(e.category);
+    if(!groups[key]) groups[key]={key,disp:expCatDisplay(e.category),total:0,count:0};
+    groups[key].total += Number(e.amount)||0;
+    groups[key].count++;
+  });
+  const rows=Object.values(groups).sort((a,b)=>b.total-a.total);
+  _expCatOrder=rows.map(r=>r.key);
+  const grand=rows.reduce((s,r)=>s+r.total,0)||1;
+  const filtering = expFilterCat!=='all';
+  host.innerHTML=`<div class="exp-breakdown">
+    <div class="ebh"><div class="ebh-title">By category · ${rows.length} ${rows.length===1?'category':'categories'}</div>${filtering?`<button class="exp-clear" onclick="setExpenseFilter('all')">Clear filter ✕</button>`:''}</div>
+    <div class="exp-cat-grid">${rows.map((r,idx)=>{
+      const pct=Math.round(r.total/grand*100);
+      const active=expFilterCat===r.key;
+      return `<div class="exp-cat-row${active?' active':''}" role="button" tabindex="0" aria-pressed="${active}" title="${active?'Clear filter':'Show only '+esc(r.disp)}" onclick="setExpenseFilterIdx(${idx})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setExpenseFilterIdx(${idx});}">
+        <div class="exp-cat-top"><span class="exp-cat-name">${esc(r.disp)}</span><span class="exp-cat-count">${r.count}</span></div>
+        <div><div class="exp-cat-amt">${fmtMoney(r.total,sym)}</div><div class="exp-cat-share">${pct}%</div></div>
+        <div class="exp-cat-bar"><span style="width:${pct}%"></span></div>
+      </div>`;
+    }).join('')}</div>
+  </div>`;
 }
 function openExpenseModal(id){
   if(!APP.expenses) APP.expenses=[];
@@ -9425,6 +9481,7 @@ function renderAppShell() {
   </header>
   <div class="content fade-in">
     <div class="stats-grid" id="expenseSummary" style="grid-template-columns:repeat(3,1fr);margin-bottom:22px"></div>
+    <div id="expenseBreakdown"></div>
     <div class="table-wrap">
       <div class="table-head">
         <div class="search-box"><span style="color:var(--text3)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><input type="text" placeholder="Search expenses…" id="expSearch" oninput="renderExpenses()"></div>
