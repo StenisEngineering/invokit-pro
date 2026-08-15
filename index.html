@@ -5169,24 +5169,189 @@ function renderAnalytics(){
 // ================================================================
 // RECURRING
 // ================================================================
+// ================================================================
+// RECURRING INVOICES (P0-02) — full invoice model via the shared editor.
+// A recurring record is an invoice template + a schedule. Due invoices are
+// generated when the app is next opened (no server/background processing).
+// ================================================================
+const RECUR_ICON='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>';
+function recurCurrency(r){ return (r&&r.currency)||APP.settings.currency||'£'; }
 function renderRecurring(){
-  const sym=APP.settings.currency||'£', el=document.getElementById('recurringList');
+  const el=document.getElementById('recurringList');
   if(!APP.recurring||!APP.recurring.length){
-    el.innerHTML=emptyState({icon:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>',
-      title:'No recurring invoices set up yet.', desc:'Set up invoices that repeat on a schedule so you don’t have to recreate them each time.', actionLabel:'+ New Recurring', actionCall:'openRecurringModal()'});
+    el.innerHTML=emptyState({icon:RECUR_ICON,
+      title:'No recurring invoices set up yet.', desc:'Set up an invoice that repeats on a schedule — it’s generated automatically the next time you open the app after each due date.', actionLabel:'+ New Recurring', actionCall:'openRecurringEditor(null)'});
     return;
   }
-  el.innerHTML=`<div class="table-wrap"><table><thead><tr><th>Customer</th><th>Amount</th><th>Frequency</th><th>Start</th><th>End</th><th>Description</th><th></th></tr></thead><tbody>`+APP.recurring.map((r,i)=>`<tr><td><div class="client-name">${esc(r.client)}</div><div class="client-email">${esc(r.email)}</div></td><td><span class="amount">${sym}${parseFloat(r.amount).toLocaleString()}</span></td><td><span class="recurring-badge"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> ${cap(r.freq)}</span></td><td style="font-size:12px;color:var(--text2)">${fmtDate(r.start)}</td><td style="font-size:12px;color:var(--text2)">${r.end?fmtDate(r.end):'—'}</td><td style="font-size:13px;color:var(--text2)">${esc(r.desc)}</td><td><div class="row-actions" style="opacity:1"><button class="icon-btn danger" onclick="delRecurring(${i})"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div></td></tr>`).join('')+`</tbody></table></div>`;
+  el.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">'+APP.recurring.map((r,i)=>{
+    const sym=recurCurrency(r);
+    const gen=(r.generated||[]);
+    const links=gen.slice(-4).map(g=>esc(g.invoiceId)).join(', ');
+    const statusPill = r.active
+      ? '<span class="status-pill sp-paid" style="font-size:11px">Active</span>'
+      : '<span class="status-pill sp-draft" style="font-size:11px">Paused</span>';
+    return `<div class="card" style="padding:16px 18px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px">
+        <div style="min-width:0"><div class="client-name" style="font-weight:600">${esc(r.client||'—')}</div><div class="client-email">${esc(r.email||'')}</div></div>
+        ${statusPill}
+      </div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px"><span class="amount" style="font-size:18px">${fmtMoney(r.amount,sym)}</span><span class="recurring-badge">${RECUR_ICON} ${cap(r.freq||'monthly')}</span></div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7;border-top:1px solid var(--border);padding-top:10px">
+        <div>Next: <strong style="color:var(--text)">${r.nextDate?fmtDate(r.nextDate):'—'}</strong>${r.endDate?` · Ends ${fmtDate(r.endDate)}`:''}</div>
+        <div>Last generated: ${r.lastGenerated?fmtDate(r.lastGenerated):'never'} · ${gen.length} issued</div>
+        ${links?`<div style="color:var(--text3)">Invoices: ${links}${gen.length>4?' …':''}</div>`:''}
+      </div>
+      <div class="row-actions" style="opacity:1;margin-top:12px;display:flex;gap:6px">
+        <button class="icon-btn" title="Edit" aria-label="Edit recurring for ${esc(r.client||'')}" onclick="openRecurringEditor('${r.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+        <button class="icon-btn" title="${r.active?'Pause':'Resume'}" aria-label="${r.active?'Pause':'Resume'} recurring for ${esc(r.client||'')}" onclick="toggleRecurring('${r.id}')">${r.active
+          ? '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'
+          : '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>'}</button>
+        <button class="icon-btn danger" title="Delete" aria-label="Delete recurring for ${esc(r.client||'')}" onclick="delRecurring('${r.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+    </div>`;
+  }).join('')+'</div>';
 }
-function openRecurringModal(){document.getElementById('r_start').value=new Date().toISOString().split('T')[0];document.getElementById('recurringModal').classList.add('open');}
-function closeRecurringModal(){document.getElementById('recurringModal').classList.remove('open');}
-function saveRecurring(){
- const client=gv('r_client').trim(); if(!client){showToast('Customer required');return;}
+function toggleRecurring(id){ const r=(APP.recurring||[]).find(x=>x.id===id); if(!r) return; r.active=!r.active; persist(); renderRecurring(); showToast(r.active?'Recurring resumed':'Recurring paused'); }
+function delRecurring(id){
+  const r=(APP.recurring||[]).find(x=>x.id===id); if(!r) return;
+  document.getElementById('confirmTitle').textContent='Delete recurring invoice?';
+  document.getElementById('confirmMsg').textContent='Stop generating invoices for '+(r.client||'this customer')+'? Invoices already generated are kept.';
+  document.getElementById('confirmOkBtn').onclick=()=>{ APP.recurring=APP.recurring.filter(x=>x.id!==id); persist(); closeConfirm(); renderRecurring(); showToast('Recurring deleted'); };
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+window.toggleRecurring=toggleRecurring; window.delRecurring=delRecurring;
+
+// Old modal kept as a no-op shim in case any cached markup calls it.
+function closeRecurringModal(){ const m=document.getElementById('recurringModal'); if(m) m.classList.remove('open'); }
+function openRecurringModal(){ openRecurringEditor(null); }
+window.openRecurringModal=openRecurringModal;
+
+// Open the shared invoice editor in recurring-template mode.
+function openRecurringEditor(id){
+  editorMode='recurring'; editingId=null; editingRecurId=id||null; currentDocType='invoice';
+  clearEditor(); setEditorDocumentMode('invoice'); prefillFromSettings(); populateClientQuickSelect();
+  document.getElementById('editorTitle').textContent = id ? 'Edit Recurring Invoice' : 'New Recurring Invoice';
+  const rs=document.getElementById('recurScheduleSection'); if(rs) rs.style.display='block';
+  const dr=document.getElementById('editorDatesRow'); if(dr) dr.style.display='none';    // per-invoice dates come from the schedule
+  const nd=document.getElementById('invNumDisplay'); if(nd && nd.parentElement) nd.parentElement.style.display='none';
+  const today=new Date().toISOString().split('T')[0];
+  const rec = id ? (APP.recurring||[]).find(x=>x.id===id) : null;
+  if(rec){
+    setValue('clientName',rec.client||''); setValue('clientEmail',rec.email||''); setValue('clientPhone',rec.phone||''); setValue('clientAddress',rec.address||'');
+    setValue('notes',rec.notes||''); setValue('paymentTerms',rec.terms||APP.settings.terms||''); setValue('invTemplate',rec.template||APP.settings.template||'classic');
+    setValue('currency',rec.currency||APP.settings.currency||'£');
+    items=(rec.items||[]).map(it=>({id:Date.now()+Math.random(),type:it.type||'item',desc:it.desc||'',qty:parseFloat(it.qty)||1,unit:it.unit||'unit',price:parseFloat(it.price!==undefined?it.price:it.unitPrice)||0,unitPrice:parseFloat(it.unitPrice!==undefined?it.unitPrice:it.price)||0,installRate:parseFloat(it.installRate)||0}));
+    if(!items.length) addItem();
+    taxEnabled=!!rec.taxEnabled; const tg=document.getElementById('taxToggle'); if(tg) tg.classList.toggle('on',taxEnabled);
+    const tr=document.getElementById('taxRate'); if(tr){ tr.disabled=!taxEnabled; tr.value=(rec.taxRate!=null?rec.taxRate:(APP.settings.taxRate||20)); }
+    const trow=document.getElementById('taxDisplayRow'); if(trow) trow.style.display=taxEnabled?'flex':'none';
+    setValue('recFreq',rec.freq||'monthly'); setValue('recNextDate',rec.nextDate||today); setValue('recEndDate',rec.endDate||'');
+    setValue('recActive',rec.active===false?'0':'1');
+  } else {
+    setValue('recFreq','monthly'); setValue('recNextDate',today); setValue('recEndDate',''); setValue('recActive','1');
+  }
+  if(!items.length) addItem();
+  renderItems(); recalc(); updateEditorActionLabels();
+  document.getElementById('editorOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+  formBaseline('editor');
+}
+window.openRecurringEditor=openRecurringEditor;
+
+function saveRecurringFromEditor(){
+  const focusField=(id)=>{const el=document.getElementById(id); if(el){ el.focus(); el.scrollIntoView({block:'center',behavior:'smooth'}); }};
+  if(!gv('clientName').trim()){ showToast('Add the customer for this recurring invoice'); focusField('clientName'); return; }
+  const built=buildInvObj('pending');           // reuse the editor's line-item + totals logic
+  const realItems=(built.items||[]).filter(isRealLineItem);
+  if(!realItems.length){ showToast('Add at least one line item'); return; }
+  const nextDate=gv('recNextDate'); if(!nextDate){ showToast('Choose the next generation date'); focusField('recNextDate'); return; }
+  const existing = editingRecurId ? (APP.recurring||[]).find(x=>x.id===editingRecurId) : null;
+  const rec = {
+    id: editingRecurId || ('rec-'+Date.now()),
+    client: built.client, email: gv('clientEmail'), phone: gv('clientPhone'), address: gv('clientAddress'),
+    items: realItems, subtotal: built.subtotal, discount: built.discount, tax: built.tax, amount: built.amount,
+    currency: built.currency, taxEnabled: taxEnabled, taxRate: parseFloat(gv('taxRate'))||0,
+    terms: gv('paymentTerms'), template: built.template, notes: built.notes,
+    freq: gv('recFreq')||'monthly', nextDate: nextDate, endDate: gv('recEndDate')||'',
+    active: gv('recActive')!=='0',
+    generated: existing ? (existing.generated||[]) : [],
+    lastGenerated: existing ? (existing.lastGenerated||null) : null
+  };
   if(!APP.recurring) APP.recurring=[];
-  APP.recurring.push({client,email:gv('r_email'),amount:parseFloat(gv('r_amount'))||0,freq:gv('r_freq'),start:gv('r_start'),end:gv('r_end'),desc:gv('r_desc')});
- persist(); closeRecurringModal(); renderRecurring(); showToast(`Recurring created for ${client}`);
+  if(existing){ const idx=APP.recurring.findIndex(x=>x.id===existing.id); if(idx>-1) APP.recurring[idx]=rec; }
+  else APP.recurring.unshift(rec);
+  persist();
+  closeEditor(true);
+  navTo('recurring'); renderRecurring();
+  showToast(existing?'Recurring invoice updated':'Recurring invoice created');
+  // Generate immediately if the next date is already due.
+  processRecurring();
 }
-function delRecurring(i){APP.recurring.splice(i,1);persist();renderRecurring();showToast('Recurring removed');}
+
+// Local-safe YYYY-MM-DD (toISOString would shift the day by the timezone offset).
+function toISODate(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function nextPeriodDate(dateStr, freq){
+  const d=new Date(dateStr+'T00:00:00');
+  if(freq==='weekly') d.setDate(d.getDate()+7);
+  else if(freq==='quarterly') d.setMonth(d.getMonth()+3);
+  else if(freq==='annually') d.setFullYear(d.getFullYear()+1);
+  else d.setMonth(d.getMonth()+1); // monthly default
+  return toISODate(d);
+}
+function termsDays(terms){ const m=String(terms||'').match(/(\d+)/); if(/receipt/i.test(terms||'')) return 0; return m?parseInt(m[1],10):30; }
+function recurringToInvoice(rec, periodDate){
+  const prefix=APP.settings.prefix||'INV-2026-';
+  const id=prefix+String(APP.nextNum||1).padStart(3,'0');
+  const s=APP.settings;
+  const due=new Date(periodDate+'T00:00:00'); due.setDate(due.getDate()+termsDays(rec.terms));
+  return {
+    id, documentType:'invoice', status:'pending',
+    bizName:s.bizName||'', bizAddress:s.address||'', bizEmail:s.email||'', bizPhone:s.phone||'', bizVAT:s.vat||'', bizRegNum:s.regNum||'',
+    client:rec.client, email:rec.email||'', phone:rec.phone||'', address:rec.address||'',
+    issued:periodDate, due:toISODate(due),
+    items:(rec.items||[]).map(it=>({...it})),
+    subtotal:rec.subtotal||0, discount:rec.discount||0, tax:rec.tax||0, amount:rec.amount||0,
+    currency:rec.currency||s.currency||'£', paymentTerms:rec.terms||'', notes:rec.notes||'',
+    template:rec.template||s.template||'classic',
+    recurringId:rec.id
+  };
+}
+// Called on app open: generate every due, not-yet-generated period once. No
+// server or background processing — this only runs while the app is open.
+function processRecurring(){
+  if(!APP.recurring||!APP.recurring.length) return 0;
+  const today=new Date(); today.setHours(0,0,0,0);
+  let count=0;
+  APP.recurring.forEach(rec=>{
+    if(!rec || rec.active===false || !rec.nextDate) return;
+    rec.generated=rec.generated||[];
+    let guard=0;
+    while(guard<200){
+      guard++;
+      const next=new Date(rec.nextDate+'T00:00:00');
+      if(next>today) break;                                   // not due yet
+      if(rec.endDate && next>new Date(rec.endDate+'T00:00:00')){ rec.active=false; break; }  // schedule ended
+      const period=(rec.freq||'monthly')+':'+rec.nextDate;
+      if(!rec.generated.some(g=>g.period===period)){          // never twice
+        const inv=recurringToInvoice(rec, rec.nextDate);
+        APP.invoices.unshift(inv);
+        APP.nextNum=(APP.nextNum||1)+1;
+        rec.generated.push({invoiceId:inv.id, period, date:rec.nextDate});
+        rec.lastGenerated=rec.nextDate;
+        count++;
+      }
+      rec.nextDate=nextPeriodDate(rec.nextDate, rec.freq);
+    }
+  });
+  if(count>0){
+    persist();
+    try{ if(typeof checkOverdue==='function') checkOverdue(); }catch(e){}
+    try{ if(currentPage==='dashboard') buildDashboard(); else if(currentPage==='invoices') renderInvTable(); else if(currentPage==='recurring') renderRecurring(); }catch(e){}
+    showToast(count+' recurring invoice'+(count===1?'':'s')+' generated');
+  }
+  return count;
+}
+window.processRecurring=processRecurring;
 
 // ================================================================
 // SETTINGS
@@ -5253,8 +5418,13 @@ function syncCurrencySettingUI(){
 // EDITOR
 // ================================================================
 let editingId=null, taxEnabled=false, discountType='pct', items=[], currentDocType='invoice';
+let editorMode='document', editingRecurId=null;   // 'document' | 'recurring' (P0-02)
 
 function openEditor(type='invoice'){
+  editorMode='document'; editingRecurId=null;
+  const _rs=document.getElementById('recurScheduleSection'); if(_rs) _rs.style.display='none';
+  const _dr=document.getElementById('editorDatesRow'); if(_dr) _dr.style.display='';
+  const _nd=document.getElementById('invNumDisplay'); if(_nd && _nd.parentElement) _nd.parentElement.style.display='';
   editingId=null; currentDocType=(type==='quote')?'quote':'invoice'; clearEditor(); setEditorDocumentMode(currentDocType); prefillFromSettings(); populateClientQuickSelect();
   if(!items.length) addItem();
   document.getElementById('editorOverlay').classList.add('open');
@@ -5313,6 +5483,10 @@ function prefillFromSettings(){
 }
 function openEditorForInvoice(id){
   const inv=APP.invoices.find(i=>i.id===id); if(!inv) return;
+  editorMode='document'; editingRecurId=null;
+  const _rs=document.getElementById('recurScheduleSection'); if(_rs) _rs.style.display='none';
+  const _dr=document.getElementById('editorDatesRow'); if(_dr) _dr.style.display='';
+  const _nd=document.getElementById('invNumDisplay'); if(_nd && _nd.parentElement) _nd.parentElement.style.display='';
   editingId=id; currentDocType=(inv.documentType==='quote'||inv.type==='quote')?'quote':'invoice'; clearEditor(); setEditorDocumentMode(currentDocType); prefillFromSettings(); populateClientQuickSelect();
   document.getElementById('editorTitle').textContent=currentDocType==='quote'?'Edit Quote':'Edit Invoice';
   document.getElementById('invNumDisplay').textContent=id;
@@ -5347,7 +5521,14 @@ function openEditorForInvoice(id){
   document.body.style.overflow='hidden';
   formBaseline('editor');
 }
-function _closeEditorRaw(){document.getElementById('editorOverlay').classList.remove('open');document.body.style.overflow='';}
+function _closeEditorRaw(){
+  document.getElementById('editorOverlay').classList.remove('open');document.body.style.overflow='';
+  // Leave recurring mode so the next normal invoice/quote editor is clean.
+  editorMode='document'; editingRecurId=null;
+  const rs=document.getElementById('recurScheduleSection'); if(rs) rs.style.display='none';
+  const dr=document.getElementById('editorDatesRow'); if(dr) dr.style.display='';
+  const nd=document.getElementById('invNumDisplay'); if(nd) nd.parentElement && (nd.parentElement.style.display='');
+}
 function closeEditor(force){ if(force){ formClear('editor'); _closeEditorRaw(); return; } guardedClose('editor', _closeEditorRaw); }
 function handleOvClick(e,id){if(e.target===document.getElementById(id)){if(id==='editorOverlay') closeEditor();else if(id==='previewOverlay') closePreview();else if(id==='receiptOverlay') closeReceipt();else if(id==='clientModalOverlay') closeClientModal();else if(id==='catModalOverlay') closeCatModal();else if(id==='expenseModalOverlay') closeExpenseModal();else if(id==='paymentModalOverlay') closePaymentModal();else if(id==='recurringModal') closeRecurringModal();}}
 function clearEditor(){
@@ -5536,28 +5717,28 @@ function renderItems(){
   let serial=0;
   document.getElementById('itemsContainer').innerHTML=items.map(raw=>{
     const it=normaliseEditorItem(raw);
-    if(it.type==='heading') return `<div class="item-heading-row"><input class="item-input" type="text" placeholder="Section heading e.g. A. Materials / B. Installation" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)"><button class="del-btn" onclick="removeItem(${it.id})">×</button></div>`;
-    if(it.type==='subheading') return `<div class="item-subheading-row"><input class="item-input" type="text" placeholder="Sub-header / note e.g. Supply only / Labour only" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)"><button class="del-btn" onclick="removeItem(${it.id})">×</button></div>`;
+    if(it.type==='heading') return `<div class="item-heading-row"><input class="item-input" type="text" aria-label="Section heading" placeholder="Section heading e.g. A. Materials / B. Installation" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)"><button class="del-btn" aria-label="Remove section heading" onclick="removeItem(${it.id})">×</button></div>`;
+    if(it.type==='subheading') return `<div class="item-subheading-row"><input class="item-input" type="text" aria-label="Section sub-heading" placeholder="Sub-header / note e.g. Supply only / Labour only" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)"><button class="del-btn" aria-label="Remove sub-heading" onclick="removeItem(${it.id})">×</button></div>`;
     serial++;
     if(isQuoteMode()){
       const unitOptions=QUOTE_UNITS.map(u=>`<option value="${u}"${(it.unit||'unit')===u?' selected':''}>${u}</option>`).join('');
       return `<div class="item-row quote-item-row">
         <span class="item-amount" style="text-align:center;color:var(--text3)">${serial}</span>
-        <input class="item-input" type="text" placeholder="Description…" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)">
-        <input class="item-input" type="number" min="0" step="0.01" placeholder="1" value="${it.qty||''}" oninput="updateItem(${it.id},'qty',this.value)" style="text-align:center">
-        <select class="item-input quote-unit-select" onchange="updateItem(${it.id},'unit',this.value)">${unitOptions}</select>
-        <input class="item-input" type="number" min="0" step="0.01" placeholder="0.00" value="${it.unitPrice>0?it.unitPrice:''}" oninput="updateItem(${it.id},'unitPrice',this.value)">
-        <input class="item-input" type="number" min="0" step="0.01" placeholder="0.00" value="${it.installRate>0?it.installRate:''}" oninput="updateItem(${it.id},'installRate',this.value)">
+        <input class="item-input" type="text" aria-label="Description for item ${serial}" placeholder="Description…" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)">
+        <input class="item-input" type="number" min="0" step="0.01" aria-label="Quantity for item ${serial}" placeholder="1" value="${it.qty||''}" oninput="updateItem(${it.id},'qty',this.value)" style="text-align:center">
+        <select class="item-input quote-unit-select" aria-label="Unit for item ${serial}" onchange="updateItem(${it.id},'unit',this.value)">${unitOptions}</select>
+        <input class="item-input" type="number" min="0" step="0.01" aria-label="Unit price for item ${serial}" placeholder="0.00" value="${it.unitPrice>0?it.unitPrice:''}" oninput="updateItem(${it.id},'unitPrice',this.value)">
+        <input class="item-input" type="number" min="0" step="0.01" aria-label="Installation rate for item ${serial}" placeholder="0.00" value="${it.installRate>0?it.installRate:''}" oninput="updateItem(${it.id},'installRate',this.value)">
         <span class="item-amount" id="amt-${it.id}">${sym}${lineAmount(it).toFixed(2)}</span>
-        <button class="del-btn" onclick="removeItem(${it.id})">×</button>
+        <button class="del-btn" aria-label="Remove item ${serial}" onclick="removeItem(${it.id})">×</button>
       </div>`;
     }
     return `<div class="item-row">
-      <input class="item-input" type="text" placeholder="Description…" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)">
-      <input class="item-input" type="number" min="1" placeholder="1" value="${it.qty||''}" oninput="updateItem(${it.id},'qty',this.value)" style="text-align:center">
-      <input class="item-input" type="number" min="0" step="0.01" placeholder="0.00" value="${it.price>0?it.price:''}" oninput="updateItem(${it.id},'price',this.value)">
+      <input class="item-input" type="text" aria-label="Description for item ${serial}" placeholder="Description…" value="${esc(it.desc)}" oninput="updateItem(${it.id},'desc',this.value)">
+      <input class="item-input" type="number" min="1" aria-label="Quantity for item ${serial}" placeholder="1" value="${it.qty||''}" oninput="updateItem(${it.id},'qty',this.value)" style="text-align:center">
+      <input class="item-input" type="number" min="0" step="0.01" aria-label="Unit price for item ${serial}" placeholder="0.00" value="${it.price>0?it.price:''}" oninput="updateItem(${it.id},'price',this.value)">
       <span class="item-amount" id="amt-${it.id}">${sym}${lineAmount(it).toFixed(2)}</span>
-      <button class="del-btn" onclick="removeItem(${it.id})">×</button>
+      <button class="del-btn" aria-label="Remove item ${serial}" onclick="removeItem(${it.id})">×</button>
     </div>`;
   }).join('');
 }
@@ -5635,6 +5816,11 @@ function updateEditorActionLabels(){
   const isQuote=currentDocType==='quote';
   const existing = editingId ? (APP.invoices||[]).find(i=>i.id===editingId) : null;
   const finalised = !!(existing && existing.status && existing.status!=='draft');
+  if(editorMode==='recurring'){
+    if(saveBtn) saveBtn.textContent = editingRecurId ? 'Save recurring' : 'Create recurring';
+    if(draftBtn) draftBtn.style.display='none';
+    return;
+  }
   if(saveBtn) saveBtn.textContent = isQuote ? 'Save Quote' : (finalised ? 'Save Changes' : 'Finalise & Save');
   if(draftBtn) draftBtn.style.display = finalised ? 'none' : '';
   const dueLbl=document.getElementById('dueDateLabel');
@@ -5648,6 +5834,7 @@ function saveToList(inv){
 }
 function saveDraft(){if(!checkFreePlanInvoiceCap())return;const inv=buildInvObj('draft');saveToList(inv);formBaseline('editor');showToast(inv.documentType==='quote'?'Quote draft saved':'Draft saved');}
 function sendInvoice(){
+  if(editorMode==='recurring'){ return saveRecurringFromEditor(); }
   // P0-04: explicit validation — no save may fail silently.
   const focusField=(id)=>{const el=document.getElementById(id); if(el){ el.focus(); el.scrollIntoView({block:'center',behavior:'smooth'}); }};
   const isQuote=currentDocType==='quote';
@@ -8495,7 +8682,7 @@ const FORM_STATE={editor:{open:false,base:''},client:{open:false,base:''},expens
 function formSnapshot(key){
   const g=id=>{ const el=document.getElementById(id); return el?(el.value||''):''; };
   if(key==='editor'){
-    const fields=['docTitle','bizName','bizAddress','bizEmail','bizPhone','bizVAT','clientName','clientEmail','clientPhone','clientAddress','issueDate','dueDate','notes','currency','paymentTerms','invTemplate','discountVal','taxRate'];
+    const fields=['docTitle','bizName','bizAddress','bizEmail','bizPhone','bizVAT','clientName','clientEmail','clientPhone','clientAddress','issueDate','dueDate','notes','currency','paymentTerms','invTemplate','discountVal','taxRate','recFreq','recNextDate','recEndDate','recActive'];
     return JSON.stringify({f:fields.map(g), items:(typeof items!=='undefined'?items:[]).map(it=>({d:it.desc,q:it.qty,p:(it.price!==undefined?it.price:it.unitPrice),u:it.unit,r:it.installRate,t:it.type})), tax:(typeof taxEnabled!=='undefined'?taxEnabled:false), disc:(typeof discountType!=='undefined'?discountType:'pct')});
   }
   if(key==='client'){
@@ -9830,8 +10017,8 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible,[tabindex]:fo
 <div class="page" id="page-recurring">
   <header class="topbar">
     <button class="mob-menu-btn" onclick="toggleMobSidebar()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-    <div><div class="page-title">Recurring</div><div class="page-subtitle">Auto-generate on schedule</div></div>
-    <div class="topbar-actions"><button class="btn btn-primary" onclick="openRecurringModal()">+ New Recurring</button></div>
+    <div><div class="page-title">Recurring</div><div class="page-subtitle">Generated when you next open InvoKitPro after the scheduled date</div></div>
+    <div class="topbar-actions"><button class="btn btn-primary" onclick="openRecurringEditor(null)">+ New Recurring</button></div>
   </header>
   <div class="content fade-in"><div id="recurringList"></div></div>
 </div>
@@ -10178,6 +10365,16 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible,[tabindex]:fo
     </div>
   </div>
   <div class="editor-body">
+    <div id="recurScheduleSection" style="display:none;background:var(--surface2);border:1px solid var(--accent-border);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:18px">
+      <div style="font-weight:600;font-size:14px;margin-bottom:4px">Recurring schedule</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:12px">Generate recurring invoices when InvoKitPro is next opened after the scheduled date. Nothing runs on a server — each due invoice is created the next time you open the app, and any missed periods are generated once each.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field-group" style="margin:0"><label class="field-label">Frequency</label><select class="field-input" id="recFreq"><option value="weekly">Weekly</option><option value="monthly" selected>Monthly</option><option value="quarterly">Quarterly</option><option value="annually">Annually</option></select></div>
+        <div class="field-group" style="margin:0"><label class="field-label">Next generation date</label><input class="field-input" type="date" id="recNextDate"></div>
+        <div class="field-group" style="margin:0"><label class="field-label">End date (optional)</label><input class="field-input" type="date" id="recEndDate"></div>
+        <div class="field-group" style="margin:0"><label class="field-label">Status</label><select class="field-input" id="recActive"><option value="1">Active</option><option value="0">Paused</option></select></div>
+      </div>
+    </div>
     <div class="doc-title-wrap" style="margin-bottom:18px">
       <button class="add-item-btn" type="button" id="addTitleBtn" style="margin-bottom:0" onclick="toggleDocTitle()">＋ Add Title / Subject</button>
       <div class="field-group" id="docTitleField" style="display:none;margin:0">
@@ -10201,7 +10398,7 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible,[tabindex]:fo
       </div>
       <div>
         <div class="section-divider">Customer
-          <select class="field-input" id="clientQuickSelect" style="max-width:160px;margin-left:auto;font-size:12px;padding:5px 28px 5px 8px;" onchange="fillClientFromSelect(this.value)">
+          <select class="field-input" id="clientQuickSelect" aria-label="Quick-fill from a saved customer" style="max-width:160px;margin-left:auto;font-size:12px;padding:5px 28px 5px 8px;" onchange="fillClientFromSelect(this.value)">
             <option value="">— quick fill —</option>
           </select>
         </div>
@@ -10211,7 +10408,7 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible,[tabindex]:fo
           <div class="field-group"><label class="field-label">Email</label><input class="field-input" type="email" id="clientEmail" placeholder="client@email.com"></div>
           <div class="field-group"><label class="field-label">Phone</label><input class="field-input" type="tel" inputmode="tel" pattern="^[0-9+()\-\s]{7,20}$" id="clientPhone" placeholder="+44 7000 1111"></div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="editorDatesRow">
           <div class="field-group"><label class="field-label">Issue Date</label><input class="field-input" type="date" id="issueDate"></div>
           <div class="field-group"><label class="field-label" id="dueDateLabel">Due Date</label><input class="field-input" type="date" id="dueDate"></div>
         </div>
@@ -10273,7 +10470,7 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible,[tabindex]:fo
         <div class="discount-row">
           <span class="totals-label" style="font-size:13px">Discount</span>
           <div style="display:flex;align-items:center;gap:5px">
-            <input class="discount-input" type="number" id="discountVal" min="0" value="0" oninput="recalc()">
+            <input class="discount-input" type="number" id="discountVal" aria-label="Discount value" min="0" value="0" oninput="recalc()">
             <button class="disc-type-btn active" id="discPct" onclick="setDiscountType('pct')">%</button>
             <button class="disc-type-btn" id="discFixed" onclick="setDiscountType('fixed')">flat</button>
           </div>
@@ -10284,7 +10481,7 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible,[tabindex]:fo
             <span class="toggle-label">VAT / Tax</span>
           </div>
           <div class="tax-rate-wrap">
-            <input class="tax-rate-input" type="number" id="taxRate" value="20" min="0" max="100" disabled oninput="recalc()">
+            <input class="tax-rate-input" type="number" id="taxRate" aria-label="Tax rate percent" value="20" min="0" max="100" disabled oninput="recalc()">
             <span style="font-size:12px;color:var(--text3)">%</span>
           </div>
         </div>
@@ -10697,6 +10894,7 @@ function initAppAfterShell() {
   requestPersistentStorage(false);
   if (typeof renderDataSafetyPanel === 'function') renderDataSafetyPanel();
   try{ runA11yPass(); }catch(e){}
+  try{ if(typeof processRecurring==='function') processRecurring(); }catch(e){}  // generate any due recurring invoices
   // Warn before a refresh/tab-close if a form has unsaved changes (P1-09).
   window.addEventListener('beforeunload', function(e){
     if(typeof anyFormDirty==='function' && anyFormDirty()){ e.preventDefault(); e.returnValue=''; return ''; }
