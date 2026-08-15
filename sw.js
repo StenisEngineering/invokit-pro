@@ -1,4 +1,4 @@
-const CACHE = 'invokit-v32-draft-lifecycle';
+const CACHE = 'invokit-v33-quote-workflow';
 const SHELL = [
   '/',
   '/index.html',
