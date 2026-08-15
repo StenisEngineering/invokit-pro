@@ -8694,7 +8694,8 @@ async function renderDataSafetyPanel(){
           ? '<button class="btn btn-ghost btn-xs" style="margin-top:7px;" onclick="requestPersistentStorage(true)">Prevent auto-cleanup</button><div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5;">Asks this browser to keep your data. This does not lock or encrypt the app.</div>'
           : `<div style="font-size:12px;color:var(--text3);margin-top:3px;">${est&&Number.isFinite(est.usage)?ikpFmtBytes(est.usage)+' used on this device':'Stored on this device'}</div>`}
       </div>
-    </div>`;
+    </div>
+    ${(()=>{ const u=(typeof findUnbackedInvoices==='function')?findUnbackedInvoices().length:0; return u>0?`<div style="margin-top:12px;background:rgba(224,90,90,.08);border:1px solid rgba(224,90,90,.25);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><div style="font-size:13px;color:var(--text);line-height:1.5;"><strong>${u} invoice${u===1?'':'s'}</strong> show an amount as paid that isn't backed by a recorded payment.</div><button class="btn btn-ghost btn-sm" onclick="openReconcileModal()" style="flex-shrink:0;">Reconcile</button></div>`:''; })()}`;
 }
 
 // Safe, reversible-guarded reset: type DELETE + offered backup first
@@ -8745,6 +8746,65 @@ function performReset(){
   refreshAll(); loadSettingsForm(); checkOverdue(); closeResetModal();
   if(typeof renderDataSafetyPanel==='function') renderDataSafetyPanel();
   showToast('All data has been reset');
+}
+
+// ================================================================
+// §8B — LEGACY RECONCILIATION
+// Flags invoices whose "paid" amount is not backed by recorded payments
+// (e.g. imported/legacy data marked paid with no payment log). The owner
+// confirms the payment or marks it unpaid — we never invent history silently.
+// ================================================================
+function invRecordedPayments(inv){ return Array.isArray(inv&&inv.payments) ? inv.payments.reduce((s,p)=>s+Number(p.amount||0),0) : 0; }
+function invClaimedPaid(inv){ const amt=Math.max(0,Number(inv.amount||0)); return Math.min(amt, Math.max(0, Number(inv.paidAmount) || (inv.status==='paid'?amt:0))); }
+function findUnbackedInvoices(){
+  return (APP.invoices||[]).filter(inv=>{
+    if(!inv || inv.documentType==='quote' || inv.status==='draft') return false;
+    const claimed=invClaimedPaid(inv);
+    if(claimed<=0.005) return false;
+    return Math.abs(invRecordedPayments(inv)-claimed) > 0.005;
+  });
+}
+function openReconcileModal(){
+  closeReconcileModal();
+  const sym=APP.settings.currency||'£'; const money=v=>sym+Number(v).toFixed(2);
+  const list=findUnbackedInvoices();
+  const ov=document.createElement('div');
+  ov.id='reconcileModalOverlay';
+  ov.setAttribute('style','position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);');
+  ov.onclick=(e)=>{ if(e.target===ov) closeReconcileModal(); };
+  const rows=list.map(inv=>{
+    const claimed=invClaimedPaid(inv), recorded=invRecordedPayments(inv), missing=Math.max(0,claimed-recorded);
+    return `<div style="border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;">
+      <div style="font-weight:600;color:var(--text);">${inv.id} · ${esc(inv.client||'')}</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:3px;line-height:1.5;">Shows <strong>${money(claimed)}</strong> paid, but only <strong>${money(recorded)}</strong> is backed by payment records — <span style="color:var(--red)">${money(missing)} unexplained</span>.</div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" onclick="reconcileConfirm('${inv.id}')">Record the missing ${money(missing)}</button>
+        <button class="btn btn-ghost btn-sm" onclick="reconcileClear('${inv.id}')">Mark unpaid instead</button>
+      </div></div>`;
+  }).join('');
+  ov.innerHTML=`
+    <div role="dialog" aria-modal="true" style="width:100%;max-width:540px;max-height:88vh;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.45);padding:22px;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;margin-bottom:6px;">Reconcile invoices</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px;">${list.length ? `These invoices show an amount as paid that isn't backed by recorded payments — usually from older or imported data. Confirm the payment (creates a record) or mark the invoice unpaid. Nothing is changed without your choice.` : 'Everything reconciles — every paid amount is backed by a recorded payment.'}</div>
+      ${rows}
+      <div style="margin-top:8px;text-align:right;"><button class="btn btn-ghost" onclick="closeReconcileModal()">Done</button></div>
+    </div>`;
+  document.body.appendChild(ov);
+}
+function closeReconcileModal(){ const o=document.getElementById('reconcileModalOverlay'); if(o) o.remove(); }
+function reconcileConfirm(id){
+  const inv=APP.invoices.find(i=>i.id===id); if(!inv) return;
+  const missing=Math.max(0, invClaimedPaid(inv)-invRecordedPayments(inv));
+  if(missing>0.005){ applyPayment(inv, missing, (inv.paidAt||inv.issued||new Date().toISOString().slice(0,10)), {method:'', reference:'', notes:'Recorded during reconciliation to match the amount already shown as paid.'}); }
+  persist(); refreshAll(); if(typeof renderDataSafetyPanel==='function') renderDataSafetyPanel(); openReconcileModal();
+  showToast('Payment recorded — invoice reconciled');
+}
+function reconcileClear(id){
+  const inv=APP.invoices.find(i=>i.id===id); if(!inv) return;
+  inv.paidAmount=invRecordedPayments(inv); // keep only genuinely recorded payments
+  inv.status=deriveStatus(inv);
+  persist(); refreshAll(); if(typeof renderDataSafetyPanel==='function') renderDataSafetyPanel(); openReconcileModal();
+  showToast('Set to its true state');
 }
 
 function daysSinceBackup() {
@@ -10859,25 +10919,28 @@ function seedDemoData(){
     {id:'p5',name:'Photography direction',category:'Creative',type:'service',price:650,unit:'day',desc:'On-site art direction'}
   ];
   const C=APP.clients;
+  const D=(off)=>{const d=new Date();d.setDate(d.getDate()+off);return d.toISOString().slice(0,10);};
   const mk=(id,cl,status,issued,due,items,discount,extra={})=>{
     const sub=items.filter(it=>!it.type).reduce((s,it)=>s+(it.qty*it.price),0);
     const tax=Math.round((sub-discount)*0.2*100)/100;
     const amount=Math.round((sub-discount+tax)*100)/100;
     return {id,documentType:'invoice',status,...biz,client:cl.name,email:cl.email,address:cl.address,issued,due,subtotal:sub,discount,tax,amount,items,template:'classic',...extra};
   };
+  // Backed payment records so the demo is internally consistent (no reconciliation flags).
+  const pay=(amount,date,method,ref,before)=>[{id:'pmt-'+ref,amount,date,method,reference:ref,balanceBefore:before,balanceAfter:Math.max(0,before-amount)}];
   APP.invoices=[
-    mk('INV-2026-004',C[0],'paid','2026-07-02','2026-07-16',[{desc:'Brand identity system',qty:1,price:2400},{desc:'Marketing website',qty:1,price:3200}],280,{paidAmount:6384}),
-    mk('INV-2026-005',C[1],'partial','2026-07-08','2026-07-22',[{desc:'Monthly retainer',qty:2,price:900},{desc:'Consultation',qty:6,price:140}],0,{paidAmount:1500}),
-    mk('INV-2026-006',C[2],'pending','2026-07-14','2026-07-28',[{desc:'Photography direction',qty:2,price:650},{desc:'Consultation',qty:4,price:140}],0,{}),
-    mk('INV-2026-003',C[3],'overdue','2026-06-05','2026-06-19',[{desc:'Marketing website',qty:1,price:3200}],0,{}),
-    mk('INV-2026-002',C[0],'paid','2026-06-12','2026-06-26',[{desc:'Monthly retainer',qty:1,price:900}],0,{paidAmount:1080})
+    mk('INV-2026-004',C[0],'paid',D(-32),D(-18),[{desc:'Brand identity system',qty:1,price:2400},{desc:'Marketing website',qty:1,price:3200}],280,{paidAmount:6384,paidAt:D(-20),payments:pay(6384,D(-20),'Bank Transfer','BT4471',6384)}),
+    mk('INV-2026-005',C[1],'partial',D(-14),D(9),[{desc:'Monthly retainer',qty:2,price:900},{desc:'Consultation',qty:6,price:140}],0,{paidAmount:1500,payments:pay(1500,D(-8),'Bank Transfer','BT5502',3168)}),
+    mk('INV-2026-006',C[2],'pending',D(-6),D(8),[{desc:'Photography direction',qty:2,price:650},{desc:'Consultation',qty:4,price:140}],0,{}),
+    mk('INV-2026-003',C[3],'overdue',D(-40),D(-20),[{desc:'Marketing website',qty:1,price:3200}],0,{}),
+    mk('INV-2026-002',C[0],'paid',D(-46),D(-32),[{desc:'Monthly retainer',qty:1,price:900}],0,{paidAmount:1080,paidAt:D(-40),payments:pay(1080,D(-40),'Card','CD2210',1080)})
   ];
-  APP.invoices.push({id:'QUO-2026-002',documentType:'quote',status:'pending',...biz,client:C[3].name,email:C[3].email,address:C[3].address,issued:'2026-07-18',due:'2026-08-01',subtotal:5400,discount:0,tax:1080,amount:6480,template:'classic',items:[{type:'heading',desc:'Design & build'},{desc:'Brand identity',qty:1,unit:'project',unitPrice:2400,installRate:0},{desc:'Website',qty:1,unit:'project',unitPrice:3000,installRate:0}]});
+  APP.invoices.push({id:'QUO-2026-002',documentType:'quote',status:'pending',...biz,client:C[3].name,email:C[3].email,address:C[3].address,issued:D(-3),due:D(11),subtotal:5400,discount:0,tax:1080,amount:6480,template:'classic',items:[{type:'heading',desc:'Design & build'},{desc:'Brand identity',qty:1,unit:'project',unitPrice:2400,installRate:0},{desc:'Website',qty:1,unit:'project',unitPrice:3000,installRate:0}]});
   APP.expenses=[
-    {id:'e1',date:'2026-07-03',amount:52,category:'Software',description:'Adobe Creative Cloud'},
-    {id:'e2',date:'2026-07-09',amount:120,category:'Travel',description:'Client visit — Bristol'},
-    {id:'e3',date:'2026-07-15',amount:340,category:'Equipment',description:'Studio lighting'},
-    {id:'e4',date:'2026-07-20',amount:29,category:'Subscriptions',description:'Domain & hosting'}
+    {id:'e1',date:D(-12),amount:52,category:'Software',description:'Adobe Creative Cloud'},
+    {id:'e2',date:D(-8),amount:120,category:'Travel',description:'Client visit — Bristol'},
+    {id:'e3',date:D(-4),amount:340,category:'Equipment',description:'Studio lighting'},
+    {id:'e4',date:D(-2),amount:29,category:'Subscriptions',description:'Domain & hosting'}
   ];
   APP.nextNum=7; APP.nextQuoteNum=3; APP._demo=true;
   persist();
