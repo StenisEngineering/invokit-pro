@@ -4374,7 +4374,7 @@ function renderStats() {
   const paidSub = pc ? `Received from ${pc} paid invoice${pc===1?'':'s'}` : (t.collected>0 ? 'Includes part-paid invoices' : 'No payments received yet');
   const outSub  = overdue>0 ? `${overdue} overdue · ${sym}${Math.round(overdueAmt).toLocaleString()}`
                 : unpaidCount ? `${unpaidCount} invoice${unpaidCount===1?'':'s'} awaiting payment`
-                : (finalisedCount ? 'Nothing outstanding — all settled' : 'No invoices yet');
+                : (finalisedCount ? 'All invoices paid' : 'No invoices created yet');
   const rateSub = t.billed>0 ? `${sym}${Math.round(t.collected).toLocaleString()} of ${sym}${Math.round(t.billed).toLocaleString()} collected` : 'Send an invoice to start tracking';
   const avgSub  = finalisedCount ? `Across ${finalisedCount} invoice${finalisedCount===1?'':'s'}` : 'No invoices yet';
   document.getElementById('statsGrid').innerHTML = `
@@ -4422,6 +4422,25 @@ function renderDashTable() {
   const q=(document.getElementById('dashSearch')||{}).value?.toLowerCase()||'';
   renderTableInto('dashTableBody',APP.invoices.filter(i=>(dashFilter==='all'||i.status===dashFilter)&&(i.id.toLowerCase().includes(q)||i.client.toLowerCase().includes(q))).slice(0,10));
 }
+// P1-07: one consistent, accessible empty state. Every empty screen explains
+// what belongs there and offers a single primary action. Never uses zero-data
+// wording that implies completed activity (e.g. "all settled") — an account with
+// no records has simply not created any yet.
+function emptyState(o){
+  o=o||{};
+  return '<div class="empty-state" role="status">'+
+    (o.icon?'<div class="empty-icon">'+o.icon+'</div>':'')+
+    '<div style="font-weight:600;color:var(--text2);margin-top:6px">'+esc(o.title||'')+'</div>'+
+    (o.desc?'<div style="font-size:13px;color:var(--text3);margin-top:4px;max-width:340px;margin-left:auto;margin-right:auto;line-height:1.5">'+esc(o.desc)+'</div>':'')+
+    (o.actionLabel?'<div style="margin-top:14px"><button class="btn btn-primary btn-sm" onclick="'+o.actionCall+'">'+esc(o.actionLabel)+'</button></div>':'')+
+  '</div>';
+}
+const ES_ICON={
+  invoice:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>',
+  client:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  expense:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+  receipt:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg>'
+};
 function renderInvTable() {
   const q=(document.getElementById('invSearch')||{}).value?.toLowerCase()||'';
   renderTableInto('invTableBody',APP.invoices.filter(i=>(invFilter==='all'||i.status===invFilter)&&(i.id.toLowerCase().includes(q)||i.client.toLowerCase().includes(q))));
@@ -4438,11 +4457,14 @@ function renderTableInto(id, data) {
   const sym=APP.settings.currency||'£', tbody=document.getElementById(id);
   const today=new Date().toISOString().split('T')[0];
   if (!data.length) {
-    const empty = !APP.invoices.length;
-    const msg  = empty ? 'No invoices yet' : 'No matching invoices';
-    const hint = empty ? 'Create your first invoice — it\'ll appear here and on your dashboard.'
-                       : 'Try a different filter or clear your search.';
-    tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg></div><div style="font-weight:600;color:var(--text2);margin-top:6px">${msg}</div><div style="font-size:13px;color:var(--text3);margin-top:4px;max-width:320px;margin-left:auto;margin-right:auto;line-height:1.5">${hint}</div></div></td></tr>`;
+    const noneAtAll = !APP.invoices.length;
+    const onInvoicesPage = (id==='invTableBody');
+    const inner = noneAtAll
+      ? emptyState({icon:ES_ICON.invoice, title:'No invoices have been created yet.',
+          desc:'Create an invoice or quote — it’ll appear here with its status, due date and amount.',
+          actionLabel:onInvoicesPage?'+ New Invoice':'', actionCall:"openEditor('invoice')"})
+      : emptyState({icon:ES_ICON.invoice, title:'No invoices match your search.', desc:'Try a different filter or clear your search.'});
+    tbody.innerHTML=`<tr><td colspan="7">${inner}</td></tr>`;
     return;
   }
   tbody.innerHTML = data.map(inv=>`<tr onclick="openEditorForInvoice('${inv.id}')">
@@ -4499,7 +4521,13 @@ function renderClients() {
   const cnt=document.getElementById('clientCount');
   if(cnt) cnt.textContent=`${filtered.length} client${filtered.length!==1?'s':''}`;
   const grid=document.getElementById('clientsGrid');
-  if(!filtered.length){grid.innerHTML=`<div style="color:var(--text3);font-size:13px;grid-column:1/-1">No customers found.</div>`;return;}
+  if(!filtered.length){
+    const inner = q
+      ? emptyState({icon:ES_ICON.client, title:'No customers match your search.', desc:'Try a different name or email.'})
+      : emptyState({icon:ES_ICON.client, title:'No customers have been added yet.', desc:'Add customers to reuse their contact details when you create invoices and quotes.', actionLabel:'+ Add Customer', actionCall:'openClientModal(null)'});
+    grid.innerHTML=`<div style="grid-column:1/-1">${inner}</div>`;
+    return;
+  }
   grid.innerHTML=filtered.map(c=>{
     const im=invMap[c.name]||{count:0,total:0};
     const logoHtml=c.logo?`<img src="${c.logo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`${c.name.charAt(0).toUpperCase()}`;
@@ -4838,7 +4866,10 @@ function renderExpenses(){
   if(!tbody) return;
   if(!list.length){
     const emptyAll=!APP.expenses.length;
-    tbody.innerHTML=`<tr><td colspan="5"><div class="empty-state"><div class="empty-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div style="font-weight:600;color:var(--text2);margin-top:6px">${emptyAll?'No expenses yet':'No matching expenses'}</div><div style="font-size:13px;color:var(--text3);margin-top:4px">${emptyAll?'Record your costs to see income vs expenses at a glance.':'Try a different search.'}</div></div></td></tr>`;
+    const inner = emptyAll
+      ? emptyState({icon:ES_ICON.expense, title:'No expenses have been recorded yet.', desc:'Record what your business spends to see income vs expenses and a category breakdown.', actionLabel:'+ Add Expense', actionCall:'openExpenseModal(null)'})
+      : emptyState({icon:ES_ICON.expense, title:'No expenses match your search.', desc:'Try a different search or category.'});
+    tbody.innerHTML=`<tr><td colspan="5">${inner}</td></tr>`;
     return;
   }
   tbody.innerHTML=list.map(e=>`<tr>
@@ -4923,7 +4954,14 @@ function renderReceiptsTable(){
   const sym=APP.settings.currency||'£';
   const paid=APP.invoices.filter(i=>i.status==='paid'&&(i.id.toLowerCase().includes(q)||i.client.toLowerCase().includes(q)));
   const tbody=document.getElementById('receiptsTableBody');
-  if(!paid.length){tbody.innerHTML=`<tr><td colspan="6"><div class="empty-state"><div class="empty-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></div>No paid invoices yet</div></td></tr>`;return;}
+  if(!paid.length){
+    const anyPaid=APP.invoices.some(i=>i.status==='paid');
+    const inner = q
+      ? emptyState({icon:ES_ICON.receipt, title:'No receipts match your search.', desc:'Try a different invoice number or customer.'})
+      : emptyState({icon:ES_ICON.receipt, title:'No receipts yet.', desc:'A receipt appears here automatically once you record a payment on an invoice.', actionLabel:anyPaid?'':'View invoices', actionCall:"navTo('invoices')"});
+    tbody.innerHTML=`<tr><td colspan="6">${inner}</td></tr>`;
+    return;
+  }
   tbody.innerHTML=paid.map((inv,idx)=>{
     const recNum='REC-'+inv.id.replace('INV-','');
     return `<tr onclick="openReceiptById('${inv.id}')">
@@ -5084,7 +5122,11 @@ function renderAnalytics(){
 // ================================================================
 function renderRecurring(){
   const sym=APP.settings.currency||'£', el=document.getElementById('recurringList');
-  if(!APP.recurring||!APP.recurring.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div><div>No recurring invoices yet.</div><div style="margin-top:10px"><button class="btn btn-primary btn-sm" onclick="openRecurringModal()">Create First</button></div></div>`;return;}
+  if(!APP.recurring||!APP.recurring.length){
+    el.innerHTML=emptyState({icon:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>',
+      title:'No recurring invoices set up yet.', desc:'Set up invoices that repeat on a schedule so you don’t have to recreate them each time.', actionLabel:'+ New Recurring', actionCall:'openRecurringModal()'});
+    return;
+  }
   el.innerHTML=`<div class="table-wrap"><table><thead><tr><th>Customer</th><th>Amount</th><th>Frequency</th><th>Start</th><th>End</th><th>Description</th><th></th></tr></thead><tbody>`+APP.recurring.map((r,i)=>`<tr><td><div class="client-name">${esc(r.client)}</div><div class="client-email">${esc(r.email)}</div></td><td><span class="amount">${sym}${parseFloat(r.amount).toLocaleString()}</span></td><td><span class="recurring-badge"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> ${cap(r.freq)}</span></td><td style="font-size:12px;color:var(--text2)">${fmtDate(r.start)}</td><td style="font-size:12px;color:var(--text2)">${r.end?fmtDate(r.end):'—'}</td><td style="font-size:13px;color:var(--text2)">${esc(r.desc)}</td><td><div class="row-actions" style="opacity:1"><button class="icon-btn danger" onclick="delRecurring(${i})"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div></td></tr>`).join('')+`</tbody></table></div>`;
 }
 function openRecurringModal(){document.getElementById('r_start').value=new Date().toISOString().split('T')[0];document.getElementById('recurringModal').classList.add('open');}

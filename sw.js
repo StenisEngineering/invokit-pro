@@ -1,4 +1,4 @@
-const CACHE = 'invokit-v36-dashboard';
+const CACHE = 'invokit-v37-empty-states';
 const SHELL = [
   '/',
   '/index.html',
