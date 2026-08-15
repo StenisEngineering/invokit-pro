@@ -82,7 +82,7 @@
   --bg:#0c0c0e;--surface:#141416;--surface2:#1c1c1f;
   --surface3:#242428;--surface4:#2c2c31;
   --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
-  --text:#f0ede8;--text2:#9d9a94;--text3:#5a5855;
+  --text:#f0ede8;--text2:#9d9a94;--text3:#8f897f;
   --green:#4caf7d;--green-dim:rgba(76,175,125,0.12);
   --red:#e05a5a;--red-dim:rgba(224,90,90,0.12);
   --blue:#5b9cf6;--blue-dim:rgba(91,156,246,0.12);
@@ -9553,6 +9553,16 @@ function renderAppShell() {
 .dash-empty .de-title{font-weight:600;font-size:15px;margin:8px 0 4px;}
 .dash-empty .de-sub{font-size:13px;color:var(--text2);line-height:1.5;max-width:380px;margin:0 auto 14px;}
 @media(max-width:760px){.dash-insights{grid-template-columns:1fr;}}
+/* Accessibility (P1-08) */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+a:focus-visible,button:focus-visible,[role="button"]:focus-visible,[tabindex]:focus-visible,
+.icon-btn:focus-visible,.nav-item:focus-visible,.filter-btn:focus-visible,.settings-nav-item:focus-visible,
+.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.tmpl-tab:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px;border-radius:5px;
+}
+/* status badges carry a text label, so they never rely on colour alone */
+.status-pill{position:relative;}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 </style>
 
 <main class="main">
@@ -10434,7 +10444,7 @@ function renderAppShell() {
 </div>
 
 <!-- TOAST -->
-<div class="toast" id="toast"><span id="toastMsg">Done</span></div>
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"><span id="toastMsg">Done</span></div>
 
 <!-- BACKUP REMINDER OVERLAY -->
 <div id="backupReminderOverlay">
@@ -10510,6 +10520,54 @@ function armBackButton() {
   });
 }
 
+// ================================================================
+// ACCESSIBILITY PASS (P1-08)
+// Runs once after the shell mounts. Rather than hand-editing hundreds of static
+// controls, these passes give every form field a programmatic label and every
+// icon-only button an accessible name.
+// ================================================================
+function a11yWireFieldLabels(){
+  let n=0;
+  document.querySelectorAll('.field-group, .onb-field').forEach(g=>{
+    const label=g.querySelector('label'); if(!label || label.getAttribute('for')) return;
+    const input=g.querySelector('input,select,textarea'); if(!input) return;
+    if(!input.id) input.id='fld-auto-'+(++n);
+    label.setAttribute('for', input.id);
+  });
+}
+function a11yLabelInputs(){
+  document.querySelectorAll('input,select,textarea').forEach(el=>{
+    if(el.type==='hidden') return;
+    const labelled = (el.id && document.querySelector('label[for="'+(window.CSS&&CSS.escape?CSS.escape(el.id):el.id)+'"]')) || el.getAttribute('aria-label') || el.getAttribute('aria-labelledby');
+    if(labelled) return;
+    const ph=el.getAttribute('placeholder'); if(ph) el.setAttribute('aria-label', ph);
+  });
+}
+function a11yNameButtons(){
+  const MAP=[['closeEditor','Close editor'],['closePreview','Close preview'],['closeReceipt','Close receipt'],
+    ['closeClientModal','Close'],['closeCatModal','Close'],['closeExpenseModal','Close'],['closePaymentModal','Close'],
+    ['closeRecurringModal','Close'],['closeReminderModal','Close'],['closeConfirm','Close'],['closeLockSetup','Close'],
+    ['closeReconcileModal','Close'],['toggleMobSidebar','Open menu'],['toggleFab','Create new document'],
+    ['duplicateInvoice','Duplicate'],['confirmDelete','Delete'],['delRecurring','Delete']];
+  document.querySelectorAll('button').forEach(b=>{
+    const txt=(b.textContent||'').trim();
+    if(txt || b.getAttribute('aria-label') || b.getAttribute('title')) return;
+    const oc=b.getAttribute('onclick')||'';
+    for(const [k,v] of MAP){ if(oc.includes(k)){ b.setAttribute('aria-label',v); return; } }
+  });
+}
+function a11yDialogRoles(){
+  ['confirmOverlay','clientModalOverlay','catModalOverlay','expenseModalOverlay','paymentModalOverlay','recurringModal','editorOverlay','previewOverlay','receiptOverlay']
+    .forEach(id=>{ const el=document.getElementById(id); if(el && !el.getAttribute('role')){ el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); } });
+}
+function runA11yPass(){
+  try{ a11yWireFieldLabels(); }catch(e){}
+  try{ a11yLabelInputs(); }catch(e){}
+  try{ a11yNameButtons(); }catch(e){}
+  try{ a11yDialogRoles(); }catch(e){}
+}
+window.runA11yPass=runA11yPass;
+
 function initAppAfterShell() {
   if (_appInitDone) return;
   _appInitDone = true;
@@ -10535,6 +10593,7 @@ function initAppAfterShell() {
   initFab();
   requestPersistentStorage(false);
   if (typeof renderDataSafetyPanel === 'function') renderDataSafetyPanel();
+  try{ runA11yPass(); }catch(e){}
   // Resume an interrupted onboarding (refresh / closed tab / PWA restart) so the
   // user picks up exactly where they left off, with prior entries intact.
   try {
