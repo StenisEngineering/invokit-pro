@@ -1,4 +1,4 @@
-const CACHE = 'invokit-v29-p0-batch';
+const CACHE = 'invokit-v30-onboarding';
 const SHELL = [
   '/',
   '/index.html',

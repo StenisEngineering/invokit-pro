@@ -4046,8 +4046,37 @@ const DEF_SETTINGS = {
   bizName:'',ownerName:'',email:'',phone:'',address:'',vat:'',regNum:'',website:'',
   prefix:'INV-2026-',currency:'£',taxRate:20,terms:'Net 30',
   notes:'Thank you for your business.',template:'classic',
-  theme:'light',accentColour:'#c9a84c',bizLogo:''
+  theme:'light',accentColour:'#c9a84c',bizLogo:'',
+  // Onboarding-era fields (all backward-compatible; ensureSettingsShape backfills them)
+  country:'',                 // free-text country name; never used to auto-apply tax
+  taxRegistered:false,        // explicit choice — drives whether new documents add tax
+  taxChoiceMade:false,        // true once the user has explicitly answered "registered?"
+  taxName:'VAT',              // label for the tax line (VAT / Sales Tax / GST…)
+  paymentInstructions:'',     // default bank/payment details appended to new documents
+  noAddress:false,            // explicit choice to omit a business address
+  showAttribution:true        // "Made with InvoKitPro" footer (where plan permits)
 };
+
+// Backfill any missing settings keys on load without ever overwriting existing
+// values. Also grandfathers pre-onboarding installs so returning users are never
+// forced back through setup or blocked from finalising.
+function ensureSettingsShape(){
+  if(!APP.settings || typeof APP.settings !== 'object') APP.settings = {...DEF_SETTINGS};
+  const s = APP.settings;
+  Object.keys(DEF_SETTINGS).forEach(k=>{ if(s[k]===undefined) s[k]=DEF_SETTINGS[k]; });
+  // Grandfather only genuine PRE-onboarding installs: they have business history,
+  // never made a tax choice, and are NOT part-way through the guided flow (no step
+  // pointer). A user mid-onboarding has typed a business name but must still be
+  // resumed — so the presence of a saved step pointer excludes them from this.
+  let midOnboarding=false;
+  try{ midOnboarding = !!localStorage.getItem('invokit_onboarding_step'); }catch(e){}
+  const hasHistory = (APP.invoices && APP.invoices.length) || (s.bizName||'').trim();
+  if(hasHistory && s.taxChoiceMade!==true && !midOnboarding){
+    s.taxChoiceMade = true;
+    s.taxRegistered = !!(s.vat||'').trim();
+    try{ if(localStorage.getItem('invokit_onboarding_done')!=='1') localStorage.setItem('invokit_onboarding_done','1'); }catch(e){}
+  }
+}
 
 const SEED_INV = [];
 const SEED_CLIENTS = [];
@@ -4069,6 +4098,7 @@ function createEmptyAppState() {
 }
 
 let APP = load();
+ensureSettingsShape();
 
 // ================================================================
 // THEME & ACCENT COLOUR
@@ -4243,6 +4273,7 @@ function buildDashboard() {
   document.getElementById('dashSubtitle').textContent =
     now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   renderStats(); buildBarChart(); renderDonut(); renderDashTable();
+  if(typeof renderSetupChecklist==='function') renderSetupChecklist();
 }
 
 // ── UNIFIED FINANCIAL CALCULATION LAYER (P0-01) ──
@@ -4989,15 +5020,19 @@ function delRecurring(i){APP.recurring.splice(i,1);persist();renderRecurring();s
 // ================================================================
 function loadSettingsForm(){
   const s=APP.settings;
-  const map={s_bizName:'bizName',s_ownerName:'ownerName',s_email:'email',s_phone:'phone',s_address:'address',s_vat:'vat',s_regNum:'regNum',s_website:'website',s_prefix:'prefix',s_currency:'currency',s_taxRate:'taxRate',s_terms:'terms',s_notes:'notes',s_template:'template'};
+  const map={s_bizName:'bizName',s_ownerName:'ownerName',s_email:'email',s_phone:'phone',s_country:'country',s_address:'address',s_vat:'vat',s_regNum:'regNum',s_website:'website',s_prefix:'prefix',s_currency:'currency',s_taxName:'taxName',s_taxRate:'taxRate',s_terms:'terms',s_notes:'notes',s_paymentInstructions:'paymentInstructions',s_template:'template'};
   Object.entries(map).forEach(([eid,key])=>{const el=document.getElementById(eid);if(el) el.value=s[key]||'';});
+  const treg=document.getElementById('s_taxRegistered'); if(treg) treg.value=s.taxRegistered?'1':'0';
   updateSidebarProfile();
   // biz logo
   if(s.bizLogo){const prev=document.getElementById('bizLogoPreview');if(prev){prev.src=s.bizLogo;prev.style.display='block';document.getElementById('bizLogoPlaceholder').style.display='none';document.getElementById('bizLogoRemove').style.display='flex';}}
 }
 function saveSettings(){
-  const map={s_bizName:'bizName',s_ownerName:'ownerName',s_email:'email',s_phone:'phone',s_address:'address',s_vat:'vat',s_regNum:'regNum',s_website:'website',s_prefix:'prefix',s_currency:'currency',s_taxRate:'taxRate',s_terms:'terms',s_notes:'notes',s_template:'template'};
+  const map={s_bizName:'bizName',s_ownerName:'ownerName',s_email:'email',s_phone:'phone',s_country:'country',s_address:'address',s_vat:'vat',s_regNum:'regNum',s_website:'website',s_prefix:'prefix',s_currency:'currency',s_taxName:'taxName',s_taxRate:'taxRate',s_terms:'terms',s_notes:'notes',s_paymentInstructions:'paymentInstructions',s_template:'template'};
   Object.entries(map).forEach(([eid,key])=>{const el=document.getElementById(eid);if(el) APP.settings[key]=el.value;});
+  // Tax registration is an explicit choice; saving it here counts as having made it.
+  const treg=document.getElementById('s_taxRegistered');
+  if(treg){ APP.settings.taxRegistered=(treg.value==='1'); APP.settings.taxChoiceMade=true; }
   const editorCurrency=document.getElementById('currency');
   if(editorCurrency && !editingId) editorCurrency.value=APP.settings.currency||'£';
   renderItems();
@@ -5092,7 +5127,9 @@ function prefillFromSettings(){
   if(s.email) setValue('bizEmail',s.email);
   if(s.phone) setValue('bizPhone',s.phone);
   if(s.vat) setValue('bizVAT',s.vat);
-  if(s.notes) setValue('notes',s.notes);
+  // Default notes + any default payment instructions the user set during setup.
+  const defNotes=[ (s.notes||'').trim(), (s.paymentInstructions||'').trim() ].filter(Boolean).join('\n\n');
+  if(defNotes) setValue('notes',defNotes);
   if(s.currency) setValue('currency',s.currency);
   if(s.terms) setValue('paymentTerms',s.terms);
   if(s.template) setValue('invTemplate',s.template);
@@ -5145,10 +5182,12 @@ function clearEditor(){
   document.getElementById('invNumDisplay').textContent=prefix+String(next).padStart(3,'0');
   document.getElementById('statusBadge').textContent='Draft';
   items=[]; document.getElementById('itemsContainer').innerHTML=''; renderItemHeader();
-  taxEnabled=false; discountType='pct';
-  const tg=document.getElementById('taxToggle');if(tg) tg.classList.remove('on');
-  const tr=document.getElementById('taxRate');if(tr){tr.disabled=true;tr.value=APP.settings.taxRate||20;}
-  const trow=document.getElementById('taxDisplayRow');if(trow) trow.style.display='none';
+  // Tax default follows the explicit setup choice — never inferred from country.
+  // Registered businesses start new documents with tax on; everyone else, off.
+  taxEnabled = APP.settings.taxRegistered===true; discountType='pct';
+  const tg=document.getElementById('taxToggle');if(tg) tg.classList.toggle('on',taxEnabled);
+  const tr=document.getElementById('taxRate');if(tr){tr.disabled=!taxEnabled;tr.value=APP.settings.taxRate||20;}
+  const trow=document.getElementById('taxDisplayRow');if(trow) trow.style.display=taxEnabled?'flex':'none';
   const drow=document.getElementById('discountDisplayRow');if(drow) drow.style.display='none';
   const dv=document.getElementById('discountVal');if(dv) dv.value=0;
   document.getElementById('discPct')?.classList.add('active');
@@ -5374,6 +5413,14 @@ function sendInvoice(){
   const focusField=(id)=>{const el=document.getElementById(id); if(el){ el.focus(); el.scrollIntoView({block:'center',behavior:'smooth'}); }};
   const isQuote=currentDocType==='quote';
   const noun=isQuote?'quote':'invoice';
+  // Finalising needs valid business setup (name, country, currency, tax choice).
+  // Brand-new users are routed back to finish setup; Draft saving is never blocked.
+  // Existing/grandfathered users (onboarding already done) are not re-gated here —
+  // the dashboard checklist nudges them for anything still missing.
+  if(!isOnboardingDone() && !requiredSettingsComplete()){
+    showToast('Finish quick setup before finalising your first '+noun);
+    closeEditor(); openOnboarding(); return;
+  }
   if(!(APP.settings.bizName||'').trim()){ showToast('Add your business name in Settings before saving this '+noun); return; }
   if(!gv('clientName').trim()){ showToast('Add the customer name before saving this '+noun); focusField('clientName'); return; }
   const inv=buildInvObj('pending');
@@ -8547,6 +8594,7 @@ function importJSON(e) {
       const data = JSON.parse(ev.target.result);
       // Validate it looks like an InvoKitPro backup
       if (!data || typeof data !== 'object' || !Array.isArray(data.invoices)) {
+        if (ONB && ONB.restoreActive) { ONB.restoreActive=false; }
  showToast('That doesn’t look like an InvoKitPro backup file'); return;
       }
       const nInv = (data.invoices||[]).filter(x=>x.documentType!=='quote').length;
@@ -8583,11 +8631,15 @@ function importJSON(e) {
         loadSettingsForm();
         checkOverdue();
         if (typeof renderDataSafetyPanel === 'function') renderDataSafetyPanel();
+        ensureSettingsShape();
         closeConfirm();
+        // If this restore was started from onboarding, validate and continue there.
+        if (ONB && ONB.restoreActive && typeof onbAfterRestore==='function') { onbAfterRestore(); return; }
  showToast(`Restored — ${nInv} invoices, ${nCust} customers loaded`);
       };
       document.getElementById('confirmOverlay').classList.add('open');
     } catch(err) {
+      if (ONB && ONB.restoreActive) { ONB.restoreActive=false; }
  showToast('Could not read that backup file');
     }
   };
@@ -8871,6 +8923,8 @@ function isBackupForced() {
 
 function shouldShowBackupReminder() {
   if (!hasBusinessData()) return false;
+  // Respect the user's choice to turn reminders off during setup / in Settings.
+  if (APP.settings && APP.settings.backupReminders === false && !isBackupForced()) return false;
   const state = getBackupReminderState();
   const now = Date.now();
   // Snoozed?
@@ -9135,6 +9189,7 @@ function renderAppShell() {
     </div>
   </header>
   <div class="content fade-in">
+    <div id="setupChecklistHost"></div>
     <div class="stats-grid" id="statsGrid"></div>
     <div class="two-col">
       <div class="card">
@@ -9394,7 +9449,10 @@ function renderAppShell() {
               <div class="field-group"><label class="field-label">Email</label><input class="field-input" type="email" id="s_email" placeholder="hello@company.com"></div>
               <div class="field-group"><label class="field-label">Phone</label><input class="field-input" type="tel" inputmode="tel" pattern="^[0-9+()\-\s]{7,20}$" id="s_phone" placeholder="+44 7000 000000"></div>
             </div>
-            <div class="field-group"><label class="field-label">Address</label><input class="field-input" type="text" id="s_address" placeholder="123 Business Road, City, Postcode"></div>
+            <div class="half-grid">
+              <div class="field-group"><label class="field-label">Country</label><input class="field-input" type="text" id="s_country" list="settingsCountryList" placeholder="Start typing…"><datalist id="settingsCountryList"><option value="United Kingdom"><option value="Nigeria"><option value="Ireland"><option value="Ghana"><option value="Kenya"><option value="South Africa"><option value="United States"><option value="Canada"><option value="Australia"><option value="India"><option value="United Arab Emirates"><option value="Germany"><option value="France"><option value="Netherlands"><option value="Spain"><option value="Italy"></datalist></div>
+              <div class="field-group"><label class="field-label">Address</label><input class="field-input" type="text" id="s_address" placeholder="123 Business Road, City, Postcode"></div>
+            </div>
             <div class="half-grid">
               <div class="field-group"><label class="field-label">VAT / Tax Number</label><input class="field-input" type="text" id="s_vat" placeholder="GB 123456789 / TIN-001234"></div>
               <div class="field-group"><label class="field-label">Company Reg. Number</label><input class="field-input" type="text" id="s_regNum" placeholder="RC 123456 / Co. No. 12345678 / LLC No.…"></div>
@@ -9428,6 +9486,13 @@ function renderAppShell() {
                   <option value="R$">R$ BRL — Brazilian Real</option>
                 </select>
               </div>
+              <div class="field-group"><label class="field-label">Tax Registered</label>
+                <select class="field-input" id="s_taxRegistered">
+                  <option value="0">Not registered — no tax added</option>
+                  <option value="1">Registered — add tax to invoices</option>
+                </select>
+              </div>
+              <div class="field-group"><label class="field-label">Tax Name</label><input class="field-input" type="text" id="s_taxName" placeholder="VAT"></div>
               <div class="field-group"><label class="field-label">Default Tax Rate (%)</label><input class="field-input" type="number" id="s_taxRate" placeholder="20" min="0" max="100"></div>
               <div class="field-group"><label class="field-label">Default Terms</label>
                 <select class="field-input" id="s_terms">
@@ -9437,6 +9502,7 @@ function renderAppShell() {
               </div>
             </div>
             <div class="field-group"><label class="field-label">Default Notes</label><textarea class="field-input" id="s_notes" rows="3" placeholder="Thank you for your business!"></textarea></div>
+            <div class="field-group"><label class="field-label">Default Payment Instructions</label><textarea class="field-input" id="s_paymentInstructions" rows="2" placeholder="Bank: … · Account: … · Sort code: …"></textarea></div>
             <div class="field-group"><label class="field-label">Default Template</label>
               <select class="field-input" id="s_template">
                 <option value="classic">Classic</option><option value="modern">Modern</option><option value="bold">Bold</option>
@@ -10081,6 +10147,13 @@ function initAppAfterShell() {
   initFab();
   requestPersistentStorage(false);
   if (typeof renderDataSafetyPanel === 'function') renderDataSafetyPanel();
+  // Resume an interrupted onboarding (refresh / closed tab / PWA restart) so the
+  // user picks up exactly where they left off, with prior entries intact.
+  try {
+    if (typeof onboardingNeeded==='function' && onboardingNeeded() && localStorage.getItem(ONB_STEP_KEY)) {
+      setTimeout(() => openOnboarding(), 400);
+    }
+  } catch(e){}
 }
 
 // Subtle connection-status pill — informational (offline is normal for this app)
@@ -10727,15 +10800,17 @@ function dismissSplash(animate=true, isNewActivation=false) {
   }
   licence.style.display = 'none';
   document.body.style.overflow = '';
-  // Show backup reminder shortly after new activation if user has data
+  // Fresh activation → run guided onboarding instead of dropping the user on an
+  // empty dashboard. Skip it only if setup is already complete (e.g. came from a
+  // restored backup) or was finished earlier. Existing users are grandfathered by
+  // ensureSettingsShape and just see the dashboard checklist for anything missing.
   if (isNewActivation) {
+    if (typeof onboardingNeeded==='function' && onboardingNeeded()) {
+      setTimeout(() => openOnboarding(1), 350);
+      return;
+    }
     const name = (APP.settings?.ownerName || '').trim().split(/\s+/)[0];
     showToast(name ? `Welcome to InvoKitPro, ${name}!` : 'Welcome to InvoKitPro!');
-    // No business profile yet → gently nudge them to set it up (needed for invoices)
-    const noProfile = !(APP.settings?.bizName || '').trim();
-    if (noProfile) {
-      setTimeout(() => showToast('Tip: add your business details in Settings to start invoicing'), 3400);
-    }
     setTimeout(() => {
       if (hasBusinessData() && shouldShowBackupReminder()) showBackupReminder();
     }, 2000);
@@ -10890,6 +10965,509 @@ window.activateLicence = activateLicence;
 window.showSplash = showSplash;
 window.showLicenceScreen = showLicenceScreen;
 window.enterDemoMode = enterDemoMode;
+
+// ================================================================
+// FIRST-ACTIVATION ONBOARDING  (P0-07 + Onboarding Addendum)
+// A guided interface OVER the existing APP.settings store — never a second,
+// conflicting settings system. Each step saves straight into APP.settings and
+// persists immediately. Progress is resumable; required info gates finalising.
+// ================================================================
+const ONB = { step:1, total:6, injected:false, restoreActive:false };
+const ONB_DONE_KEY = 'invokit_onboarding_done';
+const ONB_STEP_KEY = 'invokit_onboarding_step';
+
+function onbEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function isOnboardingDone(){ try{ return localStorage.getItem(ONB_DONE_KEY)==='1'; }catch(e){ return false; } }
+function markOnboardingDone(){ try{ localStorage.setItem(ONB_DONE_KEY,'1'); localStorage.removeItem(ONB_STEP_KEY); }catch(e){} }
+function saveOnbStepPointer(n){ try{ localStorage.setItem(ONB_STEP_KEY,String(n)); }catch(e){} }
+function getOnbStepPointer(){ try{ return Math.max(1,Math.min(ONB.total,Number(localStorage.getItem(ONB_STEP_KEY)||1)||1)); }catch(e){ return 1; } }
+
+// Required business info for correct documents. Country + currency + an explicit
+// tax choice + a business name. Used by the dashboard checklist and finalise gate.
+function requiredSettingsComplete(){
+  const s=APP.settings||{};
+  return !!((s.bizName||'').trim() && (s.country||'').trim() && (s.currency||'').trim() && s.taxChoiceMade===true);
+}
+function onboardingNeeded(){
+  return APP && APP.licenceStatus==='active' && !isOnboardingDone() && !requiredSettingsComplete();
+}
+
+const ONB_CURRENCIES = [
+  ['£','£ GBP — British Pound'],['$','$ USD — US Dollar'],['€','€ EUR — Euro'],
+  ['₦','₦ NGN — Nigerian Naira'],['C$','C$ CAD — Canadian Dollar'],['A$','A$ AUD — Australian Dollar'],
+  ['R','R ZAR — South African Rand'],['KSh','KSh KES — Kenyan Shilling'],['GH₵','GH₵ GHS — Ghanaian Cedi'],
+  ['د.إ','د.إ AED — UAE Dirham'],['₹','₹ INR — Indian Rupee'],['¥','¥ JPY — Japanese Yen'],
+  ['CHF','CHF — Swiss Franc'],['kr','kr SEK — Swedish Krona'],['R$','R$ BRL — Brazilian Real']
+];
+const ONB_COUNTRIES = ['United Kingdom','Nigeria','Ireland','Ghana','Kenya','South Africa','United States','Canada','Australia','India','United Arab Emirates','Germany','France','Netherlands','Spain','Italy'];
+
+function onbInject(){
+  if(ONB.injected) return;
+  const style=document.createElement('style');
+  style.textContent=`
+  .onb-overlay{position:fixed;inset:0;z-index:11000;display:none;align-items:flex-start;justify-content:center;background:rgba(0,0,0,0.55);overflow-y:auto;padding:0;}
+  .onb-overlay.open{display:flex;}
+  .onb-card{background:var(--surface);color:var(--text);width:100%;max-width:620px;min-height:100dvh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.4);}
+  @media(min-width:680px){.onb-card{min-height:auto;margin:32px 16px;border:1px solid var(--border);border-radius:var(--radius);}}
+  .onb-head{padding:20px 24px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:2;}
+  .onb-step-label{font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text3);font-family:'DM Mono',monospace;}
+  .onb-bar{height:5px;border-radius:99px;background:var(--surface2);margin-top:9px;overflow:hidden;}
+  .onb-bar > span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width .35s ease;}
+  .onb-title{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;margin:16px 0 4px;line-height:1.15;}
+  .onb-sub{color:var(--text2);font-size:14px;line-height:1.5;}
+  .onb-body{padding:20px 24px;flex:1;}
+  .onb-foot{padding:16px 24px 24px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;position:sticky;bottom:0;background:var(--surface);}
+  .onb-foot .grow{flex:1;}
+  .onb-field{margin-bottom:14px;}
+  .onb-field label{display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:5px;}
+  .onb-field .req{color:#e05a5a;}
+  .onb-field input,.onb-field select,.onb-field textarea{width:100%;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;transition:border-color .15s;}
+  .onb-field input:focus,.onb-field select:focus,.onb-field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
+  .onb-field.err input,.onb-field.err select,.onb-field.err textarea{border-color:#e05a5a;}
+  .onb-field .fe{display:none;color:#e05a5a;font-size:12px;margin-top:4px;}
+  .onb-field.err .fe{display:block;}
+  .onb-grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;}
+  @media(max-width:520px){.onb-grid2{grid-template-columns:1fr;}}
+  .onb-choice{display:flex;gap:10px;flex-wrap:wrap;}
+  .onb-choice button{flex:1;min-width:150px;text-align:left;padding:12px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border2);background:var(--bg);color:var(--text);cursor:pointer;font-family:'Outfit',sans-serif;font-size:14px;transition:all .15s;}
+  .onb-choice button.sel{border-color:var(--accent);background:var(--accent-dim);box-shadow:0 0 0 2px var(--accent-dim);}
+  .onb-choice button .h{font-weight:600;display:block;}
+  .onb-choice button .d{font-size:12px;color:var(--text3);display:block;margin-top:2px;}
+  .onb-note{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:14px;}
+  .onb-warn{background:rgba(224,90,90,0.08);border:1px solid rgba(224,90,90,0.3);border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;color:var(--text);line-height:1.5;margin-bottom:16px;}
+  .onb-errsum{background:rgba(224,90,90,0.1);border:1px solid rgba(224,90,90,0.35);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:#e05a5a;margin-bottom:14px;display:none;}
+  .onb-errsum.show{display:block;}
+  .onb-action-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+  .onb-action-row:last-child{border-bottom:none;}
+  .onb-action-row .txt{font-size:13px;color:var(--text2);line-height:1.4;}
+  .onb-action-row .txt b{color:var(--text);font-weight:600;display:block;font-size:14px;margin-bottom:2px;}
+  .onb-tick{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#4caf7d;white-space:nowrap;}
+  .onb-check{list-style:none;padding:0;margin:0;}
+  .onb-check li{display:flex;align-items:center;gap:10px;padding:9px 0;font-size:14px;border-bottom:1px solid var(--border);}
+  .onb-check li:last-child{border-bottom:none;}
+  .onb-check .cbox{width:20px;height:20px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;border:1.5px solid var(--border2);color:transparent;}
+  .onb-check li.done .cbox{background:#4caf7d;border-color:#4caf7d;color:#fff;}
+  .onb-check li.done{color:var(--text);}
+  .onb-check li:not(.done){color:var(--text3);}
+  .onb-prev{border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;background:var(--bg);font-size:12px;color:var(--text2);margin-top:6px;}
+  .onb-prev .pv-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;}
+  .onb-prev .pv-num{font-family:'DM Mono',monospace;color:var(--accent);font-weight:600;}
+  .onb-prev .pv-line{display:flex;justify-content:space-between;padding:3px 0;border-top:1px dashed var(--border);}
+  .onb-logo-prev{width:56px;height:56px;border-radius:8px;object-fit:contain;background:var(--surface2);border:1px solid var(--border);display:none;}
+  .setup-checklist{background:var(--surface);border:1px solid var(--accent-border);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px 20px;margin-bottom:18px;}
+  .setup-checklist .sc-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;}
+  .setup-checklist .sc-title{font-weight:600;font-size:15px;}
+  .setup-checklist .sc-sub{font-size:12.5px;color:var(--text2);margin-bottom:10px;}
+  .setup-checklist .sc-items{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+  .setup-checklist .sc-chip{font-size:12px;padding:5px 10px;border-radius:99px;border:1px solid var(--border);display:inline-flex;align-items:center;gap:6px;}
+  .setup-checklist .sc-chip.done{color:#4caf7d;border-color:rgba(76,175,125,0.4);}
+  .setup-checklist .sc-chip.todo{color:var(--text3);}
+  `;
+  document.head.appendChild(style);
+
+  const ov=document.createElement('div');
+  ov.className='onb-overlay'; ov.id='onbOverlay';
+  ov.setAttribute('role','dialog'); ov.setAttribute('aria-modal','true'); ov.setAttribute('aria-labelledby','onbTitle');
+  ov.innerHTML=
+    '<div class="onb-card" role="document">'+
+      '<div class="onb-head">'+
+        '<div class="onb-step-label" id="onbStepLabel">Step 1 of 6</div>'+
+        '<div class="onb-bar"><span id="onbBar" style="width:16%"></span></div>'+
+        '<div class="onb-title" id="onbTitle">Welcome</div>'+
+        '<div class="onb-sub" id="onbSub"></div>'+
+      '</div>'+
+      '<div class="onb-errsum" id="onbErrSum" role="alert" tabindex="-1"></div>'+
+      '<div class="onb-body" id="onbBody"></div>'+
+      '<div class="onb-foot" id="onbFoot"></div>'+
+      '<input type="file" id="onbRestoreInput" accept="application/json,.json" style="display:none">'+
+    '</div>';
+  document.body.appendChild(ov);
+  document.getElementById('onbRestoreInput').addEventListener('change', function(e){
+    ONB.restoreActive=true;
+    try{ importJSON(e); }catch(err){ ONB.restoreActive=false; showToast('Could not read that backup file'); }
+  });
+  // Keyboard: keep focus inside, allow Enter to advance from inputs (not textareas)
+  ov.addEventListener('keydown', function(e){
+    if(e.key==='Enter' && ONB.step<ONB.total && e.target.tagName!=='TEXTAREA' && e.target.tagName!=='BUTTON'){
+      e.preventDefault(); onbNext();
+    }
+  });
+  ONB.injected=true;
+}
+
+function openOnboarding(startStep){
+  onbInject();
+  ensureSettingsShape();
+  ONB.step = startStep ? Math.max(1,Math.min(ONB.total,startStep)) : getOnbStepPointer();
+  document.getElementById('onbOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+  onbRender();
+}
+window.openOnboarding = openOnboarding;
+
+function closeOnboarding(){
+  const ov=document.getElementById('onbOverlay');
+  if(ov) ov.classList.remove('open');
+  document.body.style.overflow='';
+}
+
+function onbRender(){
+  const s=APP.settings;
+  const titles={1:'Welcome to InvoKitPro',2:'Your business details',3:'Currency & tax',4:'Invoice preferences',5:'Data safety & installation',6:'You’re ready'};
+  const subs={
+    1:'Let’s set up your business before you create your first invoice. This takes about 2–3 minutes and everything can be changed later in Settings.',
+    2:'These appear on your invoices and receipts.',
+    3:'How you charge — and whether you add tax. We never assume this from your country.',
+    4:'Numbering and defaults for every new document.',
+    5:'Your records live on this device. Keep a backup so you never lose them.',
+    6:'Here’s what’s set up. You can edit any of it under Settings.'
+  };
+  document.getElementById('onbStepLabel').textContent='Step '+ONB.step+' of '+ONB.total;
+  document.getElementById('onbBar').style.width=Math.round(ONB.step/ONB.total*100)+'%';
+  document.getElementById('onbTitle').textContent=titles[ONB.step];
+  document.getElementById('onbSub').textContent=subs[ONB.step];
+  const es=document.getElementById('onbErrSum'); es.classList.remove('show'); es.textContent='';
+  const body=document.getElementById('onbBody');
+  const foot=document.getElementById('onbFoot');
+  body.innerHTML = onbStepBody(ONB.step, s);
+  foot.innerHTML = onbStepFoot(ONB.step);
+  body.scrollTop=0;
+  // wire step-specific behaviour
+  if(ONB.step===3) onbSyncTaxUI();
+  if(ONB.step===4) onbUpdatePreview();
+  // focus first field
+  setTimeout(()=>{ const f=body.querySelector('input,select,textarea,button'); if(f && ONB.step!==6) f.focus(); },60);
+}
+
+function onbStepBody(step, s){
+  if(step===1){
+    return ''+
+      '<div class="onb-note">You’ll set your business name, currency, tax preference and invoice numbering. We’ll also help you make your first backup so your data is safe.</div>'+
+      '<p style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:6px">Already used InvoKitPro before? You can restore a backup instead of typing everything again.</p>';
+  }
+  if(step===2){
+    return ''+
+      '<div class="onb-grid2">'+
+        onbInput('onb_bizName','Business name',s.bizName,true,'Your Company Ltd.')+
+        onbInput('onb_ownerName','Owner / contact name',s.ownerName,true,'Full name')+
+      '</div>'+
+      onbInput('onb_country','Country',s.country,true,'Start typing…','list="onbCountryList"')+
+      '<datalist id="onbCountryList">'+ONB_COUNTRIES.map(c=>'<option value="'+onbEsc(c)+'">').join('')+'</datalist>'+
+      onbInput('onb_email','Business email',s.email,true,'hello@company.com','type="email"')+
+      '<div class="onb-field'+'" id="fg_onb_address">'+
+        '<label for="onb_address">Business address <span class="req">*</span></label>'+
+        '<input id="onb_address" value="'+onbEsc(s.address)+'" placeholder="123 Business Road, City, Postcode" '+(s.noAddress?'disabled':'')+'>'+
+        '<label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-weight:400;color:var(--text2);cursor:pointer">'+
+          '<input type="checkbox" id="onb_noAddress" style="width:auto" '+(s.noAddress?'checked':'')+' onchange="onbToggleNoAddress()"> Don’t show an address on my documents</label>'+
+        '<div class="fe">Add an address, or tick “don’t show an address”.</div>'+
+      '</div>'+
+      '<div class="onb-note">Optional — you can add these now or later.</div>'+
+      '<div class="onb-grid2">'+
+        onbInput('onb_phone','Phone',s.phone,false,'+44 7000 000000','type="tel"')+
+        onbInput('onb_website','Website',s.website,false,'https://yoursite.com','type="url"')+
+      '</div>'+
+      onbInput('onb_regNum','Company registration number',s.regNum,false,'Co. No. 12345678 / RC 123456')+
+      '<div class="onb-field"><label>Business logo</label>'+
+        '<div style="display:flex;align-items:center;gap:12px">'+
+          '<img id="onb_logoPrev" class="onb-logo-prev" alt="Logo preview" style="'+(s.bizLogo?'display:block':'')+'" '+(s.bizLogo?('src="'+onbEsc(s.bizLogo)+'"'):'')+'>'+
+          '<input type="file" id="onb_logo" accept="image/*" style="width:auto" onchange="onbHandleLogo(this)">'+
+          (s.bizLogo?'<button type="button" class="btn btn-ghost" onclick="onbClearLogo()">Remove</button>':'')+
+        '</div>'+
+        '<div class="fe">That image couldn’t be used.</div>'+
+      '</div>';
+  }
+  if(step===3){
+    const curOpts=ONB_CURRENCIES.map(c=>'<option value="'+onbEsc(c[0])+'"'+(s.currency===c[0]?' selected':'')+'>'+onbEsc(c[1])+'</option>').join('');
+    const termsOpts=['Net 30','Net 14','Net 7','Due on Receipt','50% Upfront'].map(t=>'<option'+(s.terms===t?' selected':'')+'>'+t+'</option>').join('');
+    const reg=s.taxRegistered===true, notReg=s.taxChoiceMade===true && s.taxRegistered===false;
+    return ''+
+      '<div class="onb-field"><label for="onb_currency">Default currency <span class="req">*</span></label><select id="onb_currency">'+curOpts+'</select></div>'+
+      '<div class="onb-field" id="fg_onb_tax"><label>Are you tax registered? <span class="req">*</span></label>'+
+        '<div class="onb-choice">'+
+          '<button type="button" id="onb_taxNo" class="'+(notReg?'sel':'')+'" onclick="onbSetTax(false)"><span class="h">Not registered</span><span class="d">No tax added to invoices</span></button>'+
+          '<button type="button" id="onb_taxYes" class="'+(reg?'sel':'')+'" onclick="onbSetTax(true)"><span class="h">Registered</span><span class="d">Add VAT / sales tax</span></button>'+
+        '</div>'+
+        '<input type="hidden" id="onb_taxRegistered" value="'+(reg?'1':(notReg?'0':''))+'">'+
+        '<div class="fe">Choose one — we won’t assume it from your country.</div>'+
+      '</div>'+
+      '<div id="onb_taxDetails" style="display:'+(reg?'block':'none')+'">'+
+        '<div class="onb-grid2">'+
+          onbInput('onb_taxName','Tax name',s.taxName||'VAT',reg,'VAT')+
+          onbInput('onb_taxRate','Default tax rate (%)',(s.taxRate!==undefined&&s.taxRate!=='')?s.taxRate:20,reg,'20','type="number" min="0" max="100"')+
+        '</div>'+
+        onbInput('onb_vat','Tax registration number',s.vat,false,'GB 123456789')+
+      '</div>'+
+      '<div class="onb-field"><label for="onb_terms">Default payment terms</label><select id="onb_terms">'+termsOpts+'</select></div>';
+  }
+  if(step===4){
+    const tplOpts=['classic','modern','bold'].map(t=>'<option value="'+t+'"'+(s.template===t?' selected':'')+'>'+t.charAt(0).toUpperCase()+t.slice(1)+'</option>').join('');
+    const startNum=APP.nextNum||1;
+    return ''+
+      '<div class="onb-grid2">'+
+        onbInput('onb_prefix','Invoice prefix',s.prefix||'INV-2026-',true,'INV-2026-','oninput="onbUpdatePreview()"')+
+        onbInput('onb_startNum','Starting number',startNum,true,'1','type="number" min="1" oninput="onbUpdatePreview()"')+
+      '</div>'+
+      '<div class="onb-field"><label for="onb_template">Default template</label><select id="onb_template" onchange="onbUpdatePreview()">'+tplOpts+'</select></div>'+
+      onbTextarea('onb_notes','Default notes',s.notes,'Thank you for your business.')+
+      onbTextarea('onb_payInstructions','Default payment instructions',s.paymentInstructions,'Bank: … · Account: … · Sort code: …')+
+      '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);cursor:pointer;margin-bottom:6px">'+
+        '<input type="checkbox" id="onb_attribution" style="width:auto" '+(s.showAttribution!==false?'checked':'')+'> Show a small “Made with InvoKitPro” line on documents</label>'+
+      '<div class="onb-prev" id="onb_preview" aria-hidden="true"></div>'+
+      '<div style="font-size:11px;color:var(--text3);margin-top:6px">Illustrative preview with sample data.</div>';
+  }
+  if(step===5){
+    const installed = (typeof isAppInstalled==='function' && isAppInstalled());
+    return ''+
+      '<div class="onb-warn"><b>Your business records are stored on this device.</b><br>Clearing browser data, using private browsing, or losing this device may remove them unless you keep a backup.</div>'+
+      '<div class="onb-action-row"><div class="txt"><b>Download your first backup</b>A restorable copy of your business data (never includes your licence key).</div>'+
+        '<button type="button" class="btn btn-primary" onclick="onbDownloadBackup(this)">Download</button></div>'+
+      '<div class="onb-action-row"><div class="txt"><b>Backup reminders</b>We’ll gently remind you to back up as your records grow.</div>'+
+        '<label class="onb-tick" style="color:var(--text2);gap:8px;cursor:pointer"><input type="checkbox" id="onb_reminders" style="width:auto" '+(APP.settings.backupReminders!==false?'checked':'')+'> On</label></div>'+
+      '<div class="onb-action-row"><div class="txt"><b>Keep browser storage</b>Reduces the chance the browser auto-clears your data. This does not lock or encrypt the app.</div>'+
+        '<button type="button" class="btn btn-ghost" id="onb_persistBtn" onclick="onbRequestPersist(this)">Enable</button></div>'+
+      '<div class="onb-action-row"><div class="txt"><b>Install InvoKitPro</b>Add it to your device to open it like an app and work offline.</div>'+
+        (installed?'<span class="onb-tick">✓ Installed</span>':'<button type="button" class="btn btn-ghost" onclick="installPWA()">Install</button>')+'</div>'+
+      '<div class="onb-note" style="margin-top:14px">These are separate protections: a <b>backup</b> restores your data, <b>browser storage</b> resists auto-cleanup, an <b>app lock</b> guards a shared device, and your <b>licence</b> authorises use. Backup is the one that actually saves your records.</div>';
+  }
+  if(step===6){
+    return '<ul class="onb-check">'+onbSummaryItems().map(it=>'<li class="'+(it.done?'done':'')+'"><span class="cbox">✓</span> '+onbEsc(it.label)+'</li>').join('')+'</ul>'+
+      '<div class="onb-note" style="margin-top:16px">Create your first invoice now — your business details, currency, tax, numbering and template are already filled in.</div>';
+  }
+  return '';
+}
+
+function onbInput(id,label,val,req,ph,extra){
+  return '<div class="onb-field" id="fg_'+id+'">'+
+    '<label for="'+id+'">'+onbEsc(label)+(req?' <span class="req">*</span>':'')+'</label>'+
+    '<input id="'+id+'" value="'+onbEsc(val)+'" placeholder="'+onbEsc(ph||'')+'" '+(extra||'')+'>'+
+    '<div class="fe">Please check this field.</div></div>';
+}
+function onbTextarea(id,label,val,ph){
+  return '<div class="onb-field" id="fg_'+id+'"><label for="'+id+'">'+onbEsc(label)+'</label>'+
+    '<textarea id="'+id+'" rows="2" placeholder="'+onbEsc(ph||'')+'">'+onbEsc(val)+'</textarea><div class="fe"></div></div>';
+}
+
+function onbStepFoot(step){
+  const back = step>1 ? '<button type="button" class="btn btn-ghost" onclick="onbBack()">Back</button>' : '<span></span>';
+  if(step===1){
+    return back+'<div style="display:flex;gap:10px;flex-wrap:wrap">'+
+      '<button type="button" class="btn btn-ghost" onclick="onbTriggerRestore()">Restore existing backup</button>'+
+      '<button type="button" class="btn btn-primary" onclick="onbNext()">Continue</button></div>';
+  }
+  if(step===ONB.total){
+    return '<button type="button" class="btn btn-ghost" onclick="onbFinish(\'dashboard\')">Go to Dashboard</button>'+
+      '<button type="button" class="btn btn-primary" onclick="onbFinish(\'invoice\')">Create first invoice</button>';
+  }
+  return back+'<button type="button" class="btn btn-primary" onclick="onbNext()">Continue</button>';
+}
+
+// ---- field helpers -------------------------------------------------------
+function onbToggleNoAddress(){
+  const no=document.getElementById('onb_noAddress').checked;
+  const a=document.getElementById('onb_address');
+  if(a) a.disabled=no;
+  document.getElementById('fg_onb_address').classList.remove('err');
+}
+function onbSetTax(reg){
+  document.getElementById('onb_taxRegistered').value = reg?'1':'0';
+  document.getElementById('onb_taxYes').classList.toggle('sel',reg);
+  document.getElementById('onb_taxNo').classList.toggle('sel',!reg);
+  document.getElementById('onb_taxDetails').style.display = reg?'block':'none';
+  document.getElementById('fg_onb_tax').classList.remove('err');
+}
+function onbSyncTaxUI(){ /* placeholder for future dynamic wiring */ }
+function onbHandleLogo(input){
+  const f=input.files && input.files[0]; const fg=document.getElementById('fg_onb_logo')||input.closest('.onb-field');
+  if(!f) return;
+  if(!/^image\//.test(f.type)){ fg.classList.add('err'); fg.querySelector('.fe').textContent='Please choose an image file (PNG or JPG).'; return; }
+  if(f.size > 1.5*1024*1024){ fg.classList.add('err'); fg.querySelector('.fe').textContent='That image is over 1.5MB — please pick a smaller one.'; return; }
+  const r=new FileReader();
+  r.onload=e=>{ APP.settings.bizLogo=e.target.result; persist(); const p=document.getElementById('onb_logoPrev'); if(p){ p.src=e.target.result; p.style.display='block'; } fg.classList.remove('err'); };
+  r.onerror=()=>{ fg.classList.add('err'); fg.querySelector('.fe').textContent='That image couldn’t be read.'; };
+  r.readAsDataURL(f);
+}
+function onbClearLogo(){ APP.settings.bizLogo=''; persist(); onbRender(); }
+function onbUpdatePreview(){
+  const el=document.getElementById('onb_preview'); if(!el) return;
+  const prefix=(document.getElementById('onb_prefix')?.value||'INV-2026-');
+  const num=Math.max(1,parseInt(document.getElementById('onb_startNum')?.value||'1',10)||1);
+  const sym=(document.getElementById('onb_currency')?.value)||APP.settings.currency||'£';
+  const biz=(document.getElementById('onb_bizName')?.value)||APP.settings.bizName||'Your Business';
+  el.innerHTML='<div class="pv-top"><div><b style="color:var(--text)">'+onbEsc(biz)+'</b><br>Invoice</div><div class="pv-num">'+onbEsc(prefix+String(num).padStart(3,'0'))+'</div></div>'+
+    '<div class="pv-line"><span>Sample service</span><span>'+sym+'250.00</span></div>'+
+    '<div class="pv-line"><span>Consultation</span><span>'+sym+'100.00</span></div>'+
+    '<div class="pv-line" style="font-weight:600;color:var(--text)"><span>Total</span><span>'+sym+'350.00</span></div>';
+}
+
+// ---- navigation + validation --------------------------------------------
+function onbReadStep(step){
+  const s=APP.settings; const g=id=>document.getElementById(id);
+  if(step===2){
+    if(g('onb_bizName')) s.bizName=g('onb_bizName').value.trim();
+    if(g('onb_ownerName')) s.ownerName=g('onb_ownerName').value.trim();
+    if(g('onb_country')) s.country=g('onb_country').value.trim();
+    if(g('onb_email')) s.email=g('onb_email').value.trim();
+    if(g('onb_noAddress')) s.noAddress=g('onb_noAddress').checked;
+    if(g('onb_address')) s.address=g('onb_address').value.trim();
+    if(g('onb_phone')) s.phone=g('onb_phone').value.trim();
+    if(g('onb_website')) s.website=g('onb_website').value.trim();
+    if(g('onb_regNum')) s.regNum=g('onb_regNum').value.trim();
+  } else if(step===3){
+    if(g('onb_currency')) s.currency=g('onb_currency').value;
+    const tr=g('onb_taxRegistered')?g('onb_taxRegistered').value:'';
+    if(tr==='1'||tr==='0'){ s.taxRegistered=(tr==='1'); s.taxChoiceMade=true; }
+    if(g('onb_taxName')) s.taxName=g('onb_taxName').value.trim()||'VAT';
+    if(g('onb_taxRate') && g('onb_taxRate').value!=='') s.taxRate=parseFloat(g('onb_taxRate').value)||0;
+    if(g('onb_vat')) s.vat=g('onb_vat').value.trim();
+    if(g('onb_terms')) s.terms=g('onb_terms').value;
+  } else if(step===4){
+    if(g('onb_prefix')) s.prefix=g('onb_prefix').value.trim();
+    if(g('onb_startNum')){ const n=Math.max(1,parseInt(g('onb_startNum').value||'1',10)||1); if(!editingHasDocs()||n>=(APP.nextNum||1)) APP.nextNum=n; else APP.nextNum=n; }
+    if(g('onb_template')) s.template=g('onb_template').value;
+    if(g('onb_notes')) s.notes=g('onb_notes').value;
+    if(g('onb_payInstructions')) s.paymentInstructions=g('onb_payInstructions').value.trim();
+    if(g('onb_attribution')) s.showAttribution=g('onb_attribution').checked;
+  } else if(step===5){
+    if(g('onb_reminders')) s.backupReminders=g('onb_reminders').checked;
+  }
+  persist();
+}
+function editingHasDocs(){ return (APP.invoices||[]).some(i=>i.documentType!=='quote'); }
+
+function onbValidateStep(step){
+  const errs=[]; const g=id=>document.getElementById(id);
+  const mark=(fgId,msg)=>{ const fg=document.getElementById(fgId); if(fg){ fg.classList.add('err'); const fe=fg.querySelector('.fe'); if(fe&&msg) fe.textContent=msg; } errs.push({fgId,msg}); };
+  document.querySelectorAll('#onbBody .onb-field.err').forEach(el=>el.classList.remove('err'));
+  if(step===2){
+    if(!g('onb_bizName').value.trim()) mark('fg_onb_bizName','Enter your business name.');
+    if(!g('onb_ownerName').value.trim()) mark('fg_onb_ownerName','Enter the owner or contact name.');
+    if(!g('onb_country').value.trim()) mark('fg_onb_country','Choose your country.');
+    const email=g('onb_email').value.trim();
+    if(!email) mark('fg_onb_email','Enter a business email.');
+    else if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) mark('fg_onb_email','That email doesn’t look right.');
+    const noAddr=g('onb_noAddress').checked;
+    if(!noAddr && !g('onb_address').value.trim()) mark('fg_onb_address','Add an address, or tick “don’t show an address”.');
+  } else if(step===3){
+    if(!g('onb_currency').value) mark('fg_onb_currency','Choose a currency.');
+    const tr=g('onb_taxRegistered').value;
+    if(tr!=='1'&&tr!=='0') mark('fg_onb_tax','Choose whether you’re tax registered.');
+    else if(tr==='1'){
+      if(!g('onb_taxName').value.trim()) mark('fg_onb_taxName','Name your tax (e.g. VAT).');
+      const rate=parseFloat(g('onb_taxRate').value);
+      if(!(rate>=0 && rate<=100)) mark('fg_onb_taxRate','Enter a rate between 0 and 100.');
+    }
+  } else if(step===4){
+    if(!g('onb_prefix').value.trim()) mark('fg_onb_prefix','Enter an invoice prefix.');
+    const n=parseInt(g('onb_startNum').value||'0',10);
+    if(!(n>=1)) mark('fg_onb_startNum','Start at 1 or higher.');
+    else {
+      // collision check against existing document numbers
+      const candidate=(g('onb_prefix').value.trim())+String(n).padStart(3,'0');
+      if((APP.invoices||[]).some(i=>i.id===candidate)) mark('fg_onb_startNum','That number already exists — pick a higher one.');
+    }
+  }
+  return errs;
+}
+
+function onbShowErrors(errs){
+  const es=document.getElementById('onbErrSum');
+  es.textContent = errs.length===1 ? 'Please fix the highlighted field.' : ('Please fix the '+errs.length+' highlighted fields.');
+  es.classList.add('show');
+  const first=document.querySelector('#onbBody .onb-field.err input, #onbBody .onb-field.err select, #onbBody .onb-field.err textarea, #onbBody .onb-field.err button');
+  if(first){ first.focus(); first.scrollIntoView({block:'center',behavior:'smooth'}); }
+  else { es.focus(); }
+}
+
+function onbNext(){
+  onbReadStep(ONB.step);                // save entries first — never lose input
+  const errs=onbValidateStep(ONB.step);
+  if(errs.length){ onbShowErrors(errs); return; }
+  if(ONB.step < ONB.total){ ONB.step++; saveOnbStepPointer(ONB.step); onbRender(); }
+}
+function onbBack(){
+  onbReadStep(ONB.step);                // preserve whatever they typed
+  if(ONB.step>1){ ONB.step--; saveOnbStepPointer(ONB.step); onbRender(); }
+}
+function onbFinish(action){
+  onbReadStep(5);                        // capture step-5 toggles if present
+  markOnboardingDone();
+  closeOnboarding();
+  try{ updateSidebarProfile(); }catch(e){}
+  try{ refreshAll(); }catch(e){}
+  try{ if(typeof loadSettingsForm==='function') loadSettingsForm(); }catch(e){}
+  if(action==='invoice'){ openEditor('invoice'); }
+  else { try{ navTo('dashboard'); }catch(e){} try{ buildDashboard(); }catch(e){} showToast('Setup complete — welcome aboard'); }
+}
+window.onbNext=onbNext; window.onbBack=onbBack; window.onbFinish=onbFinish;
+window.onbSetTax=onbSetTax; window.onbToggleNoAddress=onbToggleNoAddress;
+window.onbHandleLogo=onbHandleLogo; window.onbClearLogo=onbClearLogo; window.onbUpdatePreview=onbUpdatePreview;
+
+// ---- step 5 actions ------------------------------------------------------
+function onbDownloadBackup(btn){
+  try{ exportJSON(true); if(btn){ btn.textContent='Downloaded ✓'; btn.classList.remove('btn-primary'); btn.classList.add('btn-ghost'); } }
+  catch(e){ showToast('Could not create backup right now'); }
+}
+async function onbRequestPersist(btn){
+  try{
+    if(navigator.storage && navigator.storage.persist){
+      const ok=await navigator.storage.persist();
+      if(btn){ btn.textContent = ok?'Enabled ✓':'Requested'; btn.disabled=ok; }
+    } else { showToast('Your browser manages storage automatically'); }
+  }catch(e){ showToast('Could not change storage settings'); }
+}
+window.onbDownloadBackup=onbDownloadBackup; window.onbRequestPersist=onbRequestPersist;
+
+function onbTriggerRestore(){ const i=document.getElementById('onbRestoreInput'); if(i) i.click(); }
+window.onbTriggerRestore=onbTriggerRestore;
+// Called by importJSON after a successful onboarding-time restore.
+function onbAfterRestore(){
+  ONB.restoreActive=false;
+  ensureSettingsShape();
+  if(requiredSettingsComplete()){
+    markOnboardingDone();
+    openOnboarding(6);            // valid backup → straight to summary
+    showToast('Backup restored — review your setup');
+  } else {
+    openOnboarding(2);            // fill in whatever the backup was missing
+    showToast('Backup restored — a few details still needed');
+  }
+}
+window.onbAfterRestore=onbAfterRestore;
+
+// ---- summary + dashboard checklist --------------------------------------
+function onbSummaryItems(){
+  const s=APP.settings||{};
+  const backedUp = (function(){ try{ return !!(getBackupReminderState().lastBackupAt); }catch(e){ return false; } })();
+  return [
+    {label:'Business profile completed', done:!!((s.bizName||'').trim() && (s.ownerName||'').trim())},
+    {label:'Country and currency selected', done:!!((s.country||'').trim() && (s.currency||'').trim())},
+    {label:'Tax preference confirmed', done:s.taxChoiceMade===true},
+    {label:'Invoice numbering configured', done:!!((s.prefix||'').trim())},
+    {label:'Payment instructions reviewed', done:true},
+    {label:'Local-storage responsibility explained', done:true},
+    {label:'Backup created or reminders on', done: backedUp || s.backupReminders!==false}
+  ];
+}
+function renderSetupChecklist(){
+  const host=document.getElementById('setupChecklistHost'); if(!host) return;
+  // Only nag once the user is a real (activated) user, and only while something required is missing.
+  if(!APP || APP.licenceStatus!=='active' || requiredSettingsComplete()){ host.innerHTML=''; return; }
+  const s=APP.settings||{};
+  const chips=[
+    {label:'Business name', done:!!(s.bizName||'').trim()},
+    {label:'Country', done:!!(s.country||'').trim()},
+    {label:'Currency', done:!!(s.currency||'').trim()},
+    {label:'Tax preference', done:s.taxChoiceMade===true}
+  ];
+  const remaining=chips.filter(c=>!c.done).length;
+  host.innerHTML='<div class="setup-checklist">'+
+    '<div class="sc-head"><div class="sc-title">Complete your setup</div>'+
+      '<button type="button" class="btn btn-primary" onclick="openOnboarding()">Finish setup</button></div>'+
+    '<div class="sc-sub">'+remaining+' item'+(remaining===1?'':'s')+' left before your invoices are fully correct.</div>'+
+    '<div class="sc-items">'+chips.map(c=>'<span class="sc-chip '+(c.done?'done':'todo')+'">'+(c.done?'✓':'○')+' '+onbEsc(c.label)+'</span>').join('')+'</div>'+
+  '</div>';
+}
+window.renderSetupChecklist=renderSetupChecklist;
 
 // == FREE PLAN ENFORCEMENT ==
 const FREE_INVOICE_LIMIT = 5;
