@@ -4379,7 +4379,7 @@ function renderTableInto(id, data) {
     <td data-label="Customer"><div class="client-name">${esc(inv.client)}</div>${inv.title?`<div style="font-size:12px;color:var(--text2);margin-top:1px">${esc(inv.title)}</div>`:''}<div class="client-email">${esc(inv.email)}</div></td>
     <td data-label="Issued" style="font-size:12px;color:var(--text2)">${fmtDate(inv.issued)}</td>
     <td data-label="Due" style="font-size:12px;color:var(--text2)">${inv.status==='overdue'?'<span class="overdue-dot"></span>':''}${fmtDate(inv.due)}</td>
-    <td data-label="Amount"><span class="amount">${getInvoiceCurrency(inv)}${inv.amount.toLocaleString()}</span>${inv.status==='partial'?`<div style="font-size:11px;color:var(--blue);margin-top:2px">${getInvoiceCurrency(inv)}${(Number(inv.amount)-Number(inv.paidAmount||0)).toLocaleString()} due</div>`:''}</td>
+    <td data-label="Amount"><span class="amount">${fmtMoney(inv.amount, getInvoiceCurrency(inv))}</span>${inv.status==='partial'?`<div style="font-size:11px;color:var(--blue);margin-top:2px">${fmtMoney(Number(inv.amount)-Number(inv.paidAmount||0), getInvoiceCurrency(inv))} due</div>`:''}</td>
     <td data-label="Status" onclick="event.stopPropagation()"><span class="status-pill sp-${inv.status}" title="Status is set automatically from recorded payments and the due date">${inv.status==='partial'?'Part-paid':cap(inv.status)}</span></td>
     <td class="td-actions"><div class="row-actions" onclick="event.stopPropagation()">
       <button class="icon-btn" title="Edit" onclick="openEditorForInvoice('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
@@ -4750,8 +4750,8 @@ function renderExpenses(){
   const sumEl=document.getElementById('expenseSummary');
   if(sumEl) sumEl.innerHTML=`
     <div class="stat-card c-green" title="Money received from paid invoices."><div class="stat-label">Income</div><div class="stat-value">${sym}${income.toLocaleString()}</div><div class="stat-change neutral">From paid invoices</div></div>
-    <div class="stat-card c-red" title="Everything you've recorded as a business expense."><div class="stat-label">Expenses</div><div class="stat-value">${sym}${totalExp.toLocaleString()}</div><div class="stat-change neutral">${APP.expenses.length} recorded</div></div>
-    <div class="stat-card ${net>=0?'c-accent':'c-red'}" title="Income minus expenses — a rough profit figure."><div class="stat-label">Net</div><div class="stat-value">${net<0?'-':''}${sym}${Math.abs(net).toLocaleString()}</div><div class="stat-change ${net>=0?'up':'down'}">${net>=0?'In profit':'Spending exceeds income'}</div></div>`;
+    <div class="stat-card c-red" title="Everything you've recorded as a business expense."><div class="stat-label">Expenses</div><div class="stat-value">${fmtMoney(totalExp, sym)}</div><div class="stat-change neutral">${APP.expenses.length} recorded</div></div>
+    <div class="stat-card ${net>=0?'c-accent':'c-red'}" title="Collected income minus recorded expenses — a cash-based figure, not accounting profit."><div class="stat-label">Net (cash)</div><div class="stat-value">${net<0?'-':''}${fmtMoney(Math.abs(net), sym)}</div><div class="stat-change ${net>=0?'up':'down'}">${net>=0?'Cash positive':'Spending exceeds income'}</div></div>`;
   const tbody=document.getElementById('expensesTableBody');
   if(!tbody) return;
   if(!list.length){
@@ -4763,7 +4763,7 @@ function renderExpenses(){
     <td data-label="Date" style="font-size:13px;color:var(--text2)">${fmtDate(e.date)}</td>
     <td data-label="Category">${esc(e.category||'—')}</td>
     <td data-label="Description" style="color:var(--text2)">${esc(e.description||'—')}</td>
-    <td data-label="Amount"><span class="amount" style="color:var(--red)">${sym}${(Number(e.amount)||0).toLocaleString()}</span></td>
+    <td data-label="Amount"><span class="amount" style="color:var(--red)">${fmtMoney(e.amount, sym)}</span></td>
     <td class="td-actions"><div class="row-actions" onclick="event.stopPropagation()">
       <button class="icon-btn" title="Edit" onclick="openExpenseModal('${e.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
       <button class="icon-btn danger" title="Delete" onclick="confirmDeleteExpense('${e.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
@@ -4818,7 +4818,7 @@ function renderReceiptsTable(){
       <td data-label="Customer"><div class="client-name">${esc(inv.client)}</div>${inv.title?`<div style="font-size:12px;color:var(--text2);margin-top:1px">${esc(inv.title)}</div>`:''}<div class="client-email">${esc(inv.email)}</div></td>
       <td data-label="Invoice ref" style="font-size:12px;color:var(--text3)">${inv.id}</td>
       <td data-label="Date paid" style="font-size:12px;color:var(--text2)">${fmtDate(inv.issued)}</td>
-      <td data-label="Amount"><span class="amount" style="color:var(--green)">${getInvoiceCurrency(inv)}${inv.amount.toLocaleString()}</span></td>
+      <td data-label="Amount"><span class="amount" style="color:var(--green)">${fmtMoney(inv.amount, getInvoiceCurrency(inv))}</span></td>
       <td class="td-actions"><div class="row-actions" style="opacity:1" onclick="event.stopPropagation()">
         <button class="icon-btn" title="View Receipt" onclick="openReceiptById('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
         <button class="icon-btn" title="Print" onclick="openReceiptById('${inv.id}');setTimeout(printReceipt,350)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>
@@ -4868,7 +4868,7 @@ function buildReceiptHTML(inv,sym){
   // get client logo from clients db
   const clientRec=APP.clients.find(c=>c.name===inv.client);
   const clientLogoHtml=clientRec?.logo?`<img src="${clientRec.logo}" style="height:32px;object-fit:contain;margin-bottom:5px;display:block">`:'';
-  const rows=(inv.items||[]).map(it=>`<tr><td>${esc(it.desc||'—')}</td><td style="text-align:center">${it.qty}</td><td style="text-align:right">${sym}${parseFloat(it.price||0).toFixed(2)}</td><td style="text-align:right">${sym}${(it.qty*it.price).toFixed(2)}</td></tr>`).join('');
+  const rows=(inv.items||[]).filter(isRealLineItem).map(it=>`<tr><td>${esc(it.desc||'—')}</td><td style="text-align:center">${it.qty}</td><td style="text-align:right">${sym}${parseFloat(it.price||0).toFixed(2)}</td><td style="text-align:right">${sym}${(it.qty*it.price).toFixed(2)}</td></tr>`).join('');
   return `<div class="receipt-doc">
   <div class="rec-header">
     <div>${logoHtml}<div class="rec-logo-name">${esc(inv.bizName)}</div><div class="rec-biz-info">${esc(inv.bizAddress)}<br>${esc(inv.bizEmail)}${inv.bizPhone?' · '+esc(inv.bizPhone):''}${inv.bizVAT?'<br>VAT: '+esc(inv.bizVAT):''}${inv.bizRegNum?'<br>Reg: '+esc(inv.bizRegNum):''}</div></div>
@@ -5019,6 +5019,22 @@ function updateSidebarProfile(){
 }
 function getInvoiceCurrency(inv){
   return (inv && inv.currency) || APP.settings.currency || '£';
+}
+// P0-09: central money formatter — always two decimals with grouping, even when
+// the pence are zero (£42.50, £350.00, £3,168.00). Use for record-level amounts.
+function fmtMoney(v, sym){
+  sym = sym || (APP.settings && APP.settings.currency) || '£';
+  return sym + Number(v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+// P0-03: a line is "real" if it's a headed section with text, has a description,
+// or has a non-zero value. Blank default rows (no description, zero value) are
+// never shown in previews, PDFs, receipts, email or WhatsApp output.
+function isRealLineItem(it){
+  if(!it) return false;
+  if(it.type==='heading') return !!(it.desc && String(it.desc).trim());
+  if((it.desc||'').trim() !== '') return true;
+  const val = Number(it.qty||0)*Number(it.price||it.unitPrice||0) + Number(it.installRate||0);
+  return val > 0.005;
 }
 function syncCurrencySettingUI(){
   const settingsCurrency=document.getElementById('s_currency');
@@ -5188,7 +5204,7 @@ function openPaymentModal(id){
   document.getElementById('pay_date').value=new Date().toISOString().split('T')[0];
   if(document.getElementById('pay_method')) document.getElementById('pay_method').value='Bank Transfer';
   if(document.getElementById('pay_ref')) document.getElementById('pay_ref').value='';
-  document.getElementById('payBalanceHint').innerHTML=`Total ${sym}${Number(inv.amount||0).toLocaleString()} · Already paid ${sym}${Number(inv.paidAmount||0).toLocaleString()} · <strong style="color:var(--text)">Balance ${sym}${bal.toLocaleString()}</strong>`;
+  document.getElementById('payBalanceHint').innerHTML=`Total ${fmtMoney(inv.amount, sym)} · Already paid ${fmtMoney(inv.paidAmount, sym)} · <strong style="color:var(--text)">Balance ${fmtMoney(bal, sym)}</strong>`;
   document.getElementById('paymentModalOverlay').classList.add('open');
 }
 function closePaymentModal(){ document.getElementById('paymentModalOverlay').classList.remove('open'); }
@@ -5353,7 +5369,20 @@ function saveToList(inv){
   persist(); refreshAll();
 }
 function saveDraft(){if(!checkFreePlanInvoiceCap())return;const inv=buildInvObj('draft');saveToList(inv);showToast(inv.documentType==='quote'?'Quote draft saved':'Draft saved');}
-function sendInvoice(){if(!gv('clientName').trim()){showToast('Customer name required');return;}if(!checkFreePlanInvoiceCap())return;const inv=buildInvObj('pending');saveToList(inv);closeEditor();showToast(inv.documentType==='quote'?'Quote saved':'Invoice saved');}
+function sendInvoice(){
+  // P0-04: explicit validation — no save may fail silently.
+  const focusField=(id)=>{const el=document.getElementById(id); if(el){ el.focus(); el.scrollIntoView({block:'center',behavior:'smooth'}); }};
+  const isQuote=currentDocType==='quote';
+  const noun=isQuote?'quote':'invoice';
+  if(!(APP.settings.bizName||'').trim()){ showToast('Add your business name in Settings before saving this '+noun); return; }
+  if(!gv('clientName').trim()){ showToast('Add the customer name before saving this '+noun); focusField('clientName'); return; }
+  const inv=buildInvObj('pending');
+  if(!(inv.items||[]).some(isRealLineItem)){ showToast('Add at least one line item with a description or amount'); return; }
+  inv.items=(inv.items||[]).filter(isRealLineItem); // never save blank default rows
+  if(!checkFreePlanInvoiceCap())return;
+  saveToList(inv); closeEditor();
+  showToast(isQuote?'Quote saved':'Invoice saved');
+}
 
 // ================================================================
 // PREVIEW & PRINT (FIXED: all styles inlined)
@@ -8050,7 +8079,7 @@ function buildTemplate(inv,tmpl,sym){
   const totalLabel=isQuote?'Quote Total':'Total Due';
   const docTitle=(inv.title||'').trim();
   let rowNo=0;
-  const rows=(inv.items||[]).map(it=>{
+  const rows=(inv.items||[]).filter(isRealLineItem).map(it=>{
     if(it.type==='heading') return `<tr class="id-secrow"><td colspan="${isQuote?7:4}">${esc(it.desc||'')}</td></tr>`;
     if(it.type==='subheading') return `<tr class="id-subrow"><td colspan="${isQuote?7:4}">${esc(it.desc||'')}</td></tr>`;
     rowNo++;
@@ -8396,8 +8425,20 @@ function buildIconDataURL(size) {
   return canvas.toDataURL('image/png');
 }
 
+// P0-06: single source of truth for whether the install banner may show.
+// Guards EVERY show path so a dismissal survives navigation and reload.
+function pwaShouldHide(){
+  try{
+    if (typeof isAppInstalled==='function' && isAppInstalled()) return true;
+    if (localStorage.getItem('pwa_dismissed')==='1') return true; // legacy permanent flag
+    const until=Number(localStorage.getItem('pwa_snooze_until')||0);
+    return Date.now() < until;
+  }catch(e){ return false; }
+}
 function showPWABanner() {
+  if (pwaShouldHide()) return;
   setTimeout(() => {
+    if (pwaShouldHide()) return; // re-check after the delay
     if (isIOSDevice()) {
       const sub = document.getElementById('pwaBannerSub');
       const btn = document.getElementById('pwaBannerInstallBtn');
@@ -8410,9 +8451,12 @@ function showPWABanner() {
 function hidePWABanner() {
   document.getElementById('pwaBanner')?.classList.remove('show');
 }
-function dismissPWA() {
+// mode 'tomorrow' snoozes 24h; otherwise 7 days. Stored as a timestamp so it
+// persists across navigation and reloads and returns only after the window.
+function dismissPWA(mode) {
   hidePWABanner();
-  localStorage.setItem('pwa_dismissed', '1');
+  const days = mode==='tomorrow' ? 1 : 7;
+  try{ localStorage.setItem('pwa_snooze_until', String(Date.now()+days*86400000)); }catch(e){}
 }
 async function installPWA() {
   // Already installed — nothing to do
