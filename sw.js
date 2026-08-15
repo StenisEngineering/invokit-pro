@@ -1,4 +1,4 @@
-const CACHE = 'invokit-v30-onboarding';
+const CACHE = 'invokit-v31-applock';
 const SHELL = [
   '/',
   '/index.html',

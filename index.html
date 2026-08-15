@@ -5045,7 +5045,7 @@ function switchSettingsTab(tab,el){
   document.getElementById('settings-'+tab).classList.add('active'); el.classList.add('active');
   if(tab==='branding') buildPalette();
   if(tab==='devices') loadDevicesPanel();
-  if(tab==='data' && typeof renderDataSafetyPanel==='function') renderDataSafetyPanel();
+  if(tab==='data'){ if(typeof renderDataSafetyPanel==='function') renderDataSafetyPanel(); if(typeof renderAppLockPanel==='function') renderAppLockPanel(); }
 }
 function updateSidebarProfile(){
   const s=APP.settings;
@@ -9581,6 +9581,12 @@ function renderAppShell() {
               </div>
             </div>
           </div>
+          <!-- App Lock (P0-08) -->
+          <div class="settings-card">
+            <div class="settings-title">App Lock</div>
+            <div class="settings-desc">Require a PIN to open the app on this device.</div>
+            <div id="appLockPanel"></div>
+          </div>
         </div>
 
 
@@ -10789,6 +10795,9 @@ function showSplash() {
 function dismissSplash(animate=true, isNewActivation=false) {
   renderAppShell();
   initAppAfterShell();
+  // Gate access behind the PIN if one is set (returning launches). No-op for a
+  // brand-new activation, which has no PIN yet and flows into onboarding.
+  try{ if(typeof maybeLockOnBoot==='function') maybeLockOnBoot(); }catch(e){}
   const splash = document.getElementById('splashScreen');
   const licence = document.getElementById('licenceScreen');
   if (animate) {
@@ -11468,6 +11477,206 @@ function renderSetupChecklist(){
   '</div>';
 }
 window.renderSetupChecklist=renderSetupChecklist;
+
+// ================================================================
+// APP LOCK (P0-08) — optional local PIN to protect access on a shared device.
+// This is an ACCESS gate, not encryption: data on disk and in a backup file is
+// still readable. The PIN is stored ONLY as a salted SHA-256 hash in localStorage
+// (never in APP.settings, so it never lands in an exported backup).
+// ================================================================
+const LOCK_KEY='invokit_applock';
+const LOCK_SESSION_KEY='invokit_unlocked';
+let _lockIdleTimer=null, _lockActivityBound=false;
+
+function getLockConfig(){ try{ return JSON.parse(localStorage.getItem(LOCK_KEY)||'null'); }catch(e){ return null; } }
+function isLockEnabled(){ const c=getLockConfig(); return !!(c && c.hash); }
+function lockRandSalt(){
+  const a=new Uint8Array(8);
+  if(crypto && crypto.getRandomValues) crypto.getRandomValues(a); else for(let i=0;i<8;i++) a[i]=Math.floor(Math.random()*256);
+  return Array.from(a).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function lockHashPin(pin, salt){
+  const data=new TextEncoder().encode(salt+':'+String(pin));
+  try{
+    if(crypto && crypto.subtle){
+      const buf=await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
+  }catch(e){}
+  // Fallback for non-secure contexts: still not plaintext, though weaker.
+  let h=2166136261>>>0; const s=salt+':'+String(pin);
+  for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; }
+  return 'fb'+h.toString(16);
+}
+async function setAppLockPin(pin, autoLockMin){
+  const salt=lockRandSalt(); const hash=await lockHashPin(pin,salt);
+  const prev=getLockConfig()||{};
+  localStorage.setItem(LOCK_KEY, JSON.stringify({hash,salt,autoLockMin:(autoLockMin!=null?autoLockMin:(prev.autoLockMin||0)),setAt:Date.now()}));
+  try{ sessionStorage.setItem(LOCK_SESSION_KEY,'1'); }catch(e){}   // just set it — count as unlocked now
+}
+function setAutoLockMinutes(min){ const c=getLockConfig(); if(!c) return; c.autoLockMin=Number(min)||0; localStorage.setItem(LOCK_KEY, JSON.stringify(c)); startIdleWatch(); }
+function disableAppLock(){ try{ localStorage.removeItem(LOCK_KEY); }catch(e){} try{ sessionStorage.removeItem(LOCK_SESSION_KEY); }catch(e){} stopIdleWatch(); }
+async function verifyPin(pin){ const c=getLockConfig(); if(!c||!c.hash) return false; const h=await lockHashPin(pin,c.salt); return h===c.hash; }
+
+function ensureLockOverlay(){
+  if(document.getElementById('lockOverlay')) return;
+  const style=document.createElement('style');
+  style.textContent=`
+  .lock-overlay{position:fixed;inset:0;z-index:12000;display:none;align-items:center;justify-content:center;background:var(--bg);padding:24px;}
+  .lock-overlay.open{display:flex;}
+  .lock-card{width:100%;max-width:360px;text-align:center;}
+  .lock-badge{width:56px;height:56px;border-radius:16px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;background:var(--accent-dim);color:var(--accent);}
+  .lock-title{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;margin-bottom:4px;color:var(--text);}
+  .lock-sub{font-size:13px;color:var(--text2);margin-bottom:20px;}
+  .lock-pin{width:100%;text-align:center;letter-spacing:0.5em;font-size:22px;padding:14px;border-radius:var(--radius-sm);border:1.5px solid var(--border2);background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;}
+  .lock-pin:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
+  .lock-err{color:#e05a5a;font-size:13px;min-height:18px;margin:10px 0 4px;}
+  .lock-forgot{background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;text-decoration:underline;margin-top:14px;}
+  `;
+  document.head.appendChild(style);
+  const ov=document.createElement('div');
+  ov.id='lockOverlay'; ov.className='lock-overlay'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-modal','true');
+  ov.innerHTML=
+    '<div class="lock-card">'+
+      '<div class="lock-badge"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>'+
+      '<div class="lock-title" id="lockBizName">InvoKitPro</div>'+
+      '<div class="lock-sub">Enter your PIN to unlock</div>'+
+      '<input class="lock-pin" id="lockPinInput" type="password" inputmode="numeric" autocomplete="off" maxlength="12" aria-label="PIN">'+
+      '<div class="lock-err" id="lockErr" role="alert"></div>'+
+      '<button class="btn btn-primary" style="width:100%" type="button" onclick="tryUnlock()">Unlock</button>'+
+      '<div><button class="lock-forgot" type="button" onclick="forgotPin()">Forgot PIN?</button></div>'+
+    '</div>';
+  document.body.appendChild(ov);
+  const inp=document.getElementById('lockPinInput');
+  inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); tryUnlock(); } });
+}
+function lockAppNow(){
+  if(!isLockEnabled()) return;
+  ensureLockOverlay();
+  try{ sessionStorage.removeItem(LOCK_SESSION_KEY); }catch(e){}
+  const nm=(APP.settings&&APP.settings.bizName||'').trim();
+  const bn=document.getElementById('lockBizName'); if(bn) bn.textContent=nm||'InvoKitPro';
+  document.getElementById('lockErr').textContent='';
+  const inp=document.getElementById('lockPinInput'); if(inp) inp.value='';
+  document.getElementById('lockOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+  stopIdleWatch();
+  setTimeout(()=>{ const i=document.getElementById('lockPinInput'); if(i) i.focus(); },60);
+}
+async function tryUnlock(){
+  const inp=document.getElementById('lockPinInput'); const err=document.getElementById('lockErr');
+  const pin=(inp.value||'').trim();
+  if(!pin){ err.textContent='Enter your PIN.'; return; }
+  if(await verifyPin(pin)){
+    try{ sessionStorage.setItem(LOCK_SESSION_KEY,'1'); }catch(e){}
+    document.getElementById('lockOverlay').classList.remove('open');
+    document.body.style.overflow='';
+    startIdleWatch();
+  } else {
+    err.textContent='Incorrect PIN. Try again.';
+    inp.value=''; inp.focus();
+  }
+}
+function forgotPin(){
+  const ld=(typeof getLicenceData==='function')?getLicenceData():null;
+  const key=(ld&&ld.key)||APP.licenceKey||'';
+  const msg='App lock protects access only — it does not encrypt your data.\n\nTo reset it, enter your licence key:';
+  const entered=prompt(msg,'');
+  if(entered==null) return;
+  if(key && entered.trim().toUpperCase()===String(key).trim().toUpperCase()){
+    disableAppLock();
+    document.getElementById('lockOverlay').classList.remove('open');
+    document.body.style.overflow='';
+    showToast('App lock removed. Set a new PIN in Settings → Data.');
+  } else {
+    document.getElementById('lockErr').textContent='That licence key doesn’t match this device.';
+  }
+}
+window.tryUnlock=tryUnlock; window.forgotPin=forgotPin;
+
+function maybeLockOnBoot(){
+  if(!isLockEnabled()){ return; }
+  let unlocked=false; try{ unlocked=sessionStorage.getItem(LOCK_SESSION_KEY)==='1'; }catch(e){}
+  if(unlocked){ startIdleWatch(); return; }
+  lockAppNow();
+}
+function startIdleWatch(){
+  stopIdleWatch();
+  const c=getLockConfig();
+  if(!c || !c.autoLockMin) { bindActivityOnce(); return; }
+  bindActivityOnce();
+  _lockIdleTimer=setTimeout(()=>{ lockAppNow(); }, Number(c.autoLockMin)*60000);
+}
+function stopIdleWatch(){ if(_lockIdleTimer){ clearTimeout(_lockIdleTimer); _lockIdleTimer=null; } }
+function resetIdle(){ const c=getLockConfig(); if(!c||!c.autoLockMin) return; if(document.getElementById('lockOverlay')?.classList.contains('open')) return; startIdleWatch(); }
+function bindActivityOnce(){
+  if(_lockActivityBound) return; _lockActivityBound=true;
+  ['click','keydown','touchstart','mousemove'].forEach(ev=>document.addEventListener(ev, resetIdle, {passive:true}));
+}
+
+// ---- Settings panel + setup modal ---------------------------------------
+function renderAppLockPanel(){
+  const host=document.getElementById('appLockPanel'); if(!host) return;
+  const on=isLockEnabled(); const c=getLockConfig()||{};
+  const autoOpts=[[0,'Only when the app is closed/reopened'],[1,'After 1 minute idle'],[5,'After 5 minutes idle'],[15,'After 15 minutes idle']]
+    .map(o=>'<option value="'+o[0]+'"'+((Number(c.autoLockMin)||0)===o[0]?' selected':'')+'>'+o[1]+'</option>').join('');
+  if(!on){
+    host.innerHTML=
+      '<div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:10px">Add a PIN to stop other people opening the app on a shared device. '+
+      '<strong style="color:var(--text)">This locks access only — it does not encrypt your data, and a backup file stays readable.</strong></div>'+
+      '<button class="btn btn-primary" type="button" onclick="openLockSetup()">Set up app lock</button>';
+  } else {
+    host.innerHTML=
+      '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#4caf7d;font-weight:600;margin-bottom:10px">✓ App lock is on for this device</div>'+
+      '<div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:12px">Locks access only — not encryption. If you forget your PIN you can reset it with your licence key.</div>'+
+      '<div class="field-group" style="max-width:420px"><label class="field-label">Auto-lock</label>'+
+        '<select class="field-input" onchange="setAutoLockMinutes(this.value);showToast(\'Auto-lock updated\')">'+autoOpts+'</select></div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">'+
+        '<button class="btn btn-ghost" type="button" onclick="openLockSetup()">Change PIN</button>'+
+        '<button class="btn btn-danger" type="button" onclick="confirmDisableLock()">Turn off app lock</button>'+
+      '</div>';
+  }
+}
+window.renderAppLockPanel=renderAppLockPanel;
+function confirmDisableLock(){
+  if(confirm('Turn off the app lock? Anyone with this device will be able to open the app.')){
+    disableAppLock(); renderAppLockPanel(); showToast('App lock turned off');
+  }
+}
+window.confirmDisableLock=confirmDisableLock; window.setAutoLockMinutes=setAutoLockMinutes;
+
+function ensureLockSetupModal(){
+  if(document.getElementById('lockSetupOverlay')) return;
+  const ov=document.createElement('div');
+  ov.id='lockSetupOverlay'; ov.className='onb-overlay';   // reuse onboarding overlay styling
+  ov.setAttribute('role','dialog'); ov.setAttribute('aria-modal','true');
+  ov.innerHTML=
+    '<div class="onb-card" style="max-width:400px;min-height:auto">'+
+      '<div class="onb-head"><div class="onb-title" style="font-size:22px">Set your PIN</div>'+
+        '<div class="onb-sub">Choose a 4–8 digit PIN. It protects access on this device only — it does not encrypt your data.</div></div>'+
+      '<div class="onb-body">'+
+        '<div class="onb-field" id="fg_lockPin1"><label for="lockPin1">New PIN</label><input id="lockPin1" type="password" inputmode="numeric" maxlength="8" placeholder="••••"><div class="fe">Use 4–8 digits.</div></div>'+
+        '<div class="onb-field" id="fg_lockPin2"><label for="lockPin2">Confirm PIN</label><input id="lockPin2" type="password" inputmode="numeric" maxlength="8" placeholder="••••"><div class="fe">PINs don’t match.</div></div>'+
+      '</div>'+
+      '<div class="onb-foot"><button class="btn btn-ghost" type="button" onclick="closeLockSetup()">Cancel</button>'+
+        '<button class="btn btn-primary" type="button" onclick="saveLockSetup()">Save PIN</button></div>'+
+    '</div>';
+  document.body.appendChild(ov);
+}
+function openLockSetup(){ ensureLockSetupModal(); const o=document.getElementById('lockSetupOverlay'); o.classList.add('open'); document.body.style.overflow='hidden'; setTimeout(()=>document.getElementById('lockPin1')?.focus(),60); }
+function closeLockSetup(){ const o=document.getElementById('lockSetupOverlay'); if(o) o.classList.remove('open'); document.body.style.overflow=''; }
+async function saveLockSetup(){
+  const p1=(document.getElementById('lockPin1').value||'').trim();
+  const p2=(document.getElementById('lockPin2').value||'').trim();
+  const fg1=document.getElementById('fg_lockPin1'), fg2=document.getElementById('fg_lockPin2');
+  fg1.classList.remove('err'); fg2.classList.remove('err');
+  if(!/^\d{4,8}$/.test(p1)){ fg1.classList.add('err'); document.getElementById('lockPin1').focus(); return; }
+  if(p1!==p2){ fg2.classList.add('err'); document.getElementById('lockPin2').focus(); return; }
+  await setAppLockPin(p1);
+  closeLockSetup(); renderAppLockPanel(); startIdleWatch();
+  showToast('App lock is on');
+}
+window.openLockSetup=openLockSetup; window.closeLockSetup=closeLockSetup; window.saveLockSetup=saveLockSetup;
 
 // == FREE PLAN ENFORCEMENT ==
 const FREE_INVOICE_LIMIT = 5;
