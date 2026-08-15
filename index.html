@@ -4426,6 +4426,13 @@ function renderInvTable() {
   renderTableInto('invTableBody',APP.invoices.filter(i=>(invFilter==='all'||i.status===invFilter)&&(i.id.toLowerCase().includes(q)||i.client.toLowerCase().includes(q))));
 }
 
+function remindedAgo(ts){
+  const d=Math.floor((Date.now()-Number(ts))/86400000);
+  if(d<=0) return 'today';
+  if(d===1) return 'yesterday';
+  if(d<7) return d+'d ago';
+  const w=Math.floor(d/7); return w+'w ago';
+}
 function renderTableInto(id, data) {
   const sym=APP.settings.currency||'£', tbody=document.getElementById(id);
   const today=new Date().toISOString().split('T')[0];
@@ -4443,7 +4450,7 @@ function renderTableInto(id, data) {
     <td data-label="Issued" style="font-size:12px;color:var(--text2)">${fmtDate(inv.issued)}</td>
     <td data-label="Due" style="font-size:12px;color:var(--text2)">${inv.status==='overdue'?'<span class="overdue-dot"></span>':''}${fmtDate(inv.due)}</td>
     <td data-label="Amount"><span class="amount">${fmtMoney(inv.amount, getInvoiceCurrency(inv))}</span>${inv.status==='partial'?`<div style="font-size:11px;color:var(--blue);margin-top:2px">${fmtMoney(Number(inv.amount)-Number(inv.paidAmount||0), getInvoiceCurrency(inv))} due</div>`:''}</td>
-    <td data-label="Status" onclick="event.stopPropagation()"><span class="status-pill sp-${inv.status}" title="${inv.documentType==='quote'?'Quote status — updated when you mark it accepted, declined, converted, or when it expires':'Set automatically from recorded payments and the due date'}">${inv.status==='partial'?'Part-paid':cap(inv.status)}</span></td>
+    <td data-label="Status" onclick="event.stopPropagation()"><span class="status-pill sp-${inv.status}" title="${inv.documentType==='quote'?'Quote status — updated when you mark it accepted, declined, converted, or when it expires':'Set automatically from recorded payments and the due date'}">${inv.status==='partial'?'Part-paid':cap(inv.status)}</span>${(inv.reminderSentAt&&reminderEligible(inv))?`<div style="font-size:10px;color:var(--text3);margin-top:3px" title="Last reminder sent">🔔 Reminded ${remindedAgo(inv.reminderSentAt)}</div>`:''}</td>
     <td class="td-actions"><div class="row-actions" onclick="event.stopPropagation()">
       <button class="icon-btn" title="Edit" onclick="openEditorForInvoice('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
       <button class="icon-btn" title="Preview" onclick="previewById('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
@@ -4451,6 +4458,7 @@ function renderTableInto(id, data) {
       ${inv.documentType==='quote'?quoteRowActions(inv):''}
       ${(inv.status==='paid'||inv.status==='partial'||Number(inv.paidAmount)>0)?`<button class="icon-btn receipt-btn" title="View Receipt" onclick="event.stopPropagation();openReceiptById('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg> Receipt</button>`:''}
       <button class="icon-btn" title="Duplicate" onclick="duplicateInvoice('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+      ${reminderEligible(inv)?`<button class="icon-btn" title="Send payment reminder" onclick="event.stopPropagation();openReminderModal('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>`:''}
       ${inv.documentType!=='quote'&&inv.status!=='paid'?`<button class="icon-btn" title="Record payment" onclick="event.stopPropagation();openPaymentModal('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></button>`:''}
       <button class="icon-btn" title="PDF" onclick="downloadById('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
       <button class="icon-btn danger" title="Delete" onclick="confirmDelete('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
@@ -9249,6 +9257,124 @@ function shareReceiptWhatsApp() {
   const phone = (inv.phone || '').replace(/\D/g, '');
   window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
 }
+
+// ================================================================
+// PAYMENT REMINDERS (P1-04)
+// Help the user chase an unpaid invoice. Offline-first: we can't send email
+// ourselves, so we prefill a polite, editable message and hand it to the user's
+// own email / WhatsApp / clipboard, then record that a reminder went out.
+// ================================================================
+function reminderContext(inv){
+  const sym=getInvoiceCurrency(inv);
+  const amt=Math.max(0,Number(inv.amount||0));
+  const paid=Math.min(amt,Math.max(0,Number(inv.paidAmount)|| (inv.status==='paid'?amt:0)));
+  const bal=Math.max(0,amt-paid);
+  const today=new Date(); today.setHours(0,0,0,0);
+  const due=inv.due?new Date(inv.due+'T00:00:00'):null;
+  let overdueDays=0, dueInDays=null;
+  if(due){ const diff=Math.round((due-today)/86400000); if(diff<0) overdueDays=-diff; else dueInDays=diff; }
+  return {sym,amt,paid,bal,due,overdueDays,dueInDays};
+}
+function buildReminderMessage(inv){
+  const biz=APP.settings.bizName||'Your Business';
+  const c=reminderContext(inv);
+  const amtStr=c.sym+c.bal.toFixed(2);
+  let line;
+  if(c.overdueDays>0) line=`This is a friendly reminder that invoice ${inv.id} for ${amtStr} was due on ${fmtDate(inv.due)} and is now ${c.overdueDays} day${c.overdueDays===1?'':'s'} overdue.`;
+  else if(c.dueInDays===0) line=`A gentle reminder that invoice ${inv.id} for ${amtStr} is due today (${fmtDate(inv.due)}).`;
+  else if(c.dueInDays!=null) line=`A gentle reminder that invoice ${inv.id} for ${amtStr} is due on ${fmtDate(inv.due)}${c.dueInDays>0?` (${c.dueInDays} day${c.dueInDays===1?'':'s'} away)`:''}.`;
+  else line=`A gentle reminder about the outstanding balance of ${amtStr} on invoice ${inv.id}.`;
+  const pay=(APP.settings.paymentInstructions||'').trim();
+  return `Dear ${inv.client||'Customer'},\n\n${line}\n\n`+
+    (c.paid>0.005?`Amount paid so far: ${c.sym}${c.paid.toFixed(2)}\nBalance outstanding: ${amtStr}\n\n`:'')+
+    (pay?`${pay}\n\n`:'')+
+    `If you have already made this payment, please disregard this message and accept our thanks.\n\nKind regards,\n${biz}`;
+}
+function reminderEligible(inv){
+  return !!inv && inv.documentType!=='quote' && ['pending','overdue','partial'].includes(inv.status);
+}
+function markReminded(id){
+  const inv=(APP.invoices||[]).find(i=>i.id===id); if(!inv) return;
+  inv.reminderSentAt=Date.now();
+  inv.reminderCount=(Number(inv.reminderCount)||0)+1;
+  persist(); refreshAll();
+}
+window.markReminded=markReminded;
+
+let _reminderId=null;
+function ensureReminderModal(){
+  if(document.getElementById('reminderOverlay')) return;
+  const ov=document.createElement('div');
+  ov.id='reminderOverlay'; ov.className='onb-overlay';
+  ov.setAttribute('role','dialog'); ov.setAttribute('aria-modal','true');
+  ov.addEventListener('click',e=>{ if(e.target===ov) closeReminderModal(); });
+  ov.innerHTML=
+    '<div class="onb-card" style="max-width:460px;min-height:auto">'+
+      '<div class="onb-head"><div class="onb-title" style="font-size:22px">Send payment reminder</div>'+
+        '<div class="onb-sub" id="reminderSub"></div></div>'+
+      '<div class="onb-body">'+
+        '<div class="onb-field"><label for="reminderText">Message (edit if you like)</label>'+
+          '<textarea id="reminderText" rows="9" style="font-family:inherit"></textarea></div>'+
+        '<div id="reminderChannelNote" class="onb-note" style="display:none"></div>'+
+      '</div>'+
+      '<div class="onb-foot" style="justify-content:flex-end;flex-wrap:wrap;gap:8px">'+
+        '<button class="btn btn-ghost" type="button" onclick="closeReminderModal()">Close</button>'+
+        '<button class="btn btn-ghost" type="button" onclick="reminderCopy()">Copy text</button>'+
+        '<button class="btn btn-ghost" type="button" id="reminderWaBtn" onclick="reminderSend(\'whatsapp\')">WhatsApp</button>'+
+        '<button class="btn btn-primary" type="button" id="reminderEmailBtn" onclick="reminderSend(\'email\')">Email</button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(ov);
+}
+function openReminderModal(id){
+  const inv=(APP.invoices||[]).find(i=>i.id===id);
+  if(!inv){ return; }
+  if(inv.documentType==='quote'){ showToast('Reminders are for invoices, not quotes'); return; }
+  if(inv.status==='draft'){ showToast('Finalise this invoice before sending a reminder'); return; }
+  if(inv.status==='paid'){ showToast('This invoice is already paid'); return; }
+  ensureReminderModal();
+  _reminderId=id;
+  const c=reminderContext(inv);
+  const when = c.overdueDays>0 ? `${c.overdueDays} day${c.overdueDays===1?'':'s'} overdue`
+             : (c.dueInDays===0 ? 'due today' : (c.dueInDays!=null ? `due in ${c.dueInDays} day${c.dueInDays===1?'':'s'}` : 'outstanding'));
+  document.getElementById('reminderSub').textContent = `To ${inv.client||'customer'} · ${inv.id} · ${c.sym}${c.bal.toFixed(2)} ${when}`;
+  document.getElementById('reminderText').value = buildReminderMessage(inv);
+  // Note when contact details are missing for a channel
+  const notes=[];
+  if(!(inv.email||'').trim()) notes.push('no email on file (add one to email directly)');
+  if(!(inv.phone||'').trim()) notes.push('no phone on file (WhatsApp will open without a number)');
+  const noteEl=document.getElementById('reminderChannelNote');
+  if(notes.length){ noteEl.style.display='block'; noteEl.textContent='Note: '+notes.join('; ')+'.'; }
+  else { noteEl.style.display='none'; }
+  document.getElementById('reminderOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+  setTimeout(()=>document.getElementById('reminderText')?.focus(),60);
+}
+function closeReminderModal(){ const o=document.getElementById('reminderOverlay'); if(o) o.classList.remove('open'); document.body.style.overflow=''; _reminderId=null; }
+function reminderSend(channel){
+  const inv=(APP.invoices||[]).find(i=>i.id===_reminderId); if(!inv) return;
+  const text=document.getElementById('reminderText').value||'';
+  const biz=APP.settings.bizName||'Your Business';
+  if(channel==='email'){
+    const subject=encodeURIComponent(`Payment reminder — invoice ${inv.id} from ${biz}`);
+    window.open(`mailto:${inv.email||''}?subject=${subject}&body=${encodeURIComponent(text)}`);
+  } else {
+    const phone=(inv.phone||'').replace(/\D/g,'');
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`,'_blank');
+  }
+  markReminded(inv.id);
+  showToast('Reminder ready to send — logged on the invoice');
+  closeReminderModal();
+}
+function reminderCopy(){
+  const text=document.getElementById('reminderText').value||'';
+  const done=()=>{ if(_reminderId) markReminded(_reminderId); showToast('Reminder copied — logged on the invoice'); closeReminderModal(); };
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done).catch(()=>{ fallbackCopy(text); done(); }); }
+  else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text){ try{ const t=document.createElement('textarea'); t.value=text; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t); }catch(e){} }
+window.openReminderModal=openReminderModal; window.closeReminderModal=closeReminderModal;
+window.reminderSend=reminderSend; window.reminderCopy=reminderCopy;
 
 // ================================================================
 // APP SHELL RENDERER

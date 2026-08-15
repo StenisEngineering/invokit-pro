@@ -1,4 +1,4 @@
-const CACHE = 'invokit-v34-expense-categories';
+const CACHE = 'invokit-v35-payment-reminders';
 const SHELL = [
   '/',
   '/index.html',
