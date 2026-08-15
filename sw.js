@@ -1,4 +1,4 @@
-const CACHE = 'invokit-v31-applock';
+const CACHE = 'invokit-v32-draft-lifecycle';
 const SHELL = [
   '/',
   '/index.html',

@@ -4415,6 +4415,7 @@ function renderTableInto(id, data) {
     <td class="td-actions"><div class="row-actions" onclick="event.stopPropagation()">
       <button class="icon-btn" title="Edit" onclick="openEditorForInvoice('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
       <button class="icon-btn" title="Preview" onclick="previewById('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      ${inv.status==='draft'?`<button class="icon-btn" title="Finalise — issue this ${inv.documentType==='quote'?'quote':'invoice'}" onclick="event.stopPropagation();finaliseDraft('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></button>`:''}
       ${inv.documentType==='quote'?`<button class="icon-btn" title="Convert to Invoice" onclick="event.stopPropagation();convertQuoteToInvoice('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 11 17 15 13"/></svg></button>`:''}
       ${(inv.status==='paid'||inv.status==='partial'||Number(inv.paidAmount)>0)?`<button class="icon-btn receipt-btn" title="View Receipt" onclick="event.stopPropagation();openReceiptById('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg> Receipt</button>`:''}
       <button class="icon-btn" title="Duplicate" onclick="duplicateInvoice('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
@@ -5098,7 +5099,7 @@ function setEditorDocumentMode(type){
   if(title) title.textContent=currentDocType==='quote'?'New Quote':'New Invoice';
   if(badge) { badge.textContent=currentDocType==='quote'?'Quote':'Invoice'; badge.className='badge '+(currentDocType==='quote'?'badge-blue':'badge-accent'); }
   if(section) section.textContent=currentDocType==='quote'?'Quotation Items':'Line Items';
- if(saveBtn) saveBtn.textContent=currentDocType==='quote'?'Save Quote →':'Save & Close →';
+ if(saveBtn) updateEditorActionLabels();
   if(totalLabel) totalLabel.textContent=currentDocType==='quote'?'Quote Total':'Total Due';
   const titleLabel=document.getElementById('docTitleLabel');
   if(titleLabel) titleLabel.textContent=(currentDocType==='quote'?'Quote':'Invoice')+' Title / Subject';
@@ -5168,6 +5169,7 @@ function openEditorForInvoice(id){
   }));
   if(!items.length) addItem();
   renderItems(); recalc();
+  updateEditorActionLabels();
   document.getElementById('editorOverlay').classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -5399,7 +5401,33 @@ function buildInvObj(status){
       ? {type:'item',desc:i.desc,qty:i.qty,unit:i.unit||'unit',unitPrice:i.unitPrice||0,installRate:i.installRate||0,amount:lineAmount(i)}
       : {type:'item',desc:i.desc,qty:i.qty,price:i.price||0,amount:lineAmount(i)};
   });
-  return {id:editingId||(prefix+String(next).padStart(3,'0')),documentType:docType,title:gv('docTitle').trim(),bizName:gv('bizName'),bizAddress:gv('bizAddress'),bizEmail:gv('bizEmail'),bizPhone:gv('bizPhone'),bizVAT:gv('bizVAT'),bizRegNum:APP.settings.regNum||'',client:gv('clientName'),email:gv('clientEmail'),phone:gv('clientPhone'),address:gv('clientAddress'),issued:gv('issueDate'),due:gv('dueDate'),subtotal:sub,discount:disc,tax,amount:afterDisc+tax,currency:sym,paymentTerms:gv('paymentTerms'),items:cleanItems,status,notes:gv('notes'),template:gv('invTemplate')||APP.settings.template||'classic'};
+  const obj = {id:editingId||(prefix+String(next).padStart(3,'0')),documentType:docType,title:gv('docTitle').trim(),bizName:gv('bizName'),bizAddress:gv('bizAddress'),bizEmail:gv('bizEmail'),bizPhone:gv('bizPhone'),bizVAT:gv('bizVAT'),bizRegNum:APP.settings.regNum||'',client:gv('clientName'),email:gv('clientEmail'),phone:gv('clientPhone'),address:gv('clientAddress'),issued:gv('issueDate'),due:gv('dueDate'),subtotal:sub,discount:disc,tax,amount:afterDisc+tax,currency:sym,paymentTerms:gv('paymentTerms'),items:cleanItems,status,notes:gv('notes'),template:gv('invTemplate')||APP.settings.template||'classic'};
+  // Editing an existing document must NEVER lose recorded payments. Carry the
+  // payment history over, then re-derive the true status from it — so re-saving a
+  // paid or part-paid invoice keeps its money instead of resetting to 'pending'.
+  if(editingId){
+    const ex=(APP.invoices||[]).find(i=>i.id===editingId);
+    if(ex){
+      if(ex.paidAmount!=null) obj.paidAmount=ex.paidAmount;
+      if(ex.payments) obj.payments=ex.payments;
+      if(ex.paidDate) obj.paidDate=ex.paidDate;
+      if(ex.paidAt) obj.paidAt=ex.paidAt;
+      if(status!=='draft' && docType!=='quote') obj.status=deriveStatus(obj);
+    }
+  }
+  return obj;
+}
+// P0-05: keep the editor's actions honest about the document lifecycle.
+// Draft (editable, not counted) vs Finalise (issued, counted). An issued invoice
+// can be edited but not demoted back to a draft.
+function updateEditorActionLabels(){
+  const saveBtn=document.getElementById('saveCloseBtn');
+  const draftBtn=document.getElementById('saveDraftBtn');
+  const isQuote=currentDocType==='quote';
+  const existing = editingId ? (APP.invoices||[]).find(i=>i.id===editingId) : null;
+  const finalised = !!(existing && existing.status && existing.status!=='draft');
+  if(saveBtn) saveBtn.textContent = isQuote ? 'Save Quote' : (finalised ? 'Save Changes' : 'Finalise & Save');
+  if(draftBtn) draftBtn.style.display = finalised ? 'none' : '';
 }
 function saveToList(inv){
   APP.settings.currency=inv.currency||APP.settings.currency||'£';
@@ -5423,13 +5451,34 @@ function sendInvoice(){
   }
   if(!(APP.settings.bizName||'').trim()){ showToast('Add your business name in Settings before saving this '+noun); return; }
   if(!gv('clientName').trim()){ showToast('Add the customer name before saving this '+noun); focusField('clientName'); return; }
+  const existing = editingId ? (APP.invoices||[]).find(i=>i.id===editingId) : null;
+  const wasFinalised = !!(existing && existing.status && existing.status!=='draft');
   const inv=buildInvObj('pending');
   if(!(inv.items||[]).some(isRealLineItem)){ showToast('Add at least one line item with a description or amount'); return; }
   inv.items=(inv.items||[]).filter(isRealLineItem); // never save blank default rows
   if(!checkFreePlanInvoiceCap())return;
   saveToList(inv); closeEditor();
-  showToast(isQuote?'Quote saved':'Invoice saved');
+  showToast(isQuote ? 'Quote saved' : (wasFinalised?'Changes saved':'Invoice finalised'));
 }
+// Promote a draft to an issued document straight from the list, with the same
+// checks as finalising in the editor. Payments/quotes are unaffected.
+function finaliseDraft(id){
+  const inv=(APP.invoices||[]).find(i=>i.id===id);
+  if(!inv || inv.status!=='draft') return;
+  const isQuote=inv.documentType==='quote';
+  const noun=isQuote?'quote':'invoice';
+  if(!isOnboardingDone() && !requiredSettingsComplete()){
+    showToast('Finish quick setup before finalising your first '+noun); openOnboarding(); return;
+  }
+  if(!(APP.settings.bizName||'').trim()){ showToast('Add your business name in Settings first'); return; }
+  if(!(inv.client||'').trim()){ showToast('This draft needs a customer — open it to add one'); openEditorForInvoice(id); return; }
+  if(!(inv.items||[]).some(isRealLineItem)){ showToast('This draft needs a line item — open it to add one'); openEditorForInvoice(id); return; }
+  if(!inv.issued) inv.issued=new Date().toISOString().split('T')[0];
+  inv.status = isQuote ? 'pending' : deriveStatus({...inv, status:'pending'});
+  persist(); refreshAll();
+  showToast(isQuote?'Quote issued':'Invoice finalised');
+}
+window.finaliseDraft=finaliseDraft;
 
 // ================================================================
 // PREVIEW & PRINT (FIXED: all styles inlined)
@@ -9817,12 +9866,12 @@ function renderAppShell() {
   </div>
   <div class="editor-footer">
     <div class="footer-left">
-      <button class="btn btn-ghost btn-sm" onclick="saveDraft()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Draft</button>
+      <button class="btn btn-ghost btn-sm" id="saveDraftBtn" onclick="saveDraft()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save as Draft</button>
       <button class="btn btn-ghost btn-sm" onclick="clearEditor()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg> Clear</button>
     </div>
     <div class="footer-right">
       <button class="btn btn-ghost btn-sm" onclick="previewInvoice()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Preview</button>
-      <button class="btn btn-primary btn-sm" id="saveCloseBtn" onclick="sendInvoice()">Save & Close →</button>
+      <button class="btn btn-primary btn-sm" id="saveCloseBtn" onclick="sendInvoice()">Finalise &amp; Save</button>
     </div>
   </div>
 </div>
