@@ -1,4 +1,4 @@
-const CACHE = 'invokit-v38-accessibility';
+const CACHE = 'invokit-v39-unsaved-guard';
 const SHELL = [
   '/',
   '/index.html',

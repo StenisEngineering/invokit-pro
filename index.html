@@ -4212,6 +4212,19 @@ function setTheme(t) { applyTheme(t); }
 let currentPage='dashboard', dashFilter='all', invFilter='all';
 
 function navTo(page, el) {
+  // Unsaved-change protection (P1-09): if an open form has changes, confirm
+  // before leaving the page. On discard, drop the changes, close any open form
+  // overlay, then continue navigating.
+  if (typeof anyFormDirty==='function' && anyFormDirty()) {
+    showDiscardConfirm(()=>{
+      formClear('editor'); formClear('client'); formClear('expense');
+      if(typeof _closeEditorRaw==='function') _closeEditorRaw();
+      document.getElementById('clientModalOverlay')?.classList.remove('open');
+      document.getElementById('expenseModalOverlay')?.classList.remove('open');
+      navTo(page, el);
+    });
+    return;
+  }
   // Free plan: block analytics and recurring
   if (isFreePlan() && (page === 'analytics' || page === 'recurring')) {
     showFreeUpgradePaywall('analytics');
@@ -4573,8 +4586,10 @@ function openClientModal(id) {
     if(c.logo){prev.src=c.logo;prev.style.display='block';ph.style.display='none';rm.style.display='flex';}
   }
   modal.classList.add('open');
+  formBaseline('client');
 }
-function closeClientModal(){document.getElementById('clientModalOverlay').classList.remove('open');}
+function _closeClientRaw(){document.getElementById('clientModalOverlay').classList.remove('open');}
+function closeClientModal(force){ if(force){ formClear('client'); _closeClientRaw(); return; } guardedClose('client', _closeClientRaw); }
 
 function saveClient() {
  const name=gv('cm_name').trim(); if(!name){showToast('Customer name required');return;}
@@ -4587,7 +4602,7 @@ function saveClient() {
   } else {
     APP.clients.push({id:'c'+Date.now(),...data});
   }
-  persist(); closeClientModal(); renderClients(); populateClientQuickSelect();
+  persist(); closeClientModal(true); renderClients(); populateClientQuickSelect();
  showToast(id?'Client updated':'Client added');
 }
 
@@ -4924,8 +4939,10 @@ function openExpenseModal(id){
   document.getElementById('exp_category').value = e ? (e.category||'') : '';
   document.getElementById('exp_desc').value = e ? (e.description||'') : '';
   document.getElementById('expenseModalOverlay').classList.add('open');
+  formBaseline('expense');
 }
-function closeExpenseModal(){ document.getElementById('expenseModalOverlay').classList.remove('open'); }
+function _closeExpenseRaw(){ document.getElementById('expenseModalOverlay').classList.remove('open'); }
+function closeExpenseModal(force){ if(force){ formClear('expense'); _closeExpenseRaw(); return; } guardedClose('expense', _closeExpenseRaw); }
 function saveExpense(){
   if(!APP.expenses) APP.expenses=[];
   const amount=parseFloat(document.getElementById('exp_amount').value);
@@ -4940,7 +4957,7 @@ function saveExpense(){
   };
   if(id){ const i=APP.expenses.findIndex(x=>x.id===id); if(i>=0) APP.expenses[i]=rec; }
   else APP.expenses.unshift(rec);
-  persist(); closeExpenseModal(); renderExpenses(); showToast(id?'Expense updated':'Expense added');
+  persist(); closeExpenseModal(true); renderExpenses(); showToast(id?'Expense updated':'Expense added');
 }
 function confirmDeleteExpense(id){
   document.getElementById('confirmTitle').textContent='Delete Expense';
@@ -5210,6 +5227,7 @@ function openEditor(type='invoice'){
   if(!items.length) addItem();
   document.getElementById('editorOverlay').classList.add('open');
   document.body.style.overflow='hidden';
+  formBaseline('editor');
 }
 function openQuoteEditor(){openEditor('quote');}
 function setEditorDocumentMode(type){
@@ -5295,8 +5313,10 @@ function openEditorForInvoice(id){
   updateEditorActionLabels();
   document.getElementById('editorOverlay').classList.add('open');
   document.body.style.overflow='hidden';
+  formBaseline('editor');
 }
-function closeEditor(){document.getElementById('editorOverlay').classList.remove('open');document.body.style.overflow='';}
+function _closeEditorRaw(){document.getElementById('editorOverlay').classList.remove('open');document.body.style.overflow='';}
+function closeEditor(force){ if(force){ formClear('editor'); _closeEditorRaw(); return; } guardedClose('editor', _closeEditorRaw); }
 function handleOvClick(e,id){if(e.target===document.getElementById(id)){if(id==='editorOverlay') closeEditor();else if(id==='previewOverlay') closePreview();else if(id==='receiptOverlay') closeReceipt();else if(id==='clientModalOverlay') closeClientModal();else if(id==='catModalOverlay') closeCatModal();else if(id==='expenseModalOverlay') closeExpenseModal();else if(id==='paymentModalOverlay') closePaymentModal();else if(id==='recurringModal') closeRecurringModal();}}
 function clearEditor(){
   ['bizName','bizAddress','bizEmail','bizPhone','bizVAT','clientName','clientAddress','clientEmail','clientPhone','notes','docTitle'].forEach(id=>setValue(id,''));
@@ -5594,7 +5614,7 @@ function saveToList(inv){
   if(editingId){const idx=APP.invoices.findIndex(i=>i.id===editingId);if(idx>-1) APP.invoices[idx]=inv;} else {APP.invoices.unshift(inv); if(inv.documentType==='quote') APP.nextQuoteNum=(APP.nextQuoteNum||1)+1; else APP.nextNum=(APP.nextNum||1)+1;}
   persist(); refreshAll();
 }
-function saveDraft(){if(!checkFreePlanInvoiceCap())return;const inv=buildInvObj('draft');saveToList(inv);showToast(inv.documentType==='quote'?'Quote draft saved':'Draft saved');}
+function saveDraft(){if(!checkFreePlanInvoiceCap())return;const inv=buildInvObj('draft');saveToList(inv);formBaseline('editor');showToast(inv.documentType==='quote'?'Quote draft saved':'Draft saved');}
 function sendInvoice(){
   // P0-04: explicit validation — no save may fail silently.
   const focusField=(id)=>{const el=document.getElementById(id); if(el){ el.focus(); el.scrollIntoView({block:'center',behavior:'smooth'}); }};
@@ -5619,7 +5639,7 @@ function sendInvoice(){
   if(!(inv.items||[]).some(isRealLineItem)){ showToast('Add at least one line item with a description or amount'); return; }
   inv.items=(inv.items||[]).filter(isRealLineItem); // never save blank default rows
   if(!checkFreePlanInvoiceCap())return;
-  saveToList(inv); closeEditor();
+  saveToList(inv); closeEditor(true);
   showToast(isQuote ? 'Quote saved' : (wasFinalised?'Changes saved':'Invoice finalised'));
 }
 // Promote a draft to an issued document straight from the list, with the same
@@ -8425,7 +8445,56 @@ function confirmReset(){
  document.getElementById('confirmOkBtn').onclick=()=>{window.__INVOKIT_ALLOW_EMPTY_PERSIST=true;APP=createEmptyAppState(); APP.theme = APP.settings.theme = (document.documentElement.getAttribute('data-theme') ||'hybrid');persist();setTimeout(()=>{window.__INVOKIT_ALLOW_EMPTY_PERSIST=false;},0);refreshAll();loadSettingsForm();checkOverdue();closeConfirm();showToast('Reset complete');};
   document.getElementById('confirmOverlay').classList.add('open');
 }
-function closeConfirm(){document.getElementById('confirmOverlay').classList.remove('open');}
+function closeConfirm(){
+  document.getElementById('confirmOverlay').classList.remove('open');
+  // Restore the generic confirm labels (the discard prompt repurposes them).
+  const c=document.getElementById('confirmCancelBtn'); if(c) c.textContent='Cancel';
+  const ok=document.getElementById('confirmOkBtn'); if(ok) ok.textContent='Confirm';
+}
+
+// ================================================================
+// UNSAVED-CHANGE PROTECTION (P1-09)
+// Snapshot each editable form when it opens; if the user tries to leave while
+// the current values differ, offer Continue editing / Discard changes. Saving
+// re-baselines (or closes), so a saved form never warns. Nothing changed → no
+// warning at all.
+// ================================================================
+const FORM_STATE={editor:{open:false,base:''},client:{open:false,base:''},expense:{open:false,base:''}};
+function formSnapshot(key){
+  const g=id=>{ const el=document.getElementById(id); return el?(el.value||''):''; };
+  if(key==='editor'){
+    const fields=['docTitle','bizName','bizAddress','bizEmail','bizPhone','bizVAT','clientName','clientEmail','clientPhone','clientAddress','issueDate','dueDate','notes','currency','paymentTerms','invTemplate','discountVal','taxRate'];
+    return JSON.stringify({f:fields.map(g), items:(typeof items!=='undefined'?items:[]).map(it=>({d:it.desc,q:it.qty,p:(it.price!==undefined?it.price:it.unitPrice),u:it.unit,r:it.installRate,t:it.type})), tax:(typeof taxEnabled!=='undefined'?taxEnabled:false), disc:(typeof discountType!=='undefined'?discountType:'pct')});
+  }
+  if(key==='client'){
+    return JSON.stringify(['cm_name','cm_contact','cm_email','cm_phone','cm_address','cm_industry','cm_website','cm_notes'].map(g).concat([(document.getElementById('clientLogoPreview')||{}).src||'']));
+  }
+  if(key==='expense'){
+    return JSON.stringify(['exp_date','exp_amount','exp_category','exp_desc'].map(g));
+  }
+  return '';
+}
+function formBaseline(key){ const f=FORM_STATE[key]; if(!f) return; f.open=true; f.base=formSnapshot(key); }
+function formClear(key){ const f=FORM_STATE[key]; if(!f) return; f.open=false; f.base=''; }
+function isFormDirty(key){ const f=FORM_STATE[key]; return !!(f && f.open && f.base!==formSnapshot(key)); }
+function anyFormDirty(){ return isFormDirty('editor')||isFormDirty('client')||isFormDirty('expense'); }
+
+// Discard prompt reusing the confirm overlay, relabelled for this decision.
+function showDiscardConfirm(onDiscard){
+  document.getElementById('confirmTitle').textContent='Discard changes?';
+  document.getElementById('confirmMsg').textContent='You have unsaved changes. If you leave now they will be lost.';
+  const ok=document.getElementById('confirmOkBtn'); ok.textContent='Discard changes';
+  ok.onclick=()=>{ closeConfirm(); if(typeof onDiscard==='function') onDiscard(); };
+  const cancel=document.getElementById('confirmCancelBtn'); if(cancel) cancel.textContent='Continue editing';
+  document.getElementById('confirmOverlay').classList.add('open');
+  setTimeout(()=>{ const cb=document.getElementById('confirmCancelBtn'); if(cb) cb.focus(); },60);
+}
+// Guarded close: prompt if dirty, otherwise run the raw close now.
+function guardedClose(key, rawClose){
+  if(isFormDirty(key)){ showDiscardConfirm(()=>{ formClear(key); rawClose(); }); return false; }
+  formClear(key); rawClose(); return true;
+}
+window.closeConfirm=closeConfirm;
 
 // ================================================================
 // UTILS
@@ -10424,7 +10493,7 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible,[tabindex]:fo
   <div class="confirm-title" id="confirmTitle">Are you sure?</div>
   <div class="confirm-msg" id="confirmMsg">This cannot be undone.</div>
   <div class="confirm-btns">
-    <button class="btn btn-ghost btn-sm" onclick="closeConfirm()">Cancel</button>
+    <button class="btn btn-ghost btn-sm" id="confirmCancelBtn" onclick="closeConfirm()">Cancel</button>
     <button class="btn btn-danger btn-sm" id="confirmOkBtn">Confirm</button>
   </div>
 </div>
@@ -10594,6 +10663,10 @@ function initAppAfterShell() {
   requestPersistentStorage(false);
   if (typeof renderDataSafetyPanel === 'function') renderDataSafetyPanel();
   try{ runA11yPass(); }catch(e){}
+  // Warn before a refresh/tab-close if a form has unsaved changes (P1-09).
+  window.addEventListener('beforeunload', function(e){
+    if(typeof anyFormDirty==='function' && anyFormDirty()){ e.preventDefault(); e.returnValue=''; return ''; }
+  });
   // Resume an interrupted onboarding (refresh / closed tab / PWA restart) so the
   // user picks up exactly where they left off, with prior entries intact.
   try {
