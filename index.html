@@ -4385,7 +4385,7 @@ function renderTableInto(id, data) {
       <button class="icon-btn" title="Edit" onclick="openEditorForInvoice('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
       <button class="icon-btn" title="Preview" onclick="previewById('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
       ${inv.documentType==='quote'?`<button class="icon-btn" title="Convert to Invoice" onclick="event.stopPropagation();convertQuoteToInvoice('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 11 17 15 13"/></svg></button>`:''}
-      ${inv.status==='paid'?`<button class="icon-btn receipt-btn" title="View Receipt" onclick="event.stopPropagation();openReceiptById('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg> Receipt</button>`:''}
+      ${(inv.status==='paid'||inv.status==='partial'||Number(inv.paidAmount)>0)?`<button class="icon-btn receipt-btn" title="View Receipt" onclick="event.stopPropagation();openReceiptById('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg> Receipt</button>`:''}
       <button class="icon-btn" title="Duplicate" onclick="duplicateInvoice('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
       ${inv.documentType!=='quote'&&inv.status!=='paid'?`<button class="icon-btn" title="Record payment" onclick="event.stopPropagation();openPaymentModal('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></button>`:''}
       <button class="icon-btn" title="PDF" onclick="downloadById('${inv.id}')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
@@ -4830,7 +4830,7 @@ function renderReceiptsTable(){
 let currentReceiptData=null;
 
 function openReceiptById(id){
- const inv=APP.invoices.find(i=>i.id===id); if(!inv||inv.status!=='paid'){showToast('Receipts only for paid invoices');return;}
+ const inv=APP.invoices.find(i=>i.id===id); if(!inv || !(inv.status==='paid' || inv.status==='partial' || Number(inv.paidAmount)>0)){showToast('No payment has been recorded for this invoice yet');return;}
   const s=APP.settings;
   // Always pull bizLogo from current settings — not from saved invoice (may be stale)
   currentReceiptData={...inv,
@@ -4855,6 +4855,13 @@ function buildReceiptHTML(inv,sym){
   const disc=parseFloat(inv.discount||0);
   const tax=parseFloat(inv.tax||0);
   const total=parseFloat(inv.amount||0);
+  // Receipt reflects the ACTUAL payment(s) recorded — never the invoice total.
+  const paidAmt=Math.min(total, Math.max(0, Number(inv.paidAmount) || (inv.status==='paid'?total:0)));
+  const balance=Math.max(0, total-paidAmt);
+  const fullyPaid=balance<=0.005;
+  const payments=Array.isArray(inv.payments)?inv.payments:[];
+  const lastPayDate=payments.length?payments[payments.length-1].date:(inv.paidAt||inv.issued);
+  const money=v=>sym+Number(v).toFixed(2);
   // Always pull business logo directly from settings (source of truth), fall back to inv property
   const bizLogoSrc=APP.settings.bizLogo||inv.bizLogo||'';
   const logoHtml=bizLogoSrc?`<img src="${bizLogoSrc}" style="height:44px;object-fit:contain;margin-bottom:8px;display:block">`:'';
@@ -4869,16 +4876,19 @@ function buildReceiptHTML(inv,sym){
   </div>
   <div class="rec-party-row">
     <div><div class="rec-party-label">Received From</div>${clientLogoHtml}<div class="rec-party-name">${esc(inv.client)}</div><div class="rec-party-info">${esc(inv.address||'')}${inv.email?'<br>'+esc(inv.email):''}</div></div>
-    <div><div class="rec-party-label">Payment Status</div><div class="rec-paid-stamp"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg> PAID IN FULL</div><div style="font-size:12px;color:#888">Payment received: ${fmtDate(inv.issued)}</div></div>
+    <div><div class="rec-party-label">Payment Status</div><div class="rec-paid-stamp"${fullyPaid?'':' style="color:#2b5fa8"'}>${fullyPaid?'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg> PAID IN FULL':'PART PAYMENT'}</div><div style="font-size:12px;color:#888">Payment received: ${fmtDate(lastPayDate)}</div></div>
   </div>
   <table class="rec-table"><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Amount</th></tr></thead><tbody>${rows}</tbody></table>
   <div class="rec-totals"><div class="rec-totals-box">
     <div class="rec-tot-row"><span>Subtotal</span><span>${sym}${sub.toFixed(2)}</span></div>
     ${disc>0?`<div class="rec-tot-row"><span>Discount</span><span style="color:#27a060">-${sym}${disc.toFixed(2)}</span></div>`:''}
     ${tax>0?`<div class="rec-tot-row"><span>VAT</span><span>${sym}${tax.toFixed(2)}</span></div>`:''}
-    <div class="rec-final"><span class="lbl">Amount Paid</span><span class="val">${sym}${total.toFixed(2)}</span></div>
+    <div class="rec-tot-row" style="border-top:1px solid #eee;padding-top:6px;margin-top:4px"><span>Invoice total</span><span>${money(total)}</span></div>
+    <div class="rec-final"><span class="lbl">Amount Paid</span><span class="val">${money(paidAmt)}</span></div>
+    ${!fullyPaid?`<div class="rec-tot-row" style="margin-top:4px"><span style="font-weight:600;color:#211d17">Balance remaining</span><span style="font-weight:600;color:#2b5fa8">${money(balance)}</span></div>`:''}
   </div></div>
-  <div class="rec-ref">Invoice reference: <span>${inv.id}</span> · Thank you for your prompt payment.</div>
+  ${payments.length?`<div class="rec-payments" style="margin-top:14px"><div style="font-weight:600;color:#211d17;font-size:12px;margin-bottom:5px">Payments received</div>${payments.map(p=>`<div style="display:flex;justify-content:space-between;font-size:12px;color:#555;padding:3px 0;border-bottom:1px solid #f2f2f2"><span>${fmtDate(p.date)}${p.method?' · '+esc(p.method):''}${p.reference?' · Ref '+esc(p.reference):''}</span><span>${money(p.amount)}</span></div>`).join('')}</div>`:''}
+  <div class="rec-ref">Invoice reference: <span>${inv.id}</span> · ${fullyPaid?'Thank you for your payment in full.':'Thank you — this receipt confirms a part payment.'}</div>
   <div class="rec-footer">Generated with InvoKitPro · This is an official receipt</div>
   </div>`;
 }
@@ -5176,16 +5186,26 @@ function openPaymentModal(id){
   document.getElementById('payMeta').textContent=`${inv.id} · ${inv.client||''}`;
   document.getElementById('pay_amount').value=bal>0?bal.toFixed(2):'';
   document.getElementById('pay_date').value=new Date().toISOString().split('T')[0];
+  if(document.getElementById('pay_method')) document.getElementById('pay_method').value='Bank Transfer';
+  if(document.getElementById('pay_ref')) document.getElementById('pay_ref').value='';
   document.getElementById('payBalanceHint').innerHTML=`Total ${sym}${Number(inv.amount||0).toLocaleString()} · Already paid ${sym}${Number(inv.paidAmount||0).toLocaleString()} · <strong style="color:var(--text)">Balance ${sym}${bal.toLocaleString()}</strong>`;
   document.getElementById('paymentModalOverlay').classList.add('open');
 }
 function closePaymentModal(){ document.getElementById('paymentModalOverlay').classList.remove('open'); }
-function applyPayment(inv, amt, date){
+function applyPayment(inv, amt, date, meta){
   inv.payments=inv.payments||[];
-  inv.payments.push({amount:Number(amt)||0, date:date});
-  inv.paidAmount=inv.payments.reduce((s,p)=>s+Number(p.amount||0),0);
   const total=Number(inv.amount||0);
+  const balanceBefore=Math.max(0, total - Number(inv.paidAmount||0));
+  const rec={
+    id:'PMT-'+Date.now().toString(36)+Math.floor(Math.random()*1000),
+    amount:Number(amt)||0, date:date,
+    method:(meta&&meta.method)||'', reference:(meta&&meta.reference)||'', notes:(meta&&meta.notes)||'',
+    balanceBefore
+  };
+  inv.payments.push(rec);
+  inv.paidAmount=inv.payments.reduce((s,p)=>s+Number(p.amount||0),0);
   if(inv.paidAmount>=total-0.005){ inv.paidAmount=total; inv.paidAt=date; }
+  rec.balanceAfter=Math.max(0, total - inv.paidAmount);
   inv.status = deriveStatus(inv);
 }
 function recordPayment(){
@@ -5193,7 +5213,8 @@ function recordPayment(){
   const inv=APP.invoices.find(i=>i.id===id); if(!inv) return;
   const amt=parseFloat(document.getElementById('pay_amount').value);
   if(!(amt>0)){ showToast('Enter an amount'); return; }
-  applyPayment(inv, amt, document.getElementById('pay_date').value||new Date().toISOString().split('T')[0]);
+  const meta={ method:(document.getElementById('pay_method')||{}).value||'', reference:((document.getElementById('pay_ref')||{}).value||'').trim() };
+  applyPayment(inv, amt, document.getElementById('pay_date').value||new Date().toISOString().split('T')[0], meta);
   persist(); closePaymentModal(); refreshAll();
   showToast(inv.status==='paid'?'Paid in full — nice!':'Payment recorded');
 }
@@ -5202,7 +5223,8 @@ function markFullyPaid(){
   const inv=APP.invoices.find(i=>i.id===id); if(!inv) return;
   const date=document.getElementById('pay_date').value||new Date().toISOString().split('T')[0];
   const bal=invBalance(inv);
-  if(bal>0) applyPayment(inv, bal, date); else { inv.status='paid'; inv.paidAt=date; inv.paidAmount=Number(inv.amount||0); }
+  const meta={ method:(document.getElementById('pay_method')||{}).value||'', reference:((document.getElementById('pay_ref')||{}).value||'').trim() };
+  if(bal>0) applyPayment(inv, bal, date, meta); else { inv.status='paid'; inv.paidAt=date; inv.paidAmount=Number(inv.amount||0); }
   persist(); closePaymentModal(); refreshAll(); showToast('Marked as paid');
 }
 
@@ -8819,12 +8841,19 @@ ${inv.notes ? inv.notes : ''}`.trim();
 
 function buildReceiptSummary(inv, sym) {
   const recNum = 'REC-' + inv.id.replace('INV-', '');
+  const total = parseFloat(inv.amount||0);
+  const paidAmt = Math.min(total, Math.max(0, Number(inv.paidAmount) || (inv.status==='paid'?total:0)));
+  const balance = Math.max(0, total - paidAmt);
+  const fullyPaid = balance <= 0.005;
+  const payments = Array.isArray(inv.payments) ? inv.payments : [];
+  const lastPayDate = payments.length ? payments[payments.length-1].date : (inv.paidAt || inv.issued);
   return `Receipt: ${recNum}
 Invoice ref: ${inv.id}
 Client: ${inv.client}
-Date: ${fmtDate(inv.issued)}
+Date: ${fmtDate(lastPayDate)}
 
-PAID IN FULL: ${sym}${parseFloat(inv.amount).toFixed(2)}
+${fullyPaid ? 'PAID IN FULL' : 'PART PAYMENT'}
+Amount paid: ${sym}${paidAmt.toFixed(2)}${fullyPaid ? '' : `\nBalance remaining: ${sym}${balance.toFixed(2)}`}
 
 ${APP.settings.bizName || 'InvoKitPro'}`.trim();
 }
@@ -8882,15 +8911,22 @@ function shareReceiptWhatsApp() {
   const sym = APP.settings.currency || '£';
   const biz = APP.settings.bizName || 'Your Business';
   const recNum = 'REC-' + inv.id.replace('INV-', '');
+  const total=parseFloat(inv.amount||0);
+  const paidAmt=Math.min(total, Math.max(0, Number(inv.paidAmount) || (inv.status==='paid'?total:0)));
+  const balance=Math.max(0, total-paidAmt);
+  const fullyPaid=balance<=0.005;
+  const pmts=Array.isArray(inv.payments)?inv.payments:[];
+  const lastPayDate=pmts.length?pmts[pmts.length-1].date:(inv.paidAt||inv.issued);
   const msg = encodeURIComponent(
     `Hello ${inv.client},\n\n` +
-`Your payment has been received \n\n`+
+`Your payment has been received.\n\n`+
     `*Receipt: ${recNum}*\n` +
     `Invoice ref: ${inv.id}\n` +
-    `Amount Paid: *${sym}${parseFloat(inv.amount).toFixed(2)}*\n` +
-    `Date: ${fmtDate(inv.issued)}\n\n` +
+    `${fullyPaid?'Paid in full':'Part payment'}: *${sym}${paidAmt.toFixed(2)}*\n` +
+    `${fullyPaid?'':`Balance remaining: ${sym}${balance.toFixed(2)}\n`}` +
+    `Date: ${fmtDate(lastPayDate)}\n\n` +
     `From: *${biz}*\n\n` +
-`_Your receipt PDF is available via the invoice preview._\n\nThank you for your business`
+`Thank you for your business`
   );
   const phone = (inv.phone || '').replace(/\D/g, '');
   window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
@@ -9774,6 +9810,10 @@ function renderAppShell() {
     <div class="half-grid">
       <div class="field-group"><label class="field-label">Amount received *</label><input class="field-input" type="number" min="0" step="0.01" id="pay_amount" placeholder="0.00"></div>
       <div class="field-group"><label class="field-label">Date</label><input class="field-input" type="date" id="pay_date"></div>
+    </div>
+    <div class="half-grid">
+      <div class="field-group"><label class="field-label">Method</label><select class="field-input" id="pay_method"><option>Cash</option><option>Bank Transfer</option><option>Card</option><option>Mobile Money</option><option>Cheque</option><option>Other</option></select></div>
+      <div class="field-group"><label class="field-label">Reference</label><input class="field-input" type="text" id="pay_ref" placeholder="Txn / cheque no. (optional)"></div>
     </div>
     <div id="payBalanceHint" style="font-size:12.5px;color:var(--text2);margin-top:8px;line-height:1.6"></div>
   </div>
