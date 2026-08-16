@@ -1,4 +1,4 @@
-const CACHE = 'invokit-v41-recurring';
+const CACHE = 'invokit-v42-final-pass';
 const SHELL = [
   '/',
   '/index.html',

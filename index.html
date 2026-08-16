@@ -4901,14 +4901,19 @@ function renderExpenses(){
     .filter(e=> (expFilterCat==='all' || expCatKey(e.category)===expFilterCat))
     .filter(e=>!q || (e.category||'').toLowerCase().includes(q) || (e.description||'').toLowerCase().includes(q));
   renderExpenseBreakdown(sym);
-  const income=APP.invoices.filter(i=>i.status==='paid').reduce((s,i)=>s+i.amount,0);
+  const income=computeTotals().collected;   // shared layer: includes part-payments
   const totalExp=APP.expenses.reduce((s,e)=>s+(Number(e.amount)||0),0);
   const net=income-totalExp;
+  const noActivity = income<=0.005 && totalExp<=0.005;
+  // Zero is neutral, not positive — don't imply a healthy position with no data.
+  const netLabel = noActivity ? 'No cash activity recorded yet' : (net>0.005 ? 'Cash positive' : (net<-0.005 ? 'Spending exceeds income' : 'Breaking even'));
+  const netClass = noActivity ? 'neutral' : (net>0.005 ? 'up' : (net<-0.005 ? 'down' : 'neutral'));
+  const netCard = noActivity ? 'c-accent' : (net>=0 ? 'c-accent' : 'c-red');
   const sumEl=document.getElementById('expenseSummary');
   if(sumEl) sumEl.innerHTML=`
-    <div class="stat-card c-green" title="Money received from paid invoices."><div class="stat-label">Income</div><div class="stat-value">${sym}${income.toLocaleString()}</div><div class="stat-change neutral">From paid invoices</div></div>
+    <div class="stat-card c-green" title="Payments collected from invoices, including part-payments."><div class="stat-label">Income</div><div class="stat-value">${fmtMoney(income, sym)}</div><div class="stat-change neutral">Collected from invoices</div></div>
     <div class="stat-card c-red" title="Everything you've recorded as a business expense."><div class="stat-label">Expenses</div><div class="stat-value">${fmtMoney(totalExp, sym)}</div><div class="stat-change neutral">${APP.expenses.length} recorded</div></div>
-    <div class="stat-card ${net>=0?'c-accent':'c-red'}" title="Collected income minus recorded expenses — a cash-based figure, not accounting profit."><div class="stat-label">Net (cash)</div><div class="stat-value">${net<0?'-':''}${fmtMoney(Math.abs(net), sym)}</div><div class="stat-change ${net>=0?'up':'down'}">${net>=0?'Cash positive':'Spending exceeds income'}</div></div>`;
+    <div class="stat-card ${netCard}" title="Collected income minus recorded expenses — a cash-based figure, not accounting profit."><div class="stat-label">Net (cash)</div><div class="stat-value">${net<0?'-':''}${fmtMoney(Math.abs(net), sym)}</div><div class="stat-change ${netClass}">${netLabel}</div></div>`;
   const tbody=document.getElementById('expensesTableBody');
   if(!tbody) return;
   if(!list.length){
@@ -5183,7 +5188,7 @@ function renderRecurring(){
       title:'No recurring invoices set up yet.', desc:'Set up an invoice that repeats on a schedule — it’s generated automatically the next time you open the app after each due date.', actionLabel:'+ New Recurring', actionCall:'openRecurringEditor(null)'});
     return;
   }
-  el.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">'+APP.recurring.map((r,i)=>{
+  el.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr));gap:14px">'+APP.recurring.map((r,i)=>{
     const sym=recurCurrency(r);
     const gen=(r.generated||[]);
     const links=gen.slice(-4).map(g=>esc(g.invoiceId)).join(', ');
@@ -5384,6 +5389,7 @@ function switchSettingsTab(tab,el){
   if(tab==='branding') buildPalette();
   if(tab==='devices') loadDevicesPanel();
   if(tab==='data'){ if(typeof renderDataSafetyPanel==='function') renderDataSafetyPanel(); if(typeof renderAppLockPanel==='function') renderAppLockPanel(); }
+  if(tab==='about'){ const v=document.getElementById('aboutVersion'); if(v) v.textContent='InvoKitPro Offline · '+IKP_APP_VERSION+' · build '+APP_BUILD; }
 }
 function updateSidebarProfile(){
   const s=APP.settings;
@@ -8633,8 +8639,11 @@ function buildTemplate(inv,tmpl,sym){
 // ================================================================
 function exportCSV(){
   if(isFreePlan()){showFreeUpgradePaywall('export');return;}
-  const h=['Document #','Type','Client','Email','Issued','Due','Subtotal','Discount','Tax','Total','Status'];
-  const r=APP.invoices.map(i=>[i.id,(i.documentType==='quote'?'Quote':'Invoice'),i.client,i.email,i.issued,i.due,(i.subtotal||i.amount).toFixed(2),(i.discount||0).toFixed(2),(i.tax||0).toFixed(2),i.amount.toFixed(2),i.status]);
+  // Part-paid is a first-class status here too, with the amount paid and the
+  // balance still owed as their own columns (P1-05).
+  const label=(i)=> i.documentType==='quote' ? cap(i.status||'') : (i.status==='partial'?'Part-paid':cap(i.status||''));
+  const h=['Document #','Type','Client','Email','Issued','Due','Subtotal','Discount','Tax','Total','Paid','Balance','Status'];
+  const r=APP.invoices.map(i=>[i.id,(i.documentType==='quote'?'Quote':'Invoice'),i.client,i.email,i.issued,i.due,(i.subtotal||i.amount).toFixed(2),(i.discount||0).toFixed(2),(i.tax||0).toFixed(2),Number(i.amount||0).toFixed(2),(i.documentType==='quote'?'':invPaid(i).toFixed(2)),(i.documentType==='quote'?'':invBalance(i).toFixed(2)),label(i)]);
   const csv=[h,...r].map(row=>row.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob=new Blob([csv],{type:'text/csv'});
   const url=URL.createObjectURL(blob);
@@ -9220,6 +9229,7 @@ function hasBusinessData() {
 // DATA SAFETY (v14) — persistent storage, health panel, safe reset
 // ================================================================
 const IKP_APP_VERSION = '8.2-data-safety';
+const APP_BUILD = 'v42'; // bump with each service-worker release; shown in Settings › About
 
 function ikpFullRecordCount(data){
   data = data || APP;
@@ -9664,6 +9674,7 @@ function openReminderModal(id){
   if(inv.status==='draft'){ showToast('Finalise this invoice before sending a reminder'); return; }
   if(inv.status==='paid'){ showToast('This invoice is already paid'); return; }
   ensureReminderModal();
+  try{ if(typeof runA11yPass==='function') runA11yPass(); }catch(e){}
   _reminderId=id;
   const c=reminderContext(inv);
   const when = c.overdueDays>0 ? `${c.overdueDays} day${c.overdueDays===1?'':'s'} overdue`
@@ -10342,6 +10353,21 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible,[tabindex]:fo
               Your business records stay on your device — nothing is uploaded to a central server unless you export or share it. No accounts, no cloud sync, no tracking. Because the data is local, install the app to your desktop or home screen and use <strong style="color:var(--text2)">Backup All Data</strong> in Data &amp; Export regularly, and before switching browsers or devices.
             </div>
           </div>
+          <!-- Support & legal (final pass) -->
+          <div class="settings-card">
+            <div class="settings-title">Support &amp; legal</div>
+            <div class="settings-desc">Get help or read our policies.</div>
+            <div style="display:flex;flex-direction:column">
+              <a href="mailto:support@getinvokitpro.com" style="color:var(--accent);text-decoration:none;font-size:14px;padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">Contact support <span style="color:var(--text3);font-size:12px">support@getinvokitpro.com</span></a>
+              <a href="https://getinvokitpro.com/terms.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:none;font-size:14px;padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">Terms &amp; Conditions <span aria-hidden="true" style="color:var(--text3)">↗</span></a>
+              <a href="https://getinvokitpro.com/privacy.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:none;font-size:14px;padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">Privacy Policy <span aria-hidden="true" style="color:var(--text3)">↗</span></a>
+              <a href="https://getinvokitpro.com/terms.html#refunds" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:none;font-size:14px;padding:10px 0;display:flex;justify-content:space-between;align-items:center">Refund Policy <span aria-hidden="true" style="color:var(--text3)">↗</span></a>
+            </div>
+            <div style="font-size:12px;color:var(--text3);border-top:1px solid var(--border);padding-top:14px;margin-top:14px;line-height:1.7;">
+              <div><strong style="color:var(--text2)">Version</strong> · <span id="aboutVersion">—</span></div>
+              <div style="margin-top:10px"><strong style="color:var(--text2)">Storage &amp; backup limitations</strong><br>Your records are stored only on this device, in the browser’s local storage. Clearing browser data, using private/incognito browsing, or losing this device can remove them. Keep regular backups — a backup file is a plain, unencrypted copy of your data — and note that the Offline edition has no automatic cloud sync.</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -10856,15 +10882,55 @@ function a11yNameButtons(){
     for(const [k,v] of MAP){ if(oc.includes(k)){ b.setAttribute('aria-label',v); return; } }
   });
 }
+const A11Y_OVERLAYS=['confirmOverlay','clientModalOverlay','catModalOverlay','expenseModalOverlay','paymentModalOverlay','recurringModal','editorOverlay','previewOverlay','receiptOverlay','reminderOverlay','lockSetupOverlay','onbOverlay'];
 function a11yDialogRoles(){
-  ['confirmOverlay','clientModalOverlay','catModalOverlay','expenseModalOverlay','paymentModalOverlay','recurringModal','editorOverlay','previewOverlay','receiptOverlay']
-    .forEach(id=>{ const el=document.getElementById(id); if(el && !el.getAttribute('role')){ el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); } });
+  A11Y_OVERLAYS.forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    if(!el.getAttribute('role')){ el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); }
+    if(!el.getAttribute('aria-labelledby')){
+      const t=el.querySelector('.editor-title,.confirm-title,.onb-title,[id$="Title"],[id$="ModalTitle"],h2,h3');
+      if(t){ if(!t.id) t.id=id+'-title'; el.setAttribute('aria-labelledby', t.id); }
+    }
+  });
 }
+function a11yFocusable(root){
+  return [...root.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')].filter(el=>el.offsetParent!==null);
+}
+// Trap Tab within the topmost open dialog, and return focus to the control that
+// opened it once it closes.
+function initModalFocusMgmt(){
+  if(!window._modalKeydownInit){
+    window._modalKeydownInit=true;
+    document.addEventListener('keydown', e=>{
+      if(e.key!=='Tab') return;
+      const open=A11Y_OVERLAYS.map(id=>document.getElementById(id)).filter(el=>el && el.classList.contains('open'));
+      if(!open.length) return;
+      const modal=open[open.length-1];
+      const f=a11yFocusable(modal); if(!f.length) return;
+      const first=f[0], last=f[f.length-1];
+      if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+    });
+  }
+  // Attach a focus-return observer to any overlay not already watched (covers
+  // both static and dynamically-injected modals).
+  A11Y_OVERLAYS.forEach(id=>{
+    const el=document.getElementById(id); if(!el || el._a11yObserved) return;
+    el._a11yObserved=true;
+    new MutationObserver(()=>{
+      const open=el.classList.contains('open');
+      if(open && !el._a11yOpen){ el._a11yOpen=true; el._a11yTrigger=document.activeElement; }
+      else if(!open && el._a11yOpen){ el._a11yOpen=false; const t=el._a11yTrigger; if(t && t.focus && document.contains(t)){ try{ t.focus(); }catch(e){} } }
+    }).observe(el,{attributes:true,attributeFilter:['class']});
+  });
+}
+window.initModalFocusMgmt=initModalFocusMgmt;
 function runA11yPass(){
   try{ a11yWireFieldLabels(); }catch(e){}
   try{ a11yLabelInputs(); }catch(e){}
   try{ a11yNameButtons(); }catch(e){}
   try{ a11yDialogRoles(); }catch(e){}
+  try{ initModalFocusMgmt(); }catch(e){}
 }
 window.runA11yPass=runA11yPass;
 
@@ -11592,6 +11658,23 @@ function validateKeyFormat(key) {
   return /^(?:IVK|[A-Z0-9]{4,12})(-[A-Z0-9]{4,12}){2,5}$/.test(key.trim().toUpperCase());
 }
 
+// Never show or log a full licence key — keep only the last four characters.
+function maskKey(k){ k=String(k||'').trim(); if(k.length<=4) return k; return '••••-••••-'+k.slice(-4); }
+// Turn a server activation failure into a specific, actionable message.
+function classifyActivationError(status, data){
+  const raw = String((data && (data.error||data.message))||'').toLowerCase();
+  const code = String((data && data.code)||'').toLowerCase();
+  if(/not active|inactive|revoked|disabled|suspended|expired/.test(raw) || status===403 || code==='inactive' || code==='revoked')
+    return 'This licence is inactive or has been revoked. If you think this is a mistake, contact support@getinvokitpro.com.';
+  if(/limit|maximum|too many|no (?:more )?activations?|slots? full|activation.?count/.test(raw) || status===409 || code==='limit_reached')
+    return 'This licence has reached its activation limit. Remove a device you no longer use from your other device, or contact support@getinvokitpro.com. Annual licences allow 2 activations; Lifetime allows 5.';
+  if(/invalid|not found|unknown|no such|does ?n.?t exist|malformed|bad key/.test(raw) || status===404 || code==='invalid')
+    return 'That licence key wasn’t recognised. Check it matches your purchase email exactly (including dashes).';
+  if(status>=500 || code==='server_error')
+    return 'The activation server had a problem. Please try again in a moment, or contact support@getinvokitpro.com.';
+  return (data && data.error) ? data.error : 'Activation failed. Please try again or contact support@getinvokitpro.com.';
+}
+window.maskKey=maskKey;
 async function activateLicence() {
   const input = document.getElementById('licenceKeyInput');
   const key = (input?.value || '').trim().toUpperCase();
@@ -11649,7 +11732,7 @@ async function activateLicence() {
     }
 
     if (!res.ok || !data.ok) {
-      showLicenceMsg(data.error || 'Activation failed. Please contact support@getinvokitpro.com. Annual licences include 2 activations and Lifetime licences include 5.', 'error');
+      showLicenceMsg(classifyActivationError(res.status, data), 'error');
       return;
     }
 
@@ -11845,6 +11928,7 @@ function onbInject(){
 
 function openOnboarding(startStep){
   onbInject();
+  try{ if(typeof runA11yPass==='function') runA11yPass(); }catch(e){}
   ensureSettingsShape();
   ONB.step = startStep ? Math.max(1,Math.min(ONB.total,startStep)) : getOnbStepPointer();
   document.getElementById('onbOverlay').classList.add('open');
@@ -12507,7 +12591,7 @@ function ensureLockSetupModal(){
     '</div>';
   document.body.appendChild(ov);
 }
-function openLockSetup(){ ensureLockSetupModal(); const o=document.getElementById('lockSetupOverlay'); o.classList.add('open'); document.body.style.overflow='hidden'; setTimeout(()=>document.getElementById('lockPin1')?.focus(),60); }
+function openLockSetup(){ ensureLockSetupModal(); try{ if(typeof runA11yPass==='function') runA11yPass(); }catch(e){} const o=document.getElementById('lockSetupOverlay'); o.classList.add('open'); document.body.style.overflow='hidden'; setTimeout(()=>document.getElementById('lockPin1')?.focus(),60); }
 function closeLockSetup(){ const o=document.getElementById('lockSetupOverlay'); if(o) o.classList.remove('open'); document.body.style.overflow=''; }
 async function saveLockSetup(){
   const p1=(document.getElementById('lockPin1').value||'').trim();
