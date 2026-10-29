@@ -1,4 +1,4 @@
-const CACHE = 'invokit-v42-final-pass';
+const CACHE = 'invokit-v43-offline-licence-fix';
 const SHELL = [
   '/',
   '/index.html',

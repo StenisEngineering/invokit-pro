@@ -9229,7 +9229,7 @@ function hasBusinessData() {
 // DATA SAFETY (v14) — persistent storage, health panel, safe reset
 // ================================================================
 const IKP_APP_VERSION = '8.2-data-safety';
-const APP_BUILD = 'v42'; // bump with each service-worker release; shown in Settings › About
+const APP_BUILD = 'v43'; // bump with each service-worker release; shown in Settings › About
 
 function ikpFullRecordCount(data){
   data = data || APP;
@@ -11321,8 +11321,15 @@ const ACTIVATION_PUBLIC_KEY_JWK = {"kty":"EC","crv":"P-256","x":"ybrEfbuqM0uk4w6
 // After this date, a valid ES256 token is REQUIRED to unlock offline. Before it,
 // existing (pre-ES256) activations are still trusted so nobody gets locked out
 // mid-migration; every online boot upgrades them to a real token.
-const LICENCE_MIGRATION_DEADLINE = Date.parse('2026-09-30T23:59:59Z');
-// How long a device may stay offline past its 30-day recheck before it must reconnect.
+//
+// IMPORTANT: offline boot no longer depends on this date. An already-activated
+// device that is simply offline is ALWAYS allowed in (see verifyLicenceForBoot) —
+// that is the whole promise of the offline edition, and a hardcoded calendar date
+// must never again be able to lock an offline customer out. This constant is kept
+// only as a far-future marker for any future, server-coordinated migration.
+const LICENCE_MIGRATION_DEADLINE = Date.parse('2036-09-30T23:59:59Z');
+// Kept for reference. The offline recheck is no longer time-boxed: an offline
+// device keeps working and is re-verified whenever it next reconnects.
 const LICENCE_RECHECK_GRACE_DAYS = 21;
 
 function getInstallId() {
@@ -11434,9 +11441,12 @@ async function verifyLicenceForBoot(ld) {
     if (now > recheck) {
       const up = await tryUpgradeLicence(ld, installId);
       if (up.ok) return up;
-      const graceEnd = recheck + LICENCE_RECHECK_GRACE_DAYS * 864e5;
-      if (now < graceEnd) return { ok: true, licenceMeta: ld.licenceMeta };
-      return { ok: false, message: 'Please reconnect to the internet to verify your licence.' };
+      // Offline (server unreachable, incl. a 5xx hiccup): keep trusting this
+      // device's own signed token. An activated, offline device must never be
+      // locked out — the recheck simply runs again whenever they reconnect.
+      if (up.offline) return { ok: true, licenceMeta: ld.licenceMeta };
+      // Server was reachable and rejected the key (revoked) — block.
+      return { ok: false, message: 'Your licence could not be verified — please contact support@getinvokitpro.com.' };
     }
     return { ok: true, licenceMeta: ld.licenceMeta };
   }
@@ -11444,11 +11454,11 @@ async function verifyLicenceForBoot(ld) {
   // No valid ES256 token — either a pre-ES256 (legacy) activation, or a forgery.
   const up = await tryUpgradeLicence(ld, installId);
   if (up.ok) return up;
-  // During the migration window, keep trusting existing activations ONLY when we
-  // couldn't reach the server (offline), so genuine customers on old builds aren't
-  // locked out. If the server was reachable and rejected the key, block. Window
-  // closes after the deadline, after which a valid signed token is mandatory.
-  if (up.offline && ld.key && now < LICENCE_MIGRATION_DEADLINE) {
+  // Offline with a stored activation → always allowed in, with NO calendar cutoff.
+  // Once a device has activated, the offline edition must keep working with no
+  // connection, indefinitely. A forged/unsigned key is still caught the next time
+  // the device is online (the upgrade call above re-validates against the server).
+  if (up.offline && ld.key) {
     return { ok: true, licenceMeta: ld.licenceMeta };
   }
   return { ok: false, message: 'Please reconnect to the internet to verify your licence.' };
